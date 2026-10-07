@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/resume_service.dart';
+import '../../services/resume_service.dart';
 import 'resume_builder_screen.dart';
 
 class ResumesListScreen extends StatefulWidget {

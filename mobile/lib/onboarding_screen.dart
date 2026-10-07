@@ -98,15 +98,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   String _getCurrencySymbol(String country) {
     const currencyMapping = {
-      "United States": "$",
-      "Canada": "C$",
+      "United States": "\$",
+      "Canada": "C\$",
       "United Kingdom": "£",
       "Nigeria": "₦",
       "India": "₹",
       "Ghana": "GH₵",
       "Kenya": "KSh",
       "South Africa": "R",
-      "Australia": "A$",
+      "Australia": "A\$",
       "Germany": "€",
       "France": "€",
       "Italy": "€",
@@ -116,12 +116,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "Switzerland": "CHF",
       "China": "¥",
       "Japan": "¥",
-      "Brazil": "R$",
+      "Brazil": "R\$",
       "Egypt": "EGP",
       "Saudi Arabia": "SR",
       "United Arab Emirates": "AED"
     };
-    return currencyMapping[country] ?? "$";
+    return currencyMapping[country] ?? "\$";
   }
 
   @override

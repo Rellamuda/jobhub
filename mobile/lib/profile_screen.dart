@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'config/api_config.dart';
 import 'config/theme_manager.dart';
@@ -466,6 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )).toList(),
                   ),
                 ],
+              ],
             ),
           ),
         ],

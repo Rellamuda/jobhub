@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   /* Clean Light Theme Background */
   --bg-color: #F8FAFC;

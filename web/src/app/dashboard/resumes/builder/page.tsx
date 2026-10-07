@@ -23,15 +23,33 @@ function ResumeBuilder() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // Role Guard: Only Job Seekers are allowed to build resumes
+    fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(user => {
+        if (user && user.role === 'EMPLOYER') {
+          window.location.href = '/dashboard/employer/jobs/new';
+          return;
+        }
+      })
+      .catch(console.error);
+
     if (parsedDataParam) {
       try {
         const parsed = JSON.parse(decodeURIComponent(parsedDataParam));
         setResume(prev => ({ ...prev, ...parsed }));
       } catch(e) {}
     } else if (resumeId) {
-      const token = localStorage.getItem('token');
       fetch(`/api/resumes/${resumeId}`, {
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(res => res.json())
         .then(data => setResume(data))

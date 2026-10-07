@@ -39,9 +39,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 flex justify-between items-center px-4 md:px-8 py-3 bg-white/80 dark:bg-[#120B1C]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/10 transition-colors duration-300">
       {/* Left: Logo and App Name */}
-      <Link href="/" className="flex items-center gap-3 no-underline">
-        <img src="/logo.jpg" alt="JobHub AI Logo" className="h-9 w-9 rounded-lg object-cover" />
-        <span className="text-xl md:text-2xl font-black text-gradient">JobHub AI</span>
+      <Link href="/" className="flex items-center gap-3 no-underline" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+        <img 
+          src="/icon.svg" 
+          alt="JobHub AI Logo" 
+          width="36" 
+          height="36" 
+          style={{ width: '36px', height: '36px', maxWidth: '36px', maxHeight: '36px', objectFit: 'contain', borderRadius: '8px' }} 
+        />
+        <span className="text-xl md:text-2xl font-black text-gradient" style={{ fontSize: '1.5rem', fontWeight: 900 }}>JobHub AI</span>
       </Link>
 
       {/* Center: Navigation Links when Logged In */}

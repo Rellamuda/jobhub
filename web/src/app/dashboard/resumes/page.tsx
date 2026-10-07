@@ -9,9 +9,32 @@ export default function ResumesPage() {
   const [resumes, setResumes] = useState([]);
   
   useEffect(() => {
-    fetch('/api/resumes')
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // Role Guard: Only Job Seekers are allowed on Resumes page
+    fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
       .then(res => res.json())
-      .then(data => setResumes(data))
+      .then(user => {
+        if (user && user.role === 'EMPLOYER') {
+          window.location.href = '/dashboard/employer/jobs/new';
+          return;
+        }
+      })
+      .catch(console.error);
+
+    fetch('/api/resumes', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setResumes(data);
+      })
       .catch(err => console.error(err));
   }, []);
 

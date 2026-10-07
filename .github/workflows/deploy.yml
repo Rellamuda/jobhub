@@ -21,7 +21,7 @@ jobs:
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         command_timeout: 30m
         script: |
-          cd /home/${{ secrets.EC2_USERNAME }}/jobhubai
+          cd /home/${{ secrets.EC2_USERNAME }}/jobhub
           
           # Telemetry before deploy
           {

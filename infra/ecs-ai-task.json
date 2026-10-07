@@ -1,0 +1,25 @@
+{
+  "family": "jobhub-ai-task",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "jobhub-ai",
+      "image": "ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/jobhub-ai:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "secrets": [
+        { "name": "GEMINI_API_KEY", "valueFrom": "arn:aws:ssm:region:ACCOUNT_ID:parameter/GEMINI_API_KEY" }
+      ]
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512"
+}

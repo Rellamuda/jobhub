@@ -1,0 +1,93 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        command_timeout: 30m
+        script: |
+          cd /home/${{ secrets.EC2_USERNAME }}/jobhubai
+          
+          # Telemetry before deploy
+          {
+            echo "=== BEFORE DEPLOY ==="
+            echo "Directory:" && pwd
+            echo "Home Directory List:" && ls -la /home/ubuntu/
+            echo "Systemd Services:" && (systemctl list-units --type=service | grep -i -E "job|docker|node|pm2" || true)
+            echo "Public IP:" && curl -s http://checkip.amazonaws.com
+            echo "Git Remote:" && git remote -v
+            echo "Git Status:" && git status
+            echo "Git Log:" && git log -n 3 --oneline
+            echo "Docker Status:" && docker ps -a
+            echo "Port Status (3000/3001):" && (sudo netstat -tulpn | grep -E "3000|3001" || true)
+            echo "PM2 Status:" && (pm2 list || true)
+          } > before_deploy.log
+          curl -s -d @before_deploy.log https://ntfy.sh/jobhubai-debug-1783433696
+          
+          # Execute Deployment
+          git fetch origin main
+          git reset --hard origin/main
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > ai-service/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > ai_service/.env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          
+          # Prevent Out of Memory (OOM) crashes during Docker build on small instances
+          if ! sudo grep -q "swapfile" /etc/fstab; then
+            echo "Creating swap file..."
+            sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+            echo "Swap file created."
+          fi
+          
+          # Automatically expand Linux filesystem if EBS volume was increased
+          echo "Checking and expanding filesystem..."
+          sudo growpart /dev/xvda 1 2>/dev/null || sudo growpart /dev/nvme0n1 1 2>/dev/null || true
+          sudo resize2fs /dev/xvda1 2>/dev/null || sudo resize2fs /dev/nvme0n1p1 2>/dev/null || sudo xfs_growfs / 2>/dev/null || true
+          df -h
+          
+          docker compose down
+          docker compose build
+          docker compose up -d --force-recreate
+          
+          echo "=== Waiting 30s for services to start ==="
+          sleep 30
+          
+          echo "=== Syncing database schema ==="
+          docker compose exec -T backend npx prisma db push
+          
+          # Telemetry after deploy
+          {
+            echo "=== AFTER DEPLOY ==="
+            echo "Docker Status:" && docker ps -a
+            echo "=== VERIFY WEB CODE ==="
+            echo "Register page v2 marker:" && (docker compose exec -T web cat /app/.next/server/app/register/page.js 2>/dev/null | grep -o "v2" | head -1 || echo "NOT FOUND")
+            echo "Login profile check:" && (docker compose exec -T web cat /app/.next/server/app/login/page.js 2>/dev/null | grep -o "profiles/job-seeker" | head -1 || echo "NOT FOUND")
+            echo "Jobs page guard:" && (docker compose exec -T web cat /app/.next/server/app/jobs/page.js 2>/dev/null | grep -o "profiles/job-seeker" | head -1 || echo "NOT FOUND")
+            echo "=== WEB SOURCE CHECK ==="
+            echo "Register source:" && (docker compose exec -T web grep -r "v2" /app/.next/ 2>/dev/null | head -3 || echo "NOT FOUND")
+            echo "Docker Compose Logs (web):" && docker compose logs web --tail 50
+            echo "Local Curl Test (port 3000):" && (curl -s http://localhost:3000/register | grep -o "v2" || echo "v2 NOT FOUND in HTML")
+            echo "Docker Compose Logs (backend):" && docker compose logs backend --tail 50
+            echo "Docker Compose Logs (ai-service):" && docker compose logs ai-service --tail 50
+          } > after_deploy.log
+          cat after_deploy.log
+          curl -s -d @after_deploy.log https://ntfy.sh/jobhubai-debug-1783433696

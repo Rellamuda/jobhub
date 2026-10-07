@@ -1,0 +1,149 @@
+:root {
+  /* Clean Light Theme Background */
+  --bg-color: #F8FAFC;
+  --bg-accent: #EEF2F6;
+
+  /* Primary Accent Colors */
+  --primary-color: #4F46E5; /* Indigo */
+  --secondary-color: #0284C7; /* Sky */
+  
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: rgba(15, 23, 42, 0.7);
+  
+  /* Glass Surfaces (Light) */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dark {
+  /* Deep Obsidian Background */
+  --bg-color: #0A0A0A;
+  /* Midnight Violet Accent Background */
+  --bg-accent: #120B1C;
+
+  /* Primary Neon Colors */
+  --primary-color: #6366F1; /* Electric Indigo */
+  --secondary-color: #00F0FF; /* Neon Cyan */
+  
+  /* Text */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  
+  /* Glass Surfaces (Dark) */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  background-image: radial-gradient(circle at top right, var(--bg-accent), transparent 50%);
+  color: var(--text-primary);
+  font-family: inherit;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Glassmorphism Container */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--glass-shadow);
+  padding: 2rem;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-panel:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.4); /* Glow effect */
+}
+
+/* Premium Button */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 240, 255, 0.6);
+}
+
+/* Glowing text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Force dark-mode dropdown select options text visibility */
+select.input-field option {
+  background-color: var(--bg-accent, #120B1C) !important;
+  color: white !important;
+}
+
+/* PDF Print styles for Profile Page CV Export */
+@media print {
+  body {
+    background-color: white !important;
+    background-image: none !important;
+    color: black !important;
+  }
+  header, footer, nav, button, .btn-primary, Link, a, hr {
+    display: none !important;
+  }
+  main {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  /* Hide sidebar columns and set main profile cards full width */
+  div[style*="flex: 1"] {
+    display: none !important;
+  }
+  div[style*="flex: 2"], div[style*="flex: 3"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+  .glass-panel {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    padding: 0 0 20px 0 !important;
+    margin-bottom: 20px !important;
+    border-bottom: 1px dashed #ccc !important;
+    border-radius: 0 !important;
+    transform: none !important;
+  }
+  .glass-panel:hover {
+    transform: none !important;
+    border-color: transparent !important;
+  }
+  .text-gradient {
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    color: black !important;
+  }
+  strong, h1, h2, h3, p, span, div, li {
+    color: black !important;
+  }
+}

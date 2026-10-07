@@ -1,0 +1,450 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String           @id @default(uuid())
+  email               String           @unique
+  password            String
+  role                Role             @default(JOB_SEEKER)
+  subscriptionTier    SubscriptionTier @default(FREE)
+  freeGenerationsUsed Int              @default(0)
+  fraudScore          Float?
+  isFlagged           Boolean          @default(false)
+  flagReason          String?
+  accountStatus       String           @default("ACTIVE") // ACTIVE, SUSPENDED
+  payments            Payment[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  jobSeekerProfile JobSeekerProfile?
+  employer         Employer?
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  referralsMade    Referral[] @relation("Referrer")
+  notifications    Notification[]
+
+  // CRM
+  candidateNotes   CandidateNote[] @relation("Author")
+
+  // Networking
+  posts            Post[]
+  comments         Comment[]
+  likes            Like[]
+  connections      Connection[] @relation("UserConnections")
+  connectedTo      Connection[] @relation("ConnectedUser")
+  followedCompanies CompanyFollower[]
+}
+
+enum Role {
+  JOB_SEEKER
+  EMPLOYER
+  ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+}
+
+model JobSeekerProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  firstName        String
+  lastName         String
+  otherNames       String?
+  gender           String?
+  profession       String?
+  isSkilledProfessional Boolean @default(false)
+  skilledProfession String?
+  residenceCountry String?
+  residenceState   String?
+  residenceCity    String?
+  citizenshipCountry String?
+  citizenshipState String?
+  dateOfBirth      DateTime?
+  education        Json?
+  certificates     Json?
+  professionalCertifications Json?
+  experience       Json?
+  achievements     Json?
+  bio              String?
+  resumeUrl        String?
+  resumeContent    String?
+  profilePicture   String?
+  skills           String[]
+  autoApplyEnabled Boolean  @default(false)
+  autoApplyKeywords String[]
+  
+  // Phase 1 Additions: Personal & Preferences
+  phone              String?
+  nationality        String?
+  languages          Json?
+  maritalStatus      String?
+  headline           String?
+  willingToRelocate  Boolean  @default(false)
+  remotePreference   String?
+  summary            String?
+  desiredJobTitle    String?
+  preferredIndustry  String?
+  employmentType     String?
+  workArrangement    String?
+  preferredLocations Json?
+  expectedSalary     String?
+  availability       String?
+  
+  // Phase 1 Additions: Professional
+  detailedSkills     Json?
+  portfolio          Json?
+  projects           Json?
+  references         Json?
+  referencesOnRequest Boolean @default(true)
+  socialLinks        Json?
+  documents          Json?
+  
+  // Phase 1 Additions: Settings & Stats
+  profileVisibility  String?  @default("PUBLIC")
+  hideCurrentEmployer Boolean @default(false)
+  hideContactDetails  Boolean @default(false)
+  verificationStatus String?  @default("UNVERIFIED")
+  verificationDocs   Json?
+  profileViews       Int      @default(0)
+  fraudScore         Float?
+  isFlagged          Boolean  @default(false)
+  flagReason         String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  applications Application[]
+  resumes      Resume[]
+  referredBy   Referral[] @relation("ReferredCandidate")
+
+  candidateNotes CandidateNote[]
+  candidateTags  CandidateTag[]
+  credentials    Credential[]
+}
+
+model Employer {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  companyName    String
+  description    String?
+  locationCountry String?
+  locationState  String?
+  locationCity   String?
+  website        String?
+  profilePicture String?
+  
+  // Phase 1 Additions: Company Info
+  industry           String?
+  businessType       String?
+  companySize        String?
+  foundedYear        Int?
+  registrationNumber String?
+  taxId              String?
+  bannerImage        String?
+  headquarters       String?
+  
+  // Phase 1 Additions: Culture & Contact
+  mission            String?
+  vision             String?
+  coreValues         Json?
+  culture            String?
+  whyWorkWithUs      String?
+  benefits           Json?
+  hrContactName      String?
+  hrEmail            String?
+  hrPhone            String?
+  
+  // Phase 1 Additions: Media & Locations
+  socialLinks        Json?
+  officeLocations    Json?
+  companyPhotos      Json?
+  companyVideos      Json?
+  officeTourUrl      String?
+  teamStories        Json?
+  awards             Json?
+  
+  // Phase 2 Additions: Employer Branding
+  testimonials       Json?
+  responseTimeRating Float?
+  
+  // Phase 1 Additions: Settings & Stats
+  verificationStatus String?  @default("UNVERIFIED")
+  profileViews       Int      @default(0)
+  followers          Int      @default(0)
+  fraudScore         Float?
+  isFlagged          Boolean  @default(false)
+  flagReason         String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  jobs Job[]
+  talentPools TalentPool[]
+  companyFollowers CompanyFollower[]
+}
+
+model Job {
+  id          String   @id @default(uuid())
+  employerId  String
+  employer    Employer @relation(fields: [employerId], references: [id])
+  title       String
+  description String
+  location    String?
+  salary      String?
+  isRemote    Boolean  @default(false)
+  
+  // Phase 1 Additions: Job Details
+  industry           String?
+  employmentType     String?
+  experienceLevel    String?
+  skillsRequired     Json?
+  benefits           Json?
+  deadline           DateTime?
+  
+  fraudScore         Float?
+  isFlagged          Boolean  @default(false)
+  flagReason         String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications Application[]
+  referrals    Referral[]
+}
+
+model Application {
+  id               String           @id @default(uuid())
+  jobId            String
+  job              Job              @relation(fields: [jobId], references: [id])
+  jobSeekerId      String
+  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerId], references: [id])
+  status           ApplicationStatus @default(APPLIED)
+  coverLetter      String?
+  resumeId         String?
+  resume           Resume?          @relation(fields: [resumeId], references: [id])
+  portfolioData    Json?
+  certificatesData Json?
+  aiMatchScore     Float?
+  interviewDate    DateTime?
+  interviewLink    String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+enum ApplicationStatus {
+  APPLIED
+  VIEWED
+  SHORTLISTED
+  REJECTED
+  HIRED
+  INVITED
+  ACCEPTED_OFFER
+  DECLINED_OFFER
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content     String
+  createdAt   DateTime @default(now())
+}
+
+model Resume {
+  id               String           @id @default(uuid())
+  jobSeekerId      String
+  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerId], references: [id])
+  
+  title            String           @default("Untitled Resume")
+  isTargeted       Boolean          @default(false)
+  targetJobId      String?          // If tailored for a specific job
+  atsScore         Int?             // If analyzed against a job description
+  
+  // Stored JSON representation of the resume
+  personalInfo     Json?
+  summary          String?
+  experience       Json?
+  education        Json?
+  skills           Json?
+  projects         Json?
+  certifications   Json?
+  
+  applications     Application[]
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model Referral {
+  id             String           @id @default(uuid())
+  referrerId     String
+  referrer       User             @relation("Referrer", fields: [referrerId], references: [id])
+  candidateId    String
+  candidate      JobSeekerProfile @relation("ReferredCandidate", fields: [candidateId], references: [id])
+  jobId          String
+  job            Job              @relation(fields: [jobId], references: [id])
+  
+  status         ReferralStatus   @default(PENDING)
+  rewardAmount   Int              @default(0)
+  
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+enum ReferralStatus {
+  PENDING
+  HIRED
+  REJECTED
+  REWARDED
+}
+
+model Notification {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  jobId            String?
+  matchProbability Int?
+  message          String
+  isRead           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+}
+
+// =====================
+// MONETIZATION
+// =====================
+
+model Payment {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  reference     String   @unique
+  amount        Float
+  status        String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  plan          String?  // e.g. "PREMIUM_EMPLOYER", "AI_PRO"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// =====================
+// DIGITAL CREDENTIALS
+// =====================
+
+model Credential {
+  id                 String           @id @default(uuid())
+  jobSeekerProfileId String
+  jobSeekerProfile   JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id])
+  type               String           // DEGREE, CERTIFICATE, LICENSE, ID
+  name               String
+  issuer             String
+  issueDate          DateTime?
+  documentUrl        String?
+  verificationStatus String           @default("PENDING") // PENDING, VERIFIED, REJECTED
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+// =====================
+// RECRUITER CRM MODELS
+// =====================
+
+model TalentPool {
+  id          String   @id @default(uuid())
+  employerId  String
+  employer    Employer @relation(fields: [employerId], references: [id])
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model PipelineStage {
+  id          String   @id @default(uuid())
+  name        String
+  orderIndex  Int
+  createdAt   DateTime @default(now())
+}
+
+model CandidateNote {
+  id               String   @id @default(uuid())
+  jobSeekerProfileId String
+  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id])
+  authorId         String
+  author           User     @relation("Author", fields: [authorId], references: [id])
+  content          String
+  createdAt        DateTime @default(now())
+}
+
+model CandidateTag {
+  id               String   @id @default(uuid())
+  jobSeekerProfileId String
+  jobSeekerProfile JobSeekerProfile @relation(fields: [jobSeekerProfileId], references: [id])
+  tag              String
+}
+
+// =====================
+// NETWORKING MODELS
+// =====================
+
+model Post {
+  id        String   @id @default(uuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  comments  Comment[]
+  likes     Like[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model Connection {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation("UserConnections", fields: [userId], references: [id])
+  connectedUserId String
+  connectedUser  User     @relation("ConnectedUser", fields: [connectedUserId], references: [id])
+  status         String   @default("PENDING") // PENDING, ACCEPTED
+  createdAt      DateTime @default(now())
+}
+
+model CompanyFollower {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  employerId  String
+  employer    Employer @relation(fields: [employerId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, employerId])
+}

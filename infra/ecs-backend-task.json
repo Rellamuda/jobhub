@@ -1,0 +1,30 @@
+{
+  "family": "jobhub-backend-task",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "jobhub-backend",
+      "image": "ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/jobhub-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 3001,
+          "hostPort": 3001,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:region:ACCOUNT_ID:parameter/DATABASE_URL" },
+        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:region:ACCOUNT_ID:parameter/JWT_SECRET" },
+        { "name": "PAYSTACK_SECRET_KEY", "valueFrom": "arn:aws:ssm:region:ACCOUNT_ID:parameter/PAYSTACK_SECRET_KEY" }
+      ]
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024"
+}

@@ -1,0 +1,28 @@
+{
+  "family": "jobhub-web-task",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "jobhub-web",
+      "image": "ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/jobhub-web:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" }
+      ],
+      "secrets": [
+        { "name": "NEXT_PUBLIC_API_URL", "valueFrom": "arn:aws:ssm:region:ACCOUNT_ID:parameter/NEXT_PUBLIC_API_URL" }
+      ]
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024"
+}

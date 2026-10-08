@@ -261,7 +261,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.black)),
+              Text(price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
               const SizedBox(width: 4),
               const Text('/mo', style: TextStyle(color: Colors.white54, fontSize: 14)),
             ],

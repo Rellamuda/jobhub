@@ -35,7 +35,7 @@ jobs:
       - name: Analyze Code
         working-directory: ./mobile
         run: |
-          flutter analyze || true
+          flutter analyze
 
       - name: Build APK
         working-directory: ./mobile
@@ -64,3 +64,27 @@ jobs:
         with:
           name: app-release
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Transfer APK to EC2
+        if: success()
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          source: "mobile/build/app/outputs/flutter-apk/app-release.apk"
+          target: "/home/${{ secrets.EC2_USERNAME }}/downloads"
+          strip_components: 5
+
+      - name: Distribute APK on EC2 for Direct Browser Download
+        if: success()
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk /home/${{ secrets.EC2_USERNAME }}/JobHub-app-release.apk || true
+            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-backend-1:/app/public/uploads/JobHub-app-release.apk || true
+            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-web-1:/app/public/JobHub-app-release.apk || true
+

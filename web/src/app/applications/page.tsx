@@ -18,6 +18,8 @@ export default function EmployerDashboard() {
   const [selectedJobId, setSelectedJobId] = useState<string>('');
   const [matches, setMatches] = useState<any[]>([]);
   const [matching, setMatching] = useState(false);
+  const [invitedUserIds, setInvitedUserIds] = useState<string[]>([]);
+  const [viewingResume, setViewingResume] = useState<any | null>(null);
 
   const [selectedViewJobId, setSelectedViewJobId] = useState<string | null>(null);
 
@@ -111,6 +113,10 @@ export default function EmployerDashboard() {
   };
 
   const handleInvite = async (userId: string) => {
+    if (invitedUserIds.includes(userId)) {
+      alert('Message already sent');
+      return;
+    }
     const token = localStorage.getItem('token');
     try {
       const res = await fetch('/api/messages', {
@@ -118,7 +124,10 @@ export default function EmployerDashboard() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ receiverId: userId, content: `Hi! We think you'd be a great fit for our recent job posting. We invite you to apply!` })
       });
-      if (res.ok) alert('Invitation sent!');
+      if (res.ok) {
+        setInvitedUserIds(prev => [...prev, userId]);
+        alert('Invitation sent!');
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -152,10 +161,20 @@ export default function EmployerDashboard() {
                      <div key={app.id} className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <div>
-                           <h3 style={{ margin: 0 }}>{app.jobSeekerProfile?.firstName} {app.jobSeekerProfile?.lastName}</h3>
-                           <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>Status: {app.status}</p>
-                         </div>
-                         <button className="btn-primary" onClick={() => handleInvite(app.jobSeekerProfile.userId)} style={{ padding: '8px 16px', fontSize: '0.9rem' }}>Message</button>
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {app.jobSeekerProfile?.firstName} {app.jobSeekerProfile?.lastName}
+                              {app.jobSeekerProfile?.verificationStatus === 'VERIFIED' && <span style={{ color: '#00f0ff' }}>✔</span>}
+                            </h3>
+                            <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>Status: <span style={{ color: '#00f0ff', fontWeight: 'bold' }}>{app.status}</span> • AI Match: {app.aiMatchScore || 85}%</p>
+                            {app.resume && (
+                              <div style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: '#00f0ff' }}>
+                                📄 Attached Resume: <strong>{app.resume.title || 'Candidate Resume'}</strong>
+                              </div>
+                            )}
+                          </div>
+                          <button className="btn-primary" onClick={() => handleInvite(app.jobSeekerProfile.userId)} style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+                            {invitedUserIds.includes(app.jobSeekerProfile.userId) ? 'Message sent' : 'Message Seeker'}
+                          </button>
                        </div>
                        {app.coverLetter && (
                          <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
@@ -219,7 +238,19 @@ export default function EmployerDashboard() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <button className="btn-primary" style={{ padding: '8px 24px', fontSize: '0.9rem' }} onClick={() => handleInvite(m.userId)}>Invite to Apply</button>
+                        <button 
+                          className="btn-primary" 
+                          style={{ 
+                            padding: '8px 24px', 
+                            fontSize: '0.9rem',
+                            background: invitedUserIds.includes(m.userId) ? 'rgba(255,255,255,0.15)' : undefined,
+                            color: invitedUserIds.includes(m.userId) ? '#a1a1aa' : undefined,
+                            cursor: invitedUserIds.includes(m.userId) ? 'default' : 'pointer'
+                          }} 
+                          onClick={() => handleInvite(m.userId)}
+                        >
+                          {invitedUserIds.includes(m.userId) ? 'Message already sent' : 'Invite to Apply'}
+                        </button>
                       </div>
                     </div>
                   ))}

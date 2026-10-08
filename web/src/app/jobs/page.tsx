@@ -12,6 +12,8 @@ export default function JobsFeedPage() {
   const [success, setSuccess] = useState('');
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
   const [matchScores, setMatchScores] = useState<Record<string, {score?: number, loading: boolean}>>({});
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
 
   const [role, setRole] = useState<'JOB_SEEKER' | 'EMPLOYER' | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<'FREE' | 'PREMIUM'>('FREE');
@@ -53,6 +55,18 @@ export default function JobsFeedPage() {
           } else if (user.role === 'EMPLOYER' && (!profile.companyName || profile.companyName.length === 0)) {
             window.location.href = '/profile';
             return;
+          }
+
+          if (user.role === 'JOB_SEEKER') {
+            fetch('/api/resumes', { headers: { 'Authorization': `Bearer ${token}` } })
+              .then(res => res.json())
+              .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                  setResumes(data);
+                  setSelectedResumeId(data[0].id);
+                }
+              })
+              .catch(console.error);
           }
         } else {
           window.location.href = '/profile';
@@ -102,7 +116,8 @@ export default function JobsFeedPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          coverLetter: coverLetter || undefined
+          coverLetter: coverLetter || undefined,
+          resumeId: selectedResumeId || undefined,
         }),
       });
 
@@ -111,7 +126,7 @@ export default function JobsFeedPage() {
         throw new Error(errData.message || 'Application failed');
       }
 
-      setSuccess('Application submitted successfully!');
+      setSuccess('Application submitted successfully with your attached resume and cover letter!');
       setApplyingJobId(null);
       setCoverLetter('');
     } catch (err: any) {
@@ -271,9 +286,14 @@ export default function JobsFeedPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{job.title}</h2>
-                  <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    <span>
-                      🏢 <Link href={`/company/${job.employerId}`} style={{ color: '#00f0ff', textDecoration: 'none' }}>{job.employer?.companyName || 'Unknown Company'}</Link>
+                  <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                      🏢 <Link href={`/company/${job.employerId}`} style={{ color: '#00f0ff', textDecoration: 'none', fontWeight: 600 }}>{job.employer?.companyName || 'Unknown Company'}</Link>
+                      {job.employer?.verificationStatus === 'VERIFIED' && (
+                        <span style={{ background: 'rgba(0, 240, 255, 0.15)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.4)', borderRadius: '12px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                          ✔ Verified Company
+                        </span>
+                      )}
                     </span>
                     <span>📍 {job.location || 'Anywhere'} {job.isRemote && '(Remote)'}</span>
                     <span>💰 {job.salary || 'Competitive'}</span>
@@ -307,26 +327,54 @@ export default function JobsFeedPage() {
                 </div>
               </div>
 
-              {/* Optional Cover Letter Section */}
+              {/* Application Section with Attached Resume & Cover Letter */}
               {applyingJobId === job.id && (
-                <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Submit Application</h3>
-                  <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    Would you like to include an optional cover letter?
-                  </p>
+                <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(0, 240, 255, 0.2)' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: '#00f0ff' }}>Complete Job Application</h3>
                   
-                  {subscriptionTier === 'FREE' && freeGenerationsUsed >= 1 && (
-                    <div style={{ color: '#ff8c00', marginBottom: '1rem', fontSize: '0.9rem' }}>⚠️ You have used your 1 free generation. Please upgrade to Premium to generate more!</div>
-                  )}
-                  
-                  <textarea 
-                    value={coverLetter}
-                    onChange={(e) => setCoverLetter(e.target.value)}
-                    rows={4}
-                    placeholder="Write a brief cover letter (optional)..."
-                    style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '1rem', outline: 'none', resize: 'vertical', marginBottom: '1rem' }}
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {/* Resume Selection */}
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'white', marginBottom: '0.4rem', fontWeight: 600 }}>
+                      📄 Attached Resume:
+                    </label>
+                    {resumes.length > 0 ? (
+                      <select 
+                        value={selectedResumeId} 
+                        onChange={(e) => setSelectedResumeId(e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+                      >
+                        {resumes.map(r => (
+                          <option key={r.id} value={r.id} style={{ background: '#120B1C', color: 'white' }}>
+                            {r.title || 'Saved Resume'} (Updated {new Date(r.updatedAt).toLocaleDateString()})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', color: '#a1a1aa', fontSize: '0.85rem' }}>
+                        Default: Your complete verified onboarding credentials will be attached as your active resume.{' '}
+                        <Link href="/dashboard/resumes/builder" style={{ color: '#00f0ff', textDecoration: 'underline' }}>Build Custom Resume</Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cover Letter */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'white', marginBottom: '0.4rem', fontWeight: 600 }}>
+                      ✉️ Cover Letter (Optional or AI-Generated):
+                    </label>
+                    {subscriptionTier === 'FREE' && freeGenerationsUsed >= 1 && (
+                      <div style={{ color: '#ff8c00', marginBottom: '0.5rem', fontSize: '0.85rem' }}>⚠️ Free generation limit reached. You can type manually or upgrade for unlimited AI generations.</div>
+                    )}
+                    <textarea 
+                      value={coverLetter}
+                      onChange={(e) => setCoverLetter(e.target.value)}
+                      rows={4}
+                      placeholder="Write your cover letter or click 'Generate AI Cover Letter' below..."
+                      style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '1rem', outline: 'none', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <button 
                       className="btn-primary" 
                       onClick={() => handleGenerateCoverLetter(job)}
@@ -338,8 +386,9 @@ export default function JobsFeedPage() {
                     <button 
                       className="btn-primary" 
                       onClick={() => handleApply(job.id)}
+                      style={{ padding: '10px 24px', fontWeight: 'bold' }}
                     >
-                      Confirm Application
+                      🚀 Submit Application with Resume
                     </button>
                   </div>
                 </div>

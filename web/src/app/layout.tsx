@@ -18,9 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${outfit.className} bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white transition-colors duration-300`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <html lang="en" className="dark" style={{ colorScheme: 'dark' }} suppressHydrationWarning>
+      <body className={`${outfit.className} bg-[#0A0A0A] text-white transition-colors duration-300`}>
+        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
           <Header />
           {children}
         </ThemeProvider>

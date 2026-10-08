@@ -49,6 +49,7 @@ enum Role {
 
 enum SubscriptionTier {
   FREE
+  SILVER
   PREMIUM
 }
 

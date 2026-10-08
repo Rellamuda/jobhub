@@ -22,8 +22,8 @@ export class JobsService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (user?.subscriptionTier === 'FREE') {
       const jobCount = await this.prisma.job.count({ where: { employerId: employer.id } });
-      if (jobCount >= 6) {
-        throw new ForbiddenException('Free tier is limited to 6 job postings. Please upgrade to Premium.');
+      if (jobCount >= 3) {
+        throw new ForbiddenException('Free tier is limited to 3 job postings. Please upgrade your subscription.');
       }
     }
 
@@ -103,7 +103,7 @@ export class JobsService {
       orderBy: { createdAt: 'desc' },
       include: {
         employer: {
-          select: { companyName: true, website: true },
+          select: { companyName: true, website: true, profilePicture: true, verificationStatus: true, businessType: true },
         },
       },
     });
@@ -151,7 +151,7 @@ export class JobsService {
       }
 
       if (user.subscriptionTier === 'FREE') {
-        jobs = jobs.slice(0, 6);
+        jobs = jobs.slice(0, 3);
       }
     }
 
@@ -169,7 +169,7 @@ export class JobsService {
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        employer: { select: { companyName: true, website: true } }
+        employer: { select: { companyName: true, website: true, profilePicture: true, verificationStatus: true, businessType: true } }
       }
     });
 
@@ -187,7 +187,7 @@ export class JobsService {
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        employer: { select: { companyName: true, website: true } }
+        employer: { select: { companyName: true, website: true, profilePicture: true, verificationStatus: true, businessType: true } }
       }
     });
 
@@ -224,7 +224,7 @@ export class JobsService {
       where: { id },
       include: {
         employer: {
-          select: { companyName: true, website: true, description: true },
+          select: { companyName: true, website: true, description: true, profilePicture: true, verificationStatus: true, businessType: true },
         },
       },
     });
@@ -237,7 +237,10 @@ export class JobsService {
   }
 
   async findMatchesForJob(userId: string, jobId: string) {
-    const employer = await this.prisma.employer.findUnique({ where: { userId } });
+    const employer = await this.prisma.employer.findUnique({ 
+      where: { userId },
+      include: { user: true }
+    });
     if (!employer) throw new ForbiddenException('No employer profile found.');
 
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
@@ -252,7 +255,7 @@ export class JobsService {
       include: { user: { select: { id: true, email: true } } }
     });
 
-    const scored = profiles.map(profile => {
+    let scored = profiles.map(profile => {
       const experienceArray = profile.experience as any[] || [];
       const educationArray = profile.education as any[] || [];
       const certsArray = profile.certificates as any[] || [];
@@ -282,6 +285,17 @@ export class JobsService {
       }
       return { ...profile, matchScore: score };
     }).filter(p => p.matchScore > 0).sort((a, b) => b.matchScore - a.matchScore);
+
+    // Apply Employer Monetization Limits:
+    // Free: 3 candidate matches
+    // Premium: up to 50 candidate matches
+    // Silver (Enterprise): Unlimited matches
+    const tier = employer.user?.subscriptionTier || 'FREE';
+    if (tier === 'FREE') {
+      scored = scored.slice(0, 3);
+    } else if (tier === 'PREMIUM') {
+      scored = scored.slice(0, 50);
+    }
 
     return scored;
   }

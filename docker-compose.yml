@@ -23,6 +23,8 @@ services:
       AI_SERVICE_URL: http://ai-service:8000/ai
     depends_on:
       - db
+    volumes:
+      - uploads_data:/app/public/uploads
 
   ai-service:
     build:
@@ -42,3 +44,4 @@ services:
 
 volumes:
   pgdata:
+  uploads_data:

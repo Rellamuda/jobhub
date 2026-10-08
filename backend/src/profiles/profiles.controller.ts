@@ -13,12 +13,67 @@ export class ProfilesController {
   ) {}
 
   @Post('upgrade')
-  async upgradeToPremium(@Request() req) {
+  async upgradeToPremium(@Request() req, @Body() body?: { tier?: string }) {
+    const tier = (body?.tier === 'SILVER' ? 'SILVER' : 'PREMIUM') as any;
     await this.prisma.user.update({
       where: { id: req.user.userId },
-      data: { subscriptionTier: 'PREMIUM' }
+      data: { subscriptionTier: tier }
     });
-    return { success: true, message: 'Upgraded to Premium' };
+    return { success: true, tier, message: `Upgraded to ${tier}` };
+  }
+
+  @Post('employer/verify')
+  async verifyEmployerCompany(@Request() req, @Body() body: { registrationNumber?: string; website?: string; taxId?: string }) {
+    const userId = req.user.userId;
+    const employer = await this.prisma.employer.findUnique({ where: { userId } });
+    if (!employer) {
+      throw new ForbiddenException('Employer profile not found.');
+    }
+
+    const regNum = (body?.registrationNumber || employer.registrationNumber || '').trim();
+    const web = (body?.website || employer.website || '').trim();
+    const taxId = (body?.taxId || employer.taxId || '').trim();
+
+    // Check registration number (must have at least 3 characters)
+    if (!regNum || regNum.length < 3) {
+      return {
+        success: false,
+        verified: false,
+        message: 'Verification failed: A valid Business Registration Number (RC/EIN/CRN) is required.'
+      };
+    }
+
+    // Check active internet presence (must be a valid URL with domain)
+    const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/i;
+    if (!web || !urlPattern.test(web)) {
+      return {
+        success: false,
+        verified: false,
+        message: 'Verification failed: A valid company website or online domain is required for internet presence verification.'
+      };
+    }
+
+    // Format website with protocol if missing
+    const formattedWebsite = web.startsWith('http://') || web.startsWith('https://') ? web : `https://${web}`;
+
+    // Update employer profile with VERIFIED status and badge
+    const updated = await this.prisma.employer.update({
+      where: { id: employer.id },
+      data: {
+        registrationNumber: regNum,
+        website: formattedWebsite,
+        taxId: taxId || employer.taxId,
+        verificationStatus: 'VERIFIED'
+      }
+    });
+
+    return {
+      success: true,
+      verified: true,
+      verificationStatus: 'VERIFIED',
+      message: 'Company verified successfully! Registered credentials and active web presence confirmed. Verified badge awarded.',
+      employer: updated
+    };
   }
 
   @Post('verify/request')

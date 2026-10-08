@@ -19,6 +19,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String? _resolvePicUrl(String? path) {
+    if (path == null || path.trim().isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return '${ApiConfig.baseUrl}$path';
+  }
   bool _isLoading = true;
   Map<String, dynamic>? _user;
   Map<String, dynamic>? _profile;
@@ -69,9 +74,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
 
         if (profRes.statusCode == 200) {
+          final pJson = jsonDecode(profRes.body);
+          final pPic = pJson['profilePicture'];
+          if (pPic != null && pPic.isNotEmpty) {
+            final sp = await SharedPreferences.getInstance();
+            await sp.setString('cached_profile_picture', pPic);
+          }
           setState(() {
             _user = userData;
-            _profile = jsonDecode(profRes.body);
+            _profile = pJson;
           });
         }
         
@@ -123,6 +134,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
+        final sp = await SharedPreferences.getInstance();
+        await sp.setString('cached_profile_picture', data['url']);
         setState(() {
           _profile?['profilePicture'] = data['url'];
         });
@@ -225,6 +238,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _showEmployerVerifyDialog() async {
+    final regController = TextEditingController(text: _profile?['registrationNumber'] ?? '');
+    final webController = TextEditingController(text: _profile?['website'] ?? '');
+    final taxController = TextEditingController(text: _profile?['taxId'] ?? '');
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E142B),
+        title: const Text('Verify Company Credentials', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Provide your legal business registration number and active website to receive the Verified Company trust badge.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: regController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Registration No. (RC / EIN / CRN)',
+                  labelStyle: TextStyle(color: Color(0xFF00F0FF)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: webController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Active Website (e.g. company.com)',
+                  labelStyle: TextStyle(color: Color(0xFF00F0FF)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: taxController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Tax ID / VAT (Optional)',
+                  labelStyle: TextStyle(color: Color(0xFF00F0FF)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _verifyEmployerCompany(regController.text, webController.text, taxController.text);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF)),
+            child: const Text('Verify Company', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _verifyEmployerCompany(String regNum, String website, String taxId) async {
+    setState(() => _isVerifying = true);
+    try {
+      final token = await ApiConfig.getToken();
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/profiles/employer/verify'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        body: jsonEncode({
+          'registrationNumber': regNum,
+          'website': website,
+          'taxId': taxId,
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+      if (data['verified'] == true) {
+        setState(() {
+          _profile?['verificationStatus'] = 'VERIFIED';
+          _profile?['registrationNumber'] = regNum;
+          _profile?['website'] = website;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('🎉 ${data['message'] ?? 'Company Verified!'}')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('⚠️ ${data['message'] ?? 'Verification failed'}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification error: $e')));
+    } finally {
+      if (mounted) setState(() => _isVerifying = false);
+    }
+  }
+
   Future<void> _requestVerification() async {
     setState(() => _isVerifying = true);
     try {
@@ -282,7 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               CircleAvatar(
                 radius: 60,
                 backgroundColor: Colors.white.withOpacity(0.1),
-                backgroundImage: (picUrl != null && picUrl.isNotEmpty) ? NetworkImage(picUrl) : null,
+                backgroundImage: _resolvePicUrl(picUrl) != null ? NetworkImage(_resolvePicUrl(picUrl)!) : null,
                 child: (picUrl == null || picUrl.isEmpty) ? const Icon(Icons.person, size: 60, color: Colors.white) : null,
               ),
               Positioned(
@@ -317,11 +436,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (location.isNotEmpty)
           Text(location, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)), textAlign: TextAlign.center),
         
-        if (_profile?['verificationStatus'] == 'UNVERIFIED')
+        if (_profile?['verificationStatus'] == 'VERIFIED')
           Center(
-            child: TextButton(
-              onPressed: _isVerifying ? null : _requestVerification,
-              child: Text(_isVerifying ? 'Requesting...' : 'Request Verification', style: const TextStyle(color: Color(0xFF00F0FF))),
+            child: Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00F0FF).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.5)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.verified, color: Color(0xFF00F0FF), size: 18),
+                  SizedBox(width: 6),
+                  Text('Verified Company (Registration & Web Active)', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+          )
+        else
+          Center(
+            child: TextButton.icon(
+              onPressed: _isVerifying ? null : _showEmployerVerifyDialog,
+              icon: const Icon(Icons.shield_outlined, color: Color(0xFF00F0FF), size: 18),
+              label: Text(_isVerifying ? 'Verifying...' : 'Verify Company & Get Badge', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
             ),
           )
         else if (_profile?['verificationStatus'] == 'PENDING')
@@ -670,8 +810,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               CircleAvatar(
                 radius: 60,
                 backgroundColor: Colors.white.withOpacity(0.1),
-                backgroundImage: (picUrl != null && picUrl.isNotEmpty) ? NetworkImage(picUrl) : null,
+                backgroundImage: _resolvePicUrl(picUrl) != null ? NetworkImage(_resolvePicUrl(picUrl)!) : null,
                 child: (picUrl == null || picUrl.isEmpty) ? const Icon(Icons.business, size: 60, color: Colors.white) : null,
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                child: InkWell(
+                  onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF6366F1)),
+                    child: _isUploadingPhoto
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                  ),
+                ),
               ),
               if (isVerified)
                 Positioned(

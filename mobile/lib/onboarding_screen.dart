@@ -66,7 +66,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _website = TextEditingController();
 
   // Employer State
+  String _businessType = 'DIRECT_EMPLOYER';
   final _companyName = TextEditingController();
+  final _agencySpecialization = TextEditingController();
+  final _clientIndustries = TextEditingController();
+  final _empWebsite = TextEditingController();
+  final _empRegNumber = TextEditingController();
   final _description = TextEditingController();
   final _industry = TextEditingController();
   final _companySize = TextEditingController();
@@ -253,7 +258,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       payload = {
         'companyName': _companyName.text,
-        'description': _description.text,
+        'businessType': _businessType,
+        'website': _empWebsite.text.isNotEmpty ? _empWebsite.text : null,
+        'registrationNumber': _empRegNumber.text.isNotEmpty ? _empRegNumber.text : null,
+        'description': _businessType == 'RECRUITING_AGENCY' 
+          ? '[Recruiting Agency | Focus: ' + _agencySpecialization.text + ' | Clients: ' + _clientIndustries.text + '] ' + _description.text
+          : _description.text,
         'industry': _industry.text,
         'companySize': _companySize.text,
         'foundedYear': int.tryParse(_foundedYear.text),
@@ -791,12 +801,71 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Company Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-            const SizedBox(height: 24),
-            _buildTextField(_companyName, 'Company Name'),
-            _buildTextField(_description, 'Description', maxLines: 4),
-            _buildTextField(_industry, 'Industry'),
-            _buildTextField(_companySize, 'Company Size (e.g. 10-50)'),
+            const Text('Organization & Hiring Model', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Organization Type:', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _businessType = 'DIRECT_EMPLOYER'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: _businessType == 'DIRECT_EMPLOYER' ? const Color(0xFF00F0FF).withOpacity(0.2) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _businessType == 'DIRECT_EMPLOYER' ? const Color(0xFF00F0FF) : Colors.white24),
+                            ),
+                            child: Center(
+                              child: Text('🏢 Direct Company', style: TextStyle(color: _businessType == 'DIRECT_EMPLOYER' ? const Color(0xFF00F0FF) : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _businessType = 'RECRUITING_AGENCY'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: _businessType == 'RECRUITING_AGENCY' ? const Color(0xFF00F0FF).withOpacity(0.2) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _businessType == 'RECRUITING_AGENCY' ? const Color(0xFF00F0FF) : Colors.white24),
+                            ),
+                            child: Center(
+                              child: Text('🤝 Recruiting Agency', style: TextStyle(color: _businessType == 'RECRUITING_AGENCY' ? const Color(0xFF00F0FF) : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(_companyName, _businessType == 'RECRUITING_AGENCY' ? 'Agency / Firm Name' : 'Company Name'),
+            if (_businessType == 'RECRUITING_AGENCY') ...[
+              _buildTextField(_agencySpecialization, 'Agency Focus (e.g. Executive Search, Tech)'),
+              _buildTextField(_clientIndustries, 'Client Companies / Industries Served'),
+            ],
+            _buildTextField(_empWebsite, 'Website / Online Presence (e.g. company.com)'),
+            _buildTextField(_empRegNumber, 'Registration / License No.'),
+            _buildTextField(_description, _businessType == 'RECRUITING_AGENCY' ? 'Agency Overview & Track Record' : 'Company Description', maxLines: 3),
+            _buildTextField(_industry, 'Primary Industry / Sector'),
+            _buildTextField(_companySize, 'Team Size (e.g. 10-50)'),
             _buildTextField(_foundedYear, 'Founded Year'),
           ],
         );

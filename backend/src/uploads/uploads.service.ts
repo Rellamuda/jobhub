@@ -5,19 +5,23 @@ import * as fs from 'fs/promises';
 
 @Injectable()
 export class UploadsService {
-  private readonly uploadPath = join(process.cwd(), '..', 'public', 'uploads');
+  private readonly uploadPath = join(process.cwd(), 'public', 'uploads');
+  private readonly fallbackPath = join(process.cwd(), '..', 'public', 'uploads');
 
   async uploadFile(file: Express.Multer.File, folder: string = 'profiles'): Promise<string> {
     try {
       const extension = extname(file.originalname);
       const filename = `${uuidv4()}${extension}`;
+      
       const folderPath = join(this.uploadPath, folder);
-      
-      // Ensure directory exists
       await fs.mkdir(folderPath, { recursive: true });
-      
-      const filePath = join(folderPath, filename);
-      await fs.writeFile(filePath, file.buffer);
+      await fs.writeFile(join(folderPath, filename), file.buffer);
+
+      try {
+        const fallbackFolderPath = join(this.fallbackPath, folder);
+        await fs.mkdir(fallbackFolderPath, { recursive: true });
+        await fs.writeFile(join(fallbackFolderPath, filename), file.buffer);
+      } catch (e) {}
 
       // Return the public URL
       return `/uploads/${folder}/${filename}`;

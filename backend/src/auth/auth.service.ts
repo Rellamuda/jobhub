@@ -45,18 +45,36 @@ export class AuthService {
     }
 
     let profileComplete = false;
+    let profilePicture: string | null = null;
+    let displayName = '';
+    let verificationStatus = 'UNVERIFIED';
+
     if (user.role === 'JOB_SEEKER') {
       const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId: user.id } });
       profileComplete = !!profile && profile.firstName.length > 0;
+      profilePicture = profile?.profilePicture || null;
+      displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : '';
+      verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
     } else if (user.role === 'EMPLOYER') {
       const profile = await this.prisma.employer.findUnique({ where: { userId: user.id } });
       profileComplete = !!profile && profile.companyName.length > 0;
+      profilePicture = profile?.profilePicture || null;
+      displayName = profile?.companyName || '';
+      verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
     }
 
     const payload = { email: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
-      user: { id: user.id, email: user.email, role: user.role },
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role,
+        subscriptionTier: user.subscriptionTier,
+        profilePicture,
+        displayName,
+        verificationStatus,
+      },
       profileComplete,
     };
   }
@@ -70,8 +88,45 @@ export class AuthService {
         role: true,
         subscriptionTier: true,
         freeGenerationsUsed: true,
+        jobSeekerProfile: {
+          select: {
+            firstName: true,
+            lastName: true,
+            profilePicture: true,
+            verificationStatus: true,
+          }
+        },
+        employer: {
+          select: {
+            companyName: true,
+            profilePicture: true,
+            verificationStatus: true,
+            businessType: true,
+            website: true,
+          }
+        }
       }
     });
-    return user;
+
+    if (!user) return null;
+
+    const profilePicture = user.role === 'JOB_SEEKER' 
+      ? user.jobSeekerProfile?.profilePicture 
+      : user.employer?.profilePicture;
+
+    const displayName = user.role === 'JOB_SEEKER'
+      ? `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim()
+      : user.employer?.companyName || '';
+
+    const verificationStatus = user.role === 'JOB_SEEKER'
+      ? user.jobSeekerProfile?.verificationStatus || 'UNVERIFIED'
+      : user.employer?.verificationStatus || 'UNVERIFIED';
+
+    return {
+      ...user,
+      profilePicture: profilePicture || null,
+      displayName: displayName || user.email,
+      verificationStatus,
+    };
   }
 }

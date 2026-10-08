@@ -23,6 +23,10 @@ import { AdminModule } from './admin/admin.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public'),
+      serveRoot: '/',
+    }),
+    ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), '..', 'public'),
       serveRoot: '/',
     }),

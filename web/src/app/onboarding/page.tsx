@@ -88,6 +88,11 @@ export default function OnboardingPage() {
   const [industry, setIndustry] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [foundedYear, setFoundedYear] = useState('');
+  const [businessType, setBusinessType] = useState('DIRECT_EMPLOYER');
+  const [agencySpecialization, setAgencySpecialization] = useState('');
+  const [clientIndustries, setClientIndustries] = useState('');
+  const [employerWebsite, setEmployerWebsite] = useState('');
+  const [employerRegNumber, setEmployerRegNumber] = useState('');
   const [locationCountry, setLocationCountry] = useState('');
   const [locationState, setLocationState] = useState('');
   const [locationCity, setLocationCity] = useState('');
@@ -170,6 +175,9 @@ export default function OnboardingPage() {
               setCompanyName(prof.companyName || '');
               setDescription(prof.description || '');
               setIndustry(prof.industry || '');
+              setBusinessType(prof.businessType || 'DIRECT_EMPLOYER');
+              setEmployerWebsite(prof.website || '');
+              setEmployerRegNumber(prof.registrationNumber || '');
               setCompanySize(prof.companySize || '');
               setFoundedYear(prof.foundedYear ? prof.foundedYear.toString() : '');
               setLocationCountry(prof.locationCountry || '');
@@ -246,7 +254,16 @@ export default function OnboardingPage() {
     } else {
       endpoint = '/profiles/employer';
       payload = {
-        companyName, description, industry, companySize, foundedYear: parseInt(foundedYear) || null,
+        companyName, 
+        description: businessType === 'RECRUITING_AGENCY' 
+          ? `[Recruiting Agency | Focus: ${agencySpecialization || 'Full-cycle'} | Clients: ${clientIndustries || 'Various'}] ${description}`
+          : description, 
+        industry, 
+        businessType,
+        website: employerWebsite || undefined,
+        registrationNumber: employerRegNumber || undefined,
+        companySize, 
+        foundedYear: parseInt(foundedYear) || null,
         locationCountry, locationState, locationCity, hrContactName, hrEmail, hrPhone: hrPhoneCode + hrPhone, profilePicture: uploadedUrl
       };
     }
@@ -535,12 +552,101 @@ export default function OnboardingPage() {
       case 1:
         return (
           <div className="fly-in">
-            <h2>Company Information</h2>
-            <input placeholder="Company Name" value={companyName} onChange={e => setCompanyName(e.target.value)} className="input-field" />
-            <textarea placeholder="Company Description" value={description} onChange={e => setDescription(e.target.value)} className="input-field" rows={4} />
+            <h2>Organization & Hiring Model</h2>
+            
+            <div style={{ marginBottom: '1.2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <label style={{ color: 'white', display: 'block', fontWeight: 'bold', marginBottom: '0.6rem' }}>Select Organization Type:</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setBusinessType('DIRECT_EMPLOYER')}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: businessType === 'DIRECT_EMPLOYER' ? '2px solid #00f0ff' : '1px solid rgba(255,255,255,0.15)',
+                    background: businessType === 'DIRECT_EMPLOYER' ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.05)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', color: businessType === 'DIRECT_EMPLOYER' ? '#00f0ff' : 'white' }}>🏢 Direct Employer</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Hiring directly for our internal company workforce</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBusinessType('RECRUITING_AGENCY')}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: businessType === 'RECRUITING_AGENCY' ? '2px solid #00f0ff' : '1px solid rgba(255,255,255,0.15)',
+                    background: businessType === 'RECRUITING_AGENCY' ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.05)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', color: businessType === 'RECRUITING_AGENCY' ? '#00f0ff' : 'white' }}>🤝 Recruiting & Staffing Agency</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Recruiting talent on behalf of multiple client companies</div>
+                </button>
+              </div>
+            </div>
+
+            <input 
+              placeholder={businessType === 'RECRUITING_AGENCY' ? "Agency Name (e.g. Apex Talent Partners)" : "Company Name"} 
+              value={companyName} 
+              onChange={e => setCompanyName(e.target.value)} 
+              className="input-field" 
+            />
+
+            {businessType === 'RECRUITING_AGENCY' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1rem', padding: '1rem', background: 'rgba(0,240,255,0.05)', borderRadius: '10px', border: '1px dashed rgba(0,240,255,0.3)' }}>
+                <h4 style={{ margin: 0, color: '#00f0ff' }}>Agency Recruiting Parameters</h4>
+                <input 
+                  placeholder="Agency Focus (e.g. Executive Search, Tech & AI, Contingency Staffing)" 
+                  value={agencySpecialization} 
+                  onChange={e => setAgencySpecialization(e.target.value)} 
+                  className="input-field" 
+                  style={{ marginBottom: 0 }}
+                />
+                <input 
+                  placeholder="Client Industries / Companies Served (e.g. FinTech, Healthcare, Startups)" 
+                  value={clientIndustries} 
+                  onChange={e => setClientIndustries(e.target.value)} 
+                  className="input-field" 
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input 
+                placeholder="Official Website URL (e.g. https://company.com)" 
+                value={employerWebsite} 
+                onChange={e => setEmployerWebsite(e.target.value)} 
+                className="input-field" 
+                style={{ flex: 1, marginBottom: 0 }}
+              />
+              <input 
+                placeholder="Registration / License No." 
+                value={employerRegNumber} 
+                onChange={e => setEmployerRegNumber(e.target.value)} 
+                className="input-field" 
+                style={{ flex: 1, marginBottom: 0 }}
+              />
+            </div>
+
+            <textarea 
+              placeholder={businessType === 'RECRUITING_AGENCY' ? "Agency Description & Track Record" : "Company Description"} 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              className="input-field" 
+              rows={3} 
+            />
+            
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input placeholder="Industry" value={industry} onChange={e => setIndustry(e.target.value)} className="input-field" />
-              <input placeholder="Company Size (e.g. 10-50)" value={companySize} onChange={e => setCompanySize(e.target.value)} className="input-field" />
+              <input placeholder="Industry / Domain" value={industry} onChange={e => setIndustry(e.target.value)} className="input-field" />
+              <input placeholder="Team Size (e.g. 10-50)" value={companySize} onChange={e => setCompanySize(e.target.value)} className="input-field" />
               <input placeholder="Founded Year" type="number" value={foundedYear} onChange={e => setFoundedYear(e.target.value)} className="input-field" />
             </div>
           </div>

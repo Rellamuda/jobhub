@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'config/api_config.dart';
 
 import 'profile_screen.dart';
+import 'create_job_screen.dart';
 import 'login_screen.dart';
 
 class EmployerDashboard extends StatefulWidget {
@@ -25,6 +26,7 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
   String? _selectedJobId;
   List<dynamic> _matches = [];
   bool _isMatching = false;
+  final Set<String> _invitedUserIds = {};
 
   @override
   void initState() {
@@ -82,6 +84,14 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
   }
 
   Future<void> _inviteCandidate(String userId) async {
+    if (_invitedUserIds.contains(userId)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message already sent')),
+        );
+      }
+      return;
+    }
     try {
       final token = await ApiConfig.getToken();
       final res = await http.post(
@@ -90,6 +100,9 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
         body: jsonEncode({'receiverId': userId, 'content': "Hi! We think you'd be a great fit for our recent job posting. We invite you to apply!"})
       );
       if (res.statusCode == 201 || res.statusCode == 200) {
+        setState(() {
+          _invitedUserIds.add(userId);
+        });
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invitation sent!')));
       }
     } catch (e) {
@@ -109,6 +122,15 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
+      floatingActionButton: _currentIndex == 0 ? FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateJobScreen()));
+          _fetchData();
+        },
+        backgroundColor: const Color(0xFF00F0FF),
+        icon: const Icon(Icons.add, color: Colors.black),
+        label: const Text('Post Job (AI)', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+      ) : null,
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : IndexedStack(
         index: _currentIndex,
         children: [
@@ -138,7 +160,37 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
   }
 
   Widget _buildJobsTab() {
-    if (_jobs.isEmpty) return const Center(child: Text('No jobs posted yet.', style: TextStyle(color: Colors.white)));
+    if (_jobs.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.work_outline, size: 64, color: Colors.white24),
+              const SizedBox(height: 16),
+              const Text('No jobs posted yet.', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('Create job vacancies with AI assistance to discover verified matching candidates.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 14)),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateJobScreen()));
+                  _fetchData();
+                },
+                icon: const Icon(Icons.add, color: Colors.black),
+                label: const Text('Post Job with AI', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00F0FF),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              )
+            ],
+          ),
+        ),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _jobs.length,
@@ -301,8 +353,14 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () => _inviteCandidate(m['user']['id']),
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF)),
-                              child: const Text('Invite to Apply', style: TextStyle(color: Colors.black)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _invitedUserIds.contains(m['user']['id']) ? Colors.white24 : const Color(0xFF00F0FF),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: Text(
+                                _invitedUserIds.contains(m['user']['id']) ? 'Message already sent' : 'Invite to Apply',
+                                style: TextStyle(color: _invitedUserIds.contains(m['user']['id']) ? Colors.white70 : Colors.black, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
                         ],

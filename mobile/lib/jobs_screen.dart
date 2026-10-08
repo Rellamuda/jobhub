@@ -354,7 +354,31 @@ class _JobsScreenState extends State<JobsScreen> {
                                       );
                                     }
                                   },
-                                  child: _buildBadge(Icons.business, job['employer']?['companyName'] ?? 'Unknown', isLink: true),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildBadge(Icons.business, job['employer']?['companyName'] ?? 'Unknown', isLink: true),
+                                      if (job['employer']?['verificationStatus'] == 'VERIFIED') ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF00F0FF).withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.5)),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.verified, color: Color(0xFF00F0FF), size: 13),
+                                              SizedBox(width: 4),
+                                              Text('Verified', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                                 _buildBadge(Icons.location_on, '${job['location'] ?? 'Anywhere'} ${(job['isRemote'] ?? false) ? '(Remote)' : ''}'),
                                 _buildBadge(Icons.attach_money, job['salary'] ?? 'Competitive'),

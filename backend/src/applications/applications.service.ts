@@ -10,7 +10,7 @@ export class ApplicationsService {
     private aiService: AiService,
   ) {}
 
-  async applyToJob(userId: string, jobId: string, coverLetter?: string) {
+  async applyToJob(userId: string, jobId: string, coverLetter?: string, resumeId?: string) {
     const jobSeekerProfile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
     });
@@ -30,6 +30,28 @@ export class ApplicationsService {
       throw new ConflictException('You have already applied to this job.');
     }
 
+    // Auto-attach active or latest resume if not explicitly passed
+    let attachedResumeId = resumeId;
+    if (!attachedResumeId) {
+      const latestResume = await this.prisma.resume.findFirst({
+        where: { jobSeekerProfileId: jobSeekerProfile.id },
+        orderBy: { updatedAt: 'desc' },
+      });
+      if (latestResume) {
+        attachedResumeId = latestResume.id;
+      }
+    }
+
+    // Default/AI cover letter if not provided
+    let finalCoverLetter = coverLetter?.trim();
+    if (!finalCoverLetter) {
+      try {
+        finalCoverLetter = await this.aiService.generateCoverLetter(jobSeekerProfile, job);
+      } catch (err) {
+        finalCoverLetter = `Dear Hiring Manager,\n\nI am excited to submit my verified profile and application for the ${job.title} position. My background aligns strongly with your requirements.\n\nBest regards,\n${jobSeekerProfile.firstName} ${jobSeekerProfile.lastName}`;
+      }
+    }
+
     // Calculate actual AI match score based on candidate profile and job description
     let matchScore = 85.0;
     try {
@@ -44,10 +66,14 @@ export class ApplicationsService {
       data: {
         job: { connect: { id: jobId } },
         jobSeekerProfile: { connect: { id: jobSeekerProfile.id } },
-        coverLetter,
+        resumeId: attachedResumeId || undefined,
+        coverLetter: finalCoverLetter,
         aiMatchScore: matchScore,
         status: ApplicationStatus.APPLIED,
       },
+      include: {
+        resume: true,
+      }
     });
   }
 
@@ -148,6 +174,7 @@ export class ApplicationsService {
       where: { jobId },
       include: {
         jobSeekerProfile: true,
+        resume: true,
       },
       orderBy: [
         { aiMatchScore: 'desc' },

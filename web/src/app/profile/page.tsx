@@ -20,6 +20,12 @@ export default function ProfilePage() {
   const [keywordInput, setKeywordInput] = useState('');
   const [savingAutoApply, setSavingAutoApply] = useState(false);
 
+  // Employer Verification State
+  const [empRegNumber, setEmpRegNumber] = useState('');
+  const [empWebsite, setEmpWebsite] = useState('');
+  const [empTaxId, setEmpTaxId] = useState('');
+  const [empVerifying, setEmpVerifying] = useState(false);
+
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem('token');
@@ -42,6 +48,12 @@ export default function ProfilePage() {
           if (profRes.ok) {
             const p = await profRes.json();
             setProfile(p);
+            if (p.profilePicture) {
+              localStorage.setItem('userProfilePic', p.profilePicture);
+            }
+            if (p.registrationNumber) setEmpRegNumber(p.registrationNumber);
+            if (p.website) setEmpWebsite(p.website);
+            if (p.taxId) setEmpTaxId(p.taxId);
             setAutoApplyEnabled(!!p.autoApplyEnabled);
             setAutoApplyKeywords(p.autoApplyKeywords || []);
           }
@@ -72,6 +84,36 @@ export default function ProfilePage() {
     };
     fetchProfile();
   }, [router]);
+
+  const handleVerifyCompany = async () => {
+    setEmpVerifying(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/profiles/employer/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          registrationNumber: empRegNumber || profile?.registrationNumber,
+          website: empWebsite || profile?.website,
+          taxId: empTaxId || profile?.taxId,
+        })
+      });
+      const data = await res.json();
+      if (data.verified) {
+        setProfile((prev: any) => ({ ...prev, ...data.employer, verificationStatus: 'VERIFIED' }));
+        alert('🎉 ' + data.message);
+      } else {
+        alert('⚠️ ' + data.message);
+      }
+    } catch (e) {
+      alert('Network error verifying company');
+    } finally {
+      setEmpVerifying(false);
+    }
+  };
 
   const handleRequestVerification = async () => {
     setVerifying(true);
@@ -122,6 +164,7 @@ export default function ProfilePage() {
       if (res.ok) {
         const data = await res.json();
         setProfile((prev: any) => ({ ...prev, profilePicture: data.url }));
+        localStorage.setItem('userProfilePic', data.url);
         alert('Profile picture updated successfully!');
       } else {
         alert('Failed to upload picture.');
@@ -469,6 +512,70 @@ export default function ProfilePage() {
           </>
         ) : (
           <>
+            {/* Company Verification Card */}
+            <div className="glass-panel" style={{ padding: '2rem', border: profile.verificationStatus === 'VERIFIED' ? '1px solid rgba(0, 240, 255, 0.4)' : '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--primary-color)' }}>
+                  Company Verification & Trust Badge
+                </h2>
+                {profile.verificationStatus === 'VERIFIED' ? (
+                  <span style={{ background: 'rgba(0, 240, 255, 0.15)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.5)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    ✔ Verified Company Badge Active
+                  </span>
+                ) : (
+                  <span style={{ background: 'rgba(255, 165, 0, 0.15)', color: '#ffa500', border: '1px solid rgba(255, 165, 0, 0.5)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    ⏳ Unverified Organization
+                  </span>
+                )}
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+                Verify your organization's legal registration and active internet presence to receive the verified company trust badge on all job postings.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'white', marginBottom: '0.3rem', fontWeight: 600 }}>Registration Number (RC / EIN / CRN):</label>
+                  <input 
+                    type="text" 
+                    value={empRegNumber} 
+                    onChange={e => setEmpRegNumber(e.target.value)} 
+                    placeholder="e.g. RC-1049283 or EIN-987654" 
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'white', marginBottom: '0.3rem', fontWeight: 600 }}>Active Website / Internet Presence:</label>
+                  <input 
+                    type="text" 
+                    value={empWebsite} 
+                    onChange={e => setEmpWebsite(e.target.value)} 
+                    placeholder="e.g. https://www.yourcompany.com" 
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'white', marginBottom: '0.3rem', fontWeight: 600 }}>Tax ID / VAT (Optional):</label>
+                  <input 
+                    type="text" 
+                    value={empTaxId} 
+                    onChange={e => setEmpTaxId(e.target.value)} 
+                    placeholder="e.g. TAX-49201" 
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white' }} 
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="button" 
+                onClick={handleVerifyCompany} 
+                disabled={empVerifying} 
+                className="btn-primary" 
+                style={{ padding: '10px 24px', fontWeight: 'bold', background: profile.verificationStatus === 'VERIFIED' ? 'rgba(0, 240, 255, 0.2)' : undefined }}
+              >
+                {empVerifying ? 'Verifying Credentials & Web Presence...' : (profile.verificationStatus === 'VERIFIED' ? 'Re-verify / Update Credentials' : 'Verify Company & Issue Badge')}
+              </button>
+            </div>
+
             <div className="glass-panel" style={{ padding: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>About the Company</h2>
               <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{profile.description || 'No description provided.'}</p>

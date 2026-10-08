@@ -70,34 +70,40 @@ export default function Header() {
               <Link href="/dashboard/network" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Globe className="w-4 h-4" /> Network
               </Link>
-              <Link href="/profile" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/dashboard/career-hub" className="px-3 py-1.5 rounded-lg text-cyan-300 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Career Hub
+              </Link>
+              <Link href="/profile" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <User className="w-4 h-4" /> Profile
               </Link>
             </>
           ) : user.role === 'EMPLOYER' ? (
             <>
-              <Link href="/applications" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/applications" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" /> Postings & Chats
               </Link>
-              <Link href="/dashboard/employer/jobs/new" className="px-3 py-1.5 rounded-lg text-indigo-600 dark:text-cyan-400 font-semibold hover:bg-indigo-50 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/dashboard/employer/jobs/new" className="px-3 py-1.5 rounded-lg text-cyan-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
                 <PlusCircle className="w-4 h-4" /> Post Job (AI)
               </Link>
-              <Link href="/dashboard/employer/crm" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/dashboard/employer/crm" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Users className="w-4 h-4" /> Recruiter CRM
               </Link>
-              <Link href="/dashboard/employer/talent" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/dashboard/employer/talent" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4" /> Talent Search
               </Link>
-              <Link href="/profile" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/dashboard/career-hub" className="px-3 py-1.5 rounded-lg text-cyan-300 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Career Hub
+              </Link>
+              <Link href="/profile" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
                 <User className="w-4 h-4" /> Company
               </Link>
             </>
           ) : (
             <>
-              <Link href="/admin" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-purple-500" /> Admin Users
+              <Link href="/admin" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-purple-400" /> Admin Users
               </Link>
-              <Link href="/admin/fraud" className="px-3 py-1.5 rounded-lg text-red-600 font-semibold hover:bg-red-50 dark:hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/admin/fraud" className="px-3 py-1.5 rounded-lg text-red-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
                 Fraud Queue
               </Link>
             </>
@@ -105,13 +111,11 @@ export default function Header() {
         </nav>
       )}
 
-      {/* Right: Theme Toggle & User Actions */}
+      {/* Right: User Actions and Persistent Avatar */}
       <div className="flex items-center gap-3">
-        <ThemeToggle />
-
         {!user ? (
           <div className="flex items-center gap-2">
-            <Link href="/login" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-white/10 transition">
+            <Link href="/login" className="px-3 py-1.5 rounded-lg text-white font-medium hover:bg-white/10 transition">
               Log In
             </Link>
             <Link href="/register" className="btn-primary text-sm py-2 px-4">
@@ -119,12 +123,30 @@ export default function Header() {
             </Link>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <Link href="/pricing" className="px-3 py-1.5 rounded-lg text-cyan-600 dark:text-cyan-400 font-bold hover:bg-cyan-50 dark:hover:bg-cyan-950/30 transition text-sm">
+          <div className="flex items-center gap-3">
+            <Link href="/pricing" className="px-3 py-1.5 rounded-lg text-cyan-400 font-bold hover:bg-cyan-950/30 transition text-sm">
               Upgrade
             </Link>
+
+            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition" title="View Profile">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 border border-cyan-400/50 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                {(profile?.profilePicture || (typeof window !== 'undefined' && localStorage.getItem('userProfilePic'))) ? (
+                  <img 
+                    src={profile?.profilePicture || localStorage.getItem('userProfilePic') || ''} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span>{(profile?.firstName || user?.email || 'U').charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+            </Link>
+
             <button 
-              className="px-3 py-1.5 text-sm text-red-500 hover:text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg cursor-pointer transition"
+              className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 font-medium hover:bg-red-950/20 rounded-lg cursor-pointer transition"
               onClick={() => {
                 localStorage.removeItem('token');
                 window.location.href = '/login';

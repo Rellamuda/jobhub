@@ -9,11 +9,11 @@ export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 
   @Post(':jobId/apply')
-  async apply(@Request() req, @Param('jobId') jobId: string, @Body() body: { coverLetter?: string }) {
+  async apply(@Request() req, @Param('jobId') jobId: string, @Body() body: { coverLetter?: string; resumeId?: string }) {
     if (req.user.role !== 'JOB_SEEKER') {
       throw new ForbiddenException('Only Job Seekers can apply for jobs.');
     }
-    return this.applicationsService.applyToJob(req.user.userId, jobId, body.coverLetter);
+    return this.applicationsService.applyToJob(req.user.userId, jobId, body.coverLetter, body.resumeId);
   }
 
   @Post(':jobId/one-tap')

@@ -1,95 +1,198 @@
 'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Star, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Star, Zap, Shield, Sparkles, Building2, User } from 'lucide-react';
 
-export default function PricingPage() {
+export default function DashboardPricingPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'SEEKER' | 'EMPLOYER'>('SEEKER');
   const [loading, setLoading] = useState(false);
 
-  const handleCheckout = async (plan: string, amount: number) => {
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(user => {
+          if (user && user.role === 'EMPLOYER') setActiveTab('EMPLOYER');
+        })
+        .catch(console.error);
+    }
+  }, []);
+
+  const handleUpgrade = async (tier: 'SILVER' | 'PREMIUM', role: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/payments/initialize', {
+      const token = localStorage.getItem('token');
+      if (!token) return router.push('/login');
+
+      const res = await fetch('/api/profiles/upgrade', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ plan, amount, email: 'user@example.com' })
+        body: JSON.stringify({ tier })
       });
-      const data = await res.json();
-      if (data.authorization_url) {
-        window.location.href = data.authorization_url;
+      if (res.ok) {
+        alert(`Successfully upgraded to ${tier} tier! 🎉`);
+        router.push(role === 'EMPLOYER' ? '/applications' : '/jobs');
+      } else {
+        alert('Failed to upgrade plan.');
       }
     } catch (e) {
-      console.error('Checkout failed', e);
+      console.error(e);
+      alert('Network error.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-12">
-      <div className="text-center space-y-4">
-        <h1 className="text-5xl font-black text-gray-900">Upgrade to Pro</h1>
-        <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-          Unlock the full power of Job Hub AI. Generate better resumes, source top candidates, and accelerate your hiring.
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 text-white">
+      <div className="text-center space-y-3">
+        <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+          Subscription & Monetization Plans
+        </h1>
+        <p className="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
+          Choose between candidate career enhancement tiers or employer recruitment power plans.
         </p>
+
+        {/* Tab Switcher */}
+        <div className="inline-flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 mt-4">
+          <button
+            onClick={() => setActiveTab('SEEKER')}
+            className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition ${activeTab === 'SEEKER' ? 'bg-cyan-500 text-black' : 'text-gray-400 hover:text-white'}`}
+          >
+            <User size={16} /> Job Seekers
+          </button>
+          <button
+            onClick={() => setActiveTab('EMPLOYER')}
+            className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition ${activeTab === 'EMPLOYER' ? 'bg-cyan-500 text-black' : 'text-gray-400 hover:text-white'}`}
+          >
+            <Building2 size={16} /> Employers
+          </button>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <Card className="p-8 border-2 hover:border-blue-400 transition">
-          <CardHeader className="p-0 mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Star className="text-blue-500" /> AI Pro (Candidates)</h3>
-            <div className="mt-4 text-4xl font-black">$19<span className="text-lg text-gray-500 font-normal">/mo</span></div>
-          </CardHeader>
-          <CardContent className="p-0 space-y-6">
-            <ul className="space-y-4">
-              {['Unlimited AI Resume Tailoring', 'Unlimited Cover Letters', 'Advanced Career Health Insights', 'Priority Application Ranking'].map((feature, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-blue-500" />
-                  <span className="text-gray-700">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <Button 
-              onClick={() => handleCheckout('AI_PRO', 19)} 
-              disabled={loading}
-              className="w-full bg-blue-600 text-lg h-12"
-            >
-              {loading ? 'Processing...' : 'Upgrade Now'}
-            </Button>
-          </CardContent>
-        </Card>
+      {activeTab === 'SEEKER' ? (
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Free Tier */}
+          <Card className="p-6 bg-white/5 border border-white/10 text-white rounded-2xl">
+            <CardHeader className="p-0 mb-4">
+              <h3 className="text-xl font-bold text-gray-300">Free Tier</h3>
+              <div className="mt-2 text-4xl font-black">$0<span className="text-sm text-gray-400 font-normal">/mo</span></div>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <ul className="space-y-3 text-sm text-gray-300">
+                <li className="flex items-center gap-2">✔️ 1 Resume & Cover Letter built</li>
+                <li className="flex items-center gap-2">✔️ 1 Autonomous Application</li>
+                <li className="flex items-center gap-2">✔️ 1 Click to Apply enabled</li>
+                <li className="flex items-center gap-2">✔️ Only 3 Job matches after onboarding</li>
+              </ul>
+              <Button disabled className="w-full bg-white/10 text-gray-400 border border-white/10 mt-6">
+                Active Default Tier
+              </Button>
+            </CardContent>
+          </Card>
 
-        <Card className="p-8 border-2 border-indigo-600 shadow-xl relative">
-          <div className="absolute top-0 right-0 bg-indigo-600 text-white px-4 py-1 rounded-bl-xl rounded-tr-xl text-sm font-bold">
-            RECOMMENDED
-          </div>
-          <CardHeader className="p-0 mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><Zap className="text-indigo-500" /> Premium Employer</h3>
-            <div className="mt-4 text-4xl font-black">$199<span className="text-lg text-gray-500 font-normal">/mo</span></div>
-          </CardHeader>
-          <CardContent className="p-0 space-y-6">
-            <ul className="space-y-4">
-              {['Unlimited Job Postings', 'Access to Talent Marketplace', 'Advanced CRM Pipeline Tools', 'AI Candidate Fraud Detection'].map((feature, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-indigo-500" />
-                  <span className="text-gray-700 font-medium">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <Button 
-              onClick={() => handleCheckout('PREMIUM_EMPLOYER', 199)}
-              disabled={loading}
-              className="w-full bg-indigo-600 text-lg h-12"
-            >
-              {loading ? 'Processing...' : 'Subscribe'}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Silver Plan */}
+          <Card className="p-6 bg-cyan-950/20 border-2 border-cyan-400 text-white rounded-2xl shadow-xl shadow-cyan-500/10">
+            <CardHeader className="p-0 mb-4">
+              <span className="bg-cyan-400 text-black text-xs font-black px-2.5 py-0.5 rounded-full inline-block w-fit mb-2">RECOMMENDED</span>
+              <h3 className="text-xl font-bold text-cyan-300">Silver Plan</h3>
+              <div className="mt-2 text-4xl font-black">$10<span className="text-sm text-gray-400 font-normal">/mo</span></div>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <ul className="space-y-3 text-sm text-gray-200">
+                <li className="flex items-center gap-2 text-cyan-300">✨ Unlimited AI Resume building</li>
+                <li className="flex items-center gap-2 text-cyan-300">✨ Unlimited AI Cover Letter generation</li>
+                <li className="flex items-center gap-2 text-cyan-300">✨ Autonomous Application auto-pilot</li>
+                <li className="flex items-center gap-2 text-cyan-300">✨ Unlimited Job Matches & scoring</li>
+              </ul>
+              <Button 
+                onClick={() => handleUpgrade('SILVER', 'JOB_SEEKER')} 
+                disabled={loading}
+                className="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-bold mt-6"
+              >
+                {loading ? 'Processing...' : 'Upgrade to Silver ($10/mo)'}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Free Tier */}
+          <Card className="p-6 bg-white/5 border border-white/10 text-white rounded-2xl">
+            <CardHeader className="p-0 mb-4">
+              <h3 className="text-xl font-bold text-gray-300">Free Tier</h3>
+              <div className="mt-2 text-4xl font-black">$0<span className="text-sm text-gray-400 font-normal">/mo</span></div>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <ul className="space-y-3 text-sm text-gray-300">
+                <li className="flex items-center gap-2">✔️ Post up to 3 jobs</li>
+                <li className="flex items-center gap-2">✔️ Only 3 candidate matches/month</li>
+                <li className="flex items-center gap-2">✔️ Standard applicant dashboard</li>
+              </ul>
+              <Button disabled className="w-full bg-white/10 text-gray-400 border border-white/10 mt-6">
+                Active Default Tier
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Premium Plan */}
+          <Card className="p-6 bg-cyan-950/20 border-2 border-cyan-400 text-white rounded-2xl shadow-xl shadow-cyan-500/10">
+            <CardHeader className="p-0 mb-4">
+              <span className="bg-cyan-400 text-black text-xs font-black px-2.5 py-0.5 rounded-full inline-block w-fit mb-2">RECOMMENDED</span>
+              <h3 className="text-xl font-bold text-cyan-300">Premium</h3>
+              <div className="mt-2 text-4xl font-black">$50<span className="text-sm text-gray-400 font-normal">/mo</span></div>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <ul className="space-y-3 text-xs md:text-sm text-gray-200">
+                <li className="flex items-center gap-2">🚀 Post up to 70 jobs/month</li>
+                <li className="flex items-center gap-2">🚀 Up to 50 instant qualified matches</li>
+                <li className="flex items-center gap-2">🚀 AI Job vacancies build assist</li>
+                <li className="flex items-center gap-2">🚀 Priority Applicant Ranking</li>
+                <li className="flex items-center gap-2">🚀 Verified Profile Badge option</li>
+                <li className="flex items-center gap-2">🚀 40 AI Match Scoring advance coaching</li>
+              </ul>
+              <Button 
+                onClick={() => handleUpgrade('PREMIUM', 'EMPLOYER')} 
+                disabled={loading}
+                className="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-bold mt-6"
+              >
+                {loading ? 'Processing...' : 'Upgrade to Premium ($50/mo)'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Silver Plan for Employers */}
+          <Card className="p-6 bg-purple-950/20 border border-purple-400 text-white rounded-2xl">
+            <CardHeader className="p-0 mb-4">
+              <h3 className="text-xl font-bold text-purple-300">Silver / Enterprise</h3>
+              <div className="mt-2 text-4xl font-black">$100<span className="text-sm text-gray-400 font-normal">/mo</span></div>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4">
+              <ul className="space-y-3 text-xs md:text-sm text-gray-200">
+                <li className="flex items-center gap-2">👑 Unlimited AI Resume & Cover Letters</li>
+                <li className="flex items-center gap-2">👑 Unlimited AI Match Scoring</li>
+                <li className="flex items-center gap-2">👑 Best Priority Ranking across platform</li>
+                <li className="flex items-center gap-2">👑 Verified Profile Badge options</li>
+                <li className="flex items-center gap-2">👑 Advanced Career Coaching Insights</li>
+              </ul>
+              <Button 
+                onClick={() => handleUpgrade('SILVER', 'EMPLOYER')} 
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold mt-6"
+              >
+                {loading ? 'Processing...' : 'Subscribe Silver ($100/mo)'}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

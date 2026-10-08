@@ -1,11 +1,36 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { JobsService } from './jobs.service';
+import { AutonomousService } from './autonomous.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Prisma } from '@prisma/client';
 
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+  constructor(
+    private readonly jobsService: JobsService,
+    private readonly autonomousService: AutonomousService,
+  ) {}
+
+  @Post('autonomous/run')
+  @UseGuards(JwtAuthGuard)
+  async runAutonomousApplications(@Request() req) {
+    return this.autonomousService.runForUser(req.user.userId);
+  }
+
+  @Post('autonomous/settings')
+  @UseGuards(JwtAuthGuard)
+  async updateAutonomousSettings(
+    @Request() req,
+    @Body() body: { enabled: boolean; keywords?: string[] },
+  ) {
+    return this.autonomousService.updateSettings(req.user.userId, body.enabled, body.keywords);
+  }
+
+  @Get('autonomous/status')
+  @UseGuards(JwtAuthGuard)
+  async getAutonomousStatus(@Request() req) {
+    return this.autonomousService.getStatus(req.user.userId);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post()

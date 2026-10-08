@@ -6,16 +6,30 @@ import { Input } from '@/components/ui/input';
 import { Search, UserCheck, Star } from 'lucide-react';
 
 export default function TalentMarketplace() {
-  const [candidates, setCandidates] = useState([]);
+  const [candidates, setCandidates] = useState<any[]>([]);
   const [skillSearch, setSkillSearch] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const fetchTalent = async (skill = '') => {
+    setLoading(true);
     try {
-      const res = await fetch(`/api/profiles/talent?skill=${skill}`);
-      const data = await res.json();
-      setCandidates(data);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/profiles/talent?skill=${encodeURIComponent(skill)}`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCandidates(Array.isArray(data) ? data : []);
+      } else {
+        setCandidates([]);
+      }
     } catch (e) {
       console.error(e);
+      setCandidates([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,7 +72,7 @@ export default function TalentMarketplace() {
                 <p className="text-sm font-medium text-indigo-600">{c.profession}</p>
               </div>
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">
-                {c.firstName.charAt(0)}{c.lastName.charAt(0)}
+                {(c.firstName || 'C').charAt(0)}{(c.lastName || '').charAt(0)}
               </div>
             </CardHeader>
             <CardContent className="p-4 space-y-4">

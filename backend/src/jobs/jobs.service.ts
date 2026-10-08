@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { AutonomousService } from './autonomous.service';
 
 @Injectable()
 export class JobsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private autonomousService: AutonomousService
+  ) {}
 
   async createJob(userId: string, data: Prisma.JobCreateWithoutEmployerInput) {
     const employer = await this.prisma.employer.findUnique({
@@ -30,11 +34,10 @@ export class JobsService {
       },
     });
 
-
-
-    // Run AI checks asynchronously
+    // Run AI checks and autonomous applications asynchronously
     this.generateSmartAlerts(newJob).catch(console.error);
     this.runFraudCheck(newJob).catch(console.error);
+    this.autonomousService.autoApplyJobForMatchingSeekers(newJob).catch(console.error);
 
     return newJob;
   }

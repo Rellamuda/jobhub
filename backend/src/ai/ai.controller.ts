@@ -15,8 +15,9 @@ export class AiController {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ForbiddenException('User not found');
     
-    if (user.subscriptionTier === 'FREE') {
-      if (user.freeGenerationsUsed >= 1) {
+    // Generation limit applies strictly to free job seekers generating cover letters/resumes
+    if (user.role === 'JOB_SEEKER' && user.subscriptionTier === 'FREE') {
+      if (user.freeGenerationsUsed >= 5) {
         throw new ForbiddenException('Free generation limit reached. Please upgrade to Premium.');
       }
       await this.prisma.user.update({

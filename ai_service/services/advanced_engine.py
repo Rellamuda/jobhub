@@ -116,19 +116,73 @@ def generate_interview_questions(job_data: dict, profile_data: dict = None) -> l
     except:
         return ["Describe a challenging project."]
 
-def generate_job_description(basic_info: dict) -> str:
+def generate_job_description(basic_info: dict) -> dict:
     """Generates a full job description from basic inputs."""
-    if not api_key:
-        return "We are looking for a great candidate to join our team!"
-        
-    prompt = f"""
-    Write a professional and engaging job description based on these details:
-    {json.dumps(basic_info, indent=2)}
+    prompt_text = basic_info.get("prompt") or basic_info.get("title") or "Software Engineer"
     
-    Return just the markdown text of the job description.
-    """
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    if api_key:
+        prompt = f"""
+        Write a professional and engaging job description based on these details:
+        {json.dumps(basic_info, indent=2)}
+        
+        Respond with strictly valid JSON matching this schema:
+        {{
+            "title": "Exact standard job title derived from input",
+            "description": "Comprehensive job description paragraph",
+            "responsibilities": ["Responsibility 1", "Responsibility 2", "Responsibility 3"],
+            "requiredSkills": ["Skill 1", "Skill 2", "Skill 3"],
+            "qualifications": ["Qualification 1", "Qualification 2"]
+        }}
+        """
+        try:
+            response = model.generate_content(prompt)
+            clean_text = response.text.strip().removeprefix('```json').removesuffix('```').strip()
+            parsed = json.loads(clean_text)
+            return parsed
+        except Exception:
+            pass
+
+    # High quality fallback generation when Gemini API key is absent or offline
+    title = basic_info.get("title") or "Senior Software Engineer"
+    if "flutter" in prompt_text.lower():
+        title = "Senior Flutter Developer"
+        desc = "We are seeking a talented Flutter Developer to spearhead our cross-platform mobile initiatives across iOS and Android. You will collaborate with product and backend engineers to craft responsive, fluid applications with seamless user experiences."
+        responsibilities = [
+            "Architect and maintain cross-platform Flutter and Dart applications",
+            "Integrate RESTful APIs and real-time backend microservices",
+            "Optimize app performance, state management, and memory footprint",
+            "Collaborate closely with design teams to bring UI/UX mockups to life"
+        ]
+        skills = ["Flutter", "Dart", "Firebase", "State Management (Provider/Bloc)", "REST APIs"]
+        quals = ["3+ years professional mobile development experience", "Proven track record publishing apps to App Store & Google Play"]
+    elif "ai" in prompt_text.lower() or "machine" in prompt_text.lower():
+        title = "AI / Machine Learning Engineer"
+        desc = "Join our cutting-edge AI team to develop autonomous agents, natural language processing pipelines, and predictive algorithms driving the future of employment matching."
+        responsibilities = [
+            "Design and deploy production-grade LLM agents and embeddings pipelines",
+            "Fine-tune generative models and optimize inference latency",
+            "Partner with data engineers to scale training and retrieval datasets"
+        ]
+        skills = ["Python", "FastAPI", "PyTorch / TensorFlow", "LangChain", "Vector Databases"]
+        quals = ["B.S. or M.S. in Computer Science or related quantitative field", "Experience deploying models in production cloud environments"]
+    else:
+        title = prompt_text if len(prompt_text) < 40 else "Senior Full-Stack Engineer"
+        desc = f"We are actively seeking an experienced professional to join our team for the role of {title}. In this position, you will own critical deliverables, drive technical excellence, and build solutions that delight our global users."
+        responsibilities = [
+            "Deliver scalable, reliable, and test-driven features end-to-end",
+            "Contribute to architectural designs, code reviews, and technical documentation",
+            "Troubleshoot production issues and proactively improve system resilience"
+        ]
+        skills = ["Problem Solving", "Modern Frameworks", "Git", "Cloud Infrastructure"]
+        quals = ["Strong analytical problem-solving skills", "Demonstrated team collaboration and communication abilities"]
+
+    return {
+        "title": title,
+        "description": desc,
+        "responsibilities": responsibilities,
+        "requiredSkills": skills,
+        "qualifications": quals
+    }
 
 def detect_fraud(content: str) -> dict:
     """Evaluates text for spam/fraud indicators."""

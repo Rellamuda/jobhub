@@ -86,6 +86,31 @@ body {
   box-shadow: 0 6px 20px rgba(0, 240, 255, 0.6);
 }
 
+/* Ensure transparent/outline buttons have sharp visible contrast in both modes */
+.btn-outline,
+.btn-primary[style*="transparent"],
+.btn-primary[style*="rgba(0, 0, 0, 0)"] {
+  color: var(--text-primary) !important;
+  border-color: var(--primary-color) !important;
+  font-weight: 600 !important;
+}
+
+.dark .btn-outline,
+.dark .btn-primary[style*="transparent"],
+.dark .btn-primary[style*="rgba(0, 0, 0, 0)"] {
+  color: #FFFFFF !important;
+  border-color: var(--secondary-color) !important;
+}
+
+/* Inputs and cards contrast in light and dark mode */
+input, textarea, select {
+  color: var(--text-primary) !important;
+}
+
+.dark input, .dark textarea, .dark select {
+  color: #FFFFFF !important;
+}
+
 /* Glowing text */
 .text-gradient {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);

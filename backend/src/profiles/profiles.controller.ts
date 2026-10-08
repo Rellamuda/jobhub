@@ -110,4 +110,42 @@ export class ProfilesController {
   async getPublicEmployerProfile(@Request() req, @Param('id') id: string) {
     return this.profilesService.getPublicEmployerProfile(id);
   }
+
+  @Get('credentials')
+  async getCredentials(@Request() req) {
+    const profile = await this.prisma.jobSeekerProfile.findUnique({
+      where: { userId: req.user.userId },
+      include: { credentials: true }
+    });
+    return profile?.credentials || [];
+  }
+
+  @Post('credentials')
+  async addCredential(@Request() req, @Body() data: any) {
+    const profile = await this.prisma.jobSeekerProfile.findUnique({
+      where: { userId: req.user.userId }
+    });
+    if (!profile) {
+      throw new ForbiddenException('Job seeker profile not found');
+    }
+    return this.prisma.credential.create({
+      data: {
+        jobSeekerProfileId: profile.id,
+        type: data.type || 'CERTIFICATE',
+        name: data.name,
+        issuer: data.issuer,
+        issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
+        documentUrl: data.documentUrl || '',
+        verificationStatus: 'PENDING'
+      }
+    });
+  }
+
+  @Delete('credentials/:id')
+  async deleteCredential(@Request() req, @Param('id') id: string) {
+    return this.prisma.credential.delete({
+      where: { id }
+    });
+  }
 }
+

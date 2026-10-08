@@ -54,6 +54,32 @@ function ResumeBuilder() {
         .then(res => res.json())
         .then(data => setResume(data))
         .catch(err => console.error(err));
+    } else {
+      // Automatically pull onboarding profile data so user does not re-fill from scratch
+      fetch('/api/profiles/job-seeker', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(prof => {
+          if (prof) {
+            setResume(prev => ({
+              ...prev,
+              title: `${prof.firstName || ''} ${prof.lastName || ''} - ${prof.desiredJobTitle || prof.profession || 'Resume'}`.trim(),
+              summary: prof.summary || prof.headline || '',
+              personalInfo: {
+                firstName: prof.firstName || '',
+                lastName: prof.lastName || '',
+                email: prof.user?.email || '',
+                phone: prof.phone || '',
+                city: [prof.residenceCity, prof.residenceCountry].filter(Boolean).join(', ')
+              },
+              experience: Array.isArray(prof.experience) ? prof.experience : [],
+              education: Array.isArray(prof.education) ? prof.education : [],
+              skills: Array.isArray(prof.skills) ? prof.skills : []
+            }));
+          }
+        })
+        .catch(console.error);
     }
   }, [resumeId, parsedDataParam]);
 
@@ -199,6 +225,24 @@ function ResumeBuilder() {
               placeholder="Skills (comma separated)" 
               value={Array.isArray(resume.skills) ? resume.skills.join(', ') : ''} 
               onChange={e => setResume({...resume, skills: e.target.value.split(',').map(s => s.trim())})}
+            />
+          </div>
+
+          <div className="space-y-4 pt-4">
+            <h3 className="text-lg font-semibold border-b pb-2 text-indigo-600 dark:text-cyan-400">✨ Additional Information</h3>
+            <p className="text-xs text-gray-500">Add any new projects, awards, or details to include in this generated resume:</p>
+            <Textarea 
+              placeholder="e.g. Recently completed AWS Certified Cloud Practitioner. Led a team of 4 in an AI hackathon..."
+              rows={4}
+              onChange={e => {
+                const addVal = e.target.value;
+                setResume(prev => ({
+                  ...prev,
+                  summary: prev.summary.includes('\n\nAdditional Highlights:') 
+                    ? prev.summary.split('\n\nAdditional Highlights:')[0] + (addVal ? `\n\nAdditional Highlights: ${addVal}` : '')
+                    : prev.summary + (addVal ? `\n\nAdditional Highlights: ${addVal}` : '')
+                }));
+              }}
             />
           </div>
         </div>

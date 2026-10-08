@@ -119,7 +119,16 @@ export class ApplicationsService {
       where: { jobSeekerId: jobSeekerProfile.id },
       include: {
         job: {
-          include: { employer: { select: { companyName: true } } },
+          include: {
+            employer: {
+              select: {
+                id: true,
+                userId: true,
+                companyName: true,
+                profilePicture: true,
+              },
+            },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },

@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Plus, Upload, FileText, Download } from 'lucide-react';
 
 export default function ResumesPage() {
-  const [resumes, setResumes] = useState([]);
+  const [resumes, setResumes] = useState<any[]>([]);
   
   useEffect(() => {
     const token = localStorage.getItem('token');

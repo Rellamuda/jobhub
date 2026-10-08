@@ -436,32 +436,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (location.isNotEmpty)
           Text(location, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)), textAlign: TextAlign.center),
         
-        if (_profile?['verificationStatus'] == 'VERIFIED')
+        if (_profile?['verificationStatus'] == 'UNVERIFIED')
           Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00F0FF).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.5)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.verified, color: Color(0xFF00F0FF), size: 18),
-                  SizedBox(width: 6),
-                  Text('Verified Company (Registration & Web Active)', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
-                ],
-              ),
-            ),
-          )
-        else
-          Center(
-            child: TextButton.icon(
-              onPressed: _isVerifying ? null : _showEmployerVerifyDialog,
-              icon: const Icon(Icons.shield_outlined, color: Color(0xFF00F0FF), size: 18),
-              label: Text(_isVerifying ? 'Verifying...' : 'Verify Company & Get Badge', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+            child: TextButton(
+              onPressed: _isVerifying ? null : _requestVerification,
+              child: Text(_isVerifying ? 'Requesting...' : 'Request Verification', style: const TextStyle(color: Color(0xFF00F0FF))),
             ),
           )
         else if (_profile?['verificationStatus'] == 'PENDING')
@@ -844,11 +823,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (location.isNotEmpty)
           Text(location, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)), textAlign: TextAlign.center),
         
-        if (_profile?['verificationStatus'] == 'UNVERIFIED')
+        if (_profile?['verificationStatus'] == 'VERIFIED')
           Center(
-            child: TextButton(
-              onPressed: _isVerifying ? null : _requestVerification,
-              child: Text(_isVerifying ? 'Requesting...' : 'Request Verification', style: const TextStyle(color: Color(0xFF00F0FF))),
+            child: Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00F0FF).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.5)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.verified, color: Color(0xFF00F0FF), size: 18),
+                  SizedBox(width: 6),
+                  Text('Verified Company (Registration & Web Active)', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
             ),
           )
         else if (_profile?['verificationStatus'] == 'PENDING')
@@ -856,6 +848,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Padding(
               padding: EdgeInsets.only(top: 8.0),
               child: Text('Verification Pending...', style: TextStyle(color: Colors.amber)),
+            ),
+          )
+        else
+          Center(
+            child: TextButton.icon(
+              onPressed: _isVerifying ? null : _showEmployerVerifyDialog,
+              icon: const Icon(Icons.shield_outlined, color: Color(0xFF00F0FF), size: 18),
+              label: Text(_isVerifying ? 'Verifying...' : 'Verify Company & Get Badge', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
             ),
           ),
           

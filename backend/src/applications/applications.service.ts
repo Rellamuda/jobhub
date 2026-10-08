@@ -34,7 +34,7 @@ export class ApplicationsService {
     let attachedResumeId = resumeId;
     if (!attachedResumeId) {
       const latestResume = await this.prisma.resume.findFirst({
-        where: { jobSeekerProfileId: jobSeekerProfile.id },
+        where: { jobSeekerId: jobSeekerProfile.id },
         orderBy: { updatedAt: 'desc' },
       });
       if (latestResume) {
@@ -66,7 +66,7 @@ export class ApplicationsService {
       data: {
         job: { connect: { id: jobId } },
         jobSeekerProfile: { connect: { id: jobSeekerProfile.id } },
-        resumeId: attachedResumeId || undefined,
+        ...(attachedResumeId ? { resume: { connect: { id: attachedResumeId } } } : {}),
         coverLetter: finalCoverLetter,
         aiMatchScore: matchScore,
         status: ApplicationStatus.APPLIED,

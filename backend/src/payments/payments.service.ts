@@ -67,14 +67,19 @@ export class PaymentsService {
 
     // Default: Paystack
     try {
+      // Paystack Nigerian live account charges in NGN kobo (1 USD ~ 1,600 NGN)
+      const ngnRate = 1600;
+      const amountInNgn = Math.round(amount * ngnRate);
+      const amountInKobo = amountInNgn * 100;
+
       const response = await axios.post(
         'https://api.paystack.co/transaction/initialize',
         {
           email: email || 'user@jobhub.ai',
-          amount: Math.round(amount * 100), // In subunits (cents)
-          currency: 'USD',
+          amount: amountInKobo,
+          currency: 'NGN',
           reference,
-          metadata: { userId, plan },
+          metadata: { userId, plan, amountUsd: amount },
           callback_url: callbackUrl || 'http://56.228.30.202:3000/pricing?status=success',
         },
         {

@@ -84,21 +84,7 @@ export default function DashboardPricingPage() {
       if (res.ok && data.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        const upgradeRes = await fetch('/api/profiles/upgrade', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ tier: checkoutModal.tier })
-        });
-        if (upgradeRes.ok) {
-          alert(`Successfully upgraded to ${checkoutModal.tier} tier! 🎉`);
-          setCheckoutModal({ ...checkoutModal, isOpen: false });
-          router.push(checkoutModal.targetRole === 'EMPLOYER' ? '/applications' : '/jobs');
-        } else {
-          alert(data.message || 'Payment initialization failed.');
-        }
+        alert(data.message || 'Payment initialization failed. Please try again.');
       }
     } catch (e) {
       console.error(e);

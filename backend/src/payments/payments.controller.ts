@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -13,7 +13,11 @@ export class PaymentsController {
   }
 
   @Get('verify/:reference')
-  async verify(@Param('reference') reference: string) {
-    return this.paymentsService.verifyPayment(reference);
+  async verify(
+    @Param('reference') reference: string,
+    @Query('provider') provider?: string,
+    @Query('transaction_id') txId?: string,
+  ) {
+    return this.paymentsService.verifyPayment(reference, provider, txId);
   }
 }

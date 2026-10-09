@@ -499,7 +499,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 32),
         ElevatedButton.icon(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SubscriptionScreen(
+                  initialRole: _user?['role'] ?? 'JOB_SEEKER',
+                ),
+              ),
+            );
           },
           icon: const Icon(Icons.star, color: Colors.black),
           label: const Text('Upgrade to Premium', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
@@ -864,7 +871,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 32),
         ElevatedButton.icon(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SubscriptionScreen(
+                  initialRole: _user?['role'] ?? 'EMPLOYER',
+                ),
+              ),
+            );
           },
           icon: const Icon(Icons.star, color: Colors.white),
           label: const Text('Upgrade to Premium', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

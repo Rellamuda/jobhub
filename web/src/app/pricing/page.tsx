@@ -90,22 +90,7 @@ export default function PricingPage() {
         // Redirect directly to the secure payment page
         window.location.href = data.authorization_url;
       } else {
-        // Fallback: direct upgrade if live gateway returns test simulation
-        const upgradeRes = await fetch('/api/profiles/upgrade', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ tier: checkoutModal.tier })
-        });
-        if (upgradeRes.ok) {
-          alert(`Successfully upgraded to ${checkoutModal.tier} tier! 🎉`);
-          setCheckoutModal({ ...checkoutModal, isOpen: false });
-          router.push(checkoutModal.targetRole === 'EMPLOYER' ? '/applications' : '/jobs');
-        } else {
-          alert(data.message || 'Payment initialization failed. Please try again.');
-        }
+        alert(data.message || 'Payment initialization failed. Please try again.');
       }
     } catch (e) {
       console.error(e);

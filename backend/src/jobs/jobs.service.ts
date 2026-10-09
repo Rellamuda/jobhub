@@ -360,6 +360,9 @@ export class JobsService {
     const jobDescLower = (job.description || '').toLowerCase();
     const jobLocationLower = (job.location || '').toLowerCase();
     const isJobRemote = !!job.isRemote || jobLocationLower.includes('remote');
+    const profiles = await this.prisma.jobSeekerProfile.findMany({
+      include: { user: { select: { id: true, email: true } } }
+    });
 
     let scored = profiles.map(profile => {
       const experienceArray = (profile.experience as any[]) || [];

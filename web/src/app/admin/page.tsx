@@ -275,8 +275,14 @@ export default function AdminDashboard() {
             >
               🔄 Refresh Data
             </button>
-            <Link
-              href="/seeker-dashboard"
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  window.location.href = '/applications';
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -285,13 +291,13 @@ export default function AdminDashboard() {
                 border: '1px solid rgba(99, 102, 241, 0.3)',
                 padding: '0.6rem 1.2rem',
                 borderRadius: '10px',
-                textDecoration: 'none',
+                cursor: 'pointer',
                 fontWeight: 600,
                 fontSize: '0.9rem',
               }}
             >
               Exit to App
-            </Link>
+            </button>
           </div>
         </div>
 

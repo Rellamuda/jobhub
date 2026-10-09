@@ -123,6 +123,16 @@ export default function Header() {
           </div>
         ) : (
           <div className="flex items-center gap-3">
+            {(user.role === 'ADMIN' || user.email === 'johnmeke2013@gmail.com') && (
+              <Link 
+                href="/admin" 
+                className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition flex items-center gap-1.5"
+                title="Admin Control Center"
+              >
+                <Shield className="w-3.5 h-3.5 text-purple-400" /> Admin
+              </Link>
+            )}
+
             <Link href="/pricing" className="px-3 py-1.5 rounded-lg text-cyan-400 font-bold hover:bg-cyan-950/30 transition text-sm">
               Upgrade
             </Link>

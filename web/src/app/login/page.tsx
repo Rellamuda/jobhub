@@ -42,6 +42,10 @@ export default function LoginPage() {
       
       // Actively check if user has completed their profile
       const role = data.user?.role;
+      if (role === 'ADMIN') {
+        window.location.href = '/admin';
+        return;
+      }
       const profileEndpoint = role === 'EMPLOYER' ? '/profiles/employer' : '/profiles/job-seeker';
       try {
         const profileRes = await fetch(`/api${profileEndpoint}`, {

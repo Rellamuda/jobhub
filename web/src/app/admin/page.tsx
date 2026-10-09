@@ -82,16 +82,30 @@ export default function AdminDashboard() {
   const [editFlagged, setEditFlagged] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      setIsAuthenticated(false);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
       const [usersRes, statsRes] = await Promise.all([
         fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
         fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
+      if (usersRes.status === 401 || statsRes.status === 401) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
       if (usersRes.ok) {
         const data = await usersRes.json();
         setUsers(data);
@@ -298,6 +312,70 @@ export default function AdminDashboard() {
           >
             <span>{message.text}</span>
             <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+          </div>
+        )}
+
+        {/* Authentication Notice if Guest / Not Logged In */}
+        {isAuthenticated === false && !loading && (
+          <div
+            style={{
+              padding: '2.5rem 2rem',
+              borderRadius: '20px',
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              textAlign: 'center',
+              marginBottom: '2rem',
+              backdropFilter: 'blur(12px)',
+            }}
+          >
+            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🔐</div>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', color: '#F87171' }}>
+              Administrator Authentication Required
+            </h2>
+            <p style={{ color: 'rgba(255, 255, 255, 0.75)', maxWidth: '640px', margin: '0 auto 1.5rem', lineHeight: '1.6', fontSize: '1rem' }}>
+              User records, personal information, and platform analytics are securely protected and only accessible to signed-in administrators. You are currently viewing this page unauthenticated (guest mode), which is why the metrics and tables show 0.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <Link
+                href="/login"
+                style={{
+                  padding: '0.85rem 2rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                  color: 'white',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                🔑 Log In as Administrator
+              </Link>
+              <button
+                onClick={fetchUsers}
+                style={{
+                  padding: '0.85rem 1.5rem',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  color: 'white',
+                  fontWeight: 600,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  cursor: 'pointer',
+                }}
+              >
+                🔄 Refresh Session
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+            <div>Loading JobHub AI platform intelligence and user database...</div>
           </div>
         )}
 

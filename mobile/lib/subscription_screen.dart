@@ -288,7 +288,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   if (_userRole == 'EMPLOYER' || (_userRole == null && _selectedTab == 1)) ...[
                     _buildPlanCard(
                       title: 'Free Tier',
-                      price: '$0',
+                      price: '\$0',
                       subtitle: 'Post limited jobs and test hiring tools',
                       features: [
                         'Post up to 3 jobs',
@@ -302,7 +302,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                     _buildPlanCard(
                       title: 'Premium',
-                      price: '$50',
+                      price: '\$50',
                       subtitle: 'Scale active hiring with high-impact AI',
                       features: [
                         'Post up to 70 jobs per month',
@@ -321,7 +321,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                     _buildPlanCard(
                       title: 'Silver / Enterprise',
-                      price: '$100',
+                      price: '\$100',
                       subtitle: 'Full agency recruitment powerhouse',
                       features: [
                         'Unlimited AI Resume & Cover Letter building',

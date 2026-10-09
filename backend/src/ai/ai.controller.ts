@@ -30,16 +30,20 @@ export class AiController {
   @Post('resume/generate')
   async generateResume(@Request() req, @Body() profileData: any) {
     await this.checkGenerationLimit(req.user.userId);
-    const resume = await this.aiService.generateResume(profileData);
+    const result = await this.aiService.generateResume(profileData);
     
+    const resumeText = typeof result === 'string' 
+      ? result 
+      : (result.resume || JSON.stringify(result.structured || result));
+
     // Save to profile
     if (req.user.role === 'JOB_SEEKER') {
       await this.prisma.jobSeekerProfile.update({
         where: { userId: req.user.userId },
-        data: { resumeContent: resume }
+        data: { resumeContent: resumeText }
       });
     }
-    return { resume };
+    return typeof result === 'object' ? result : { resume: resumeText };
   }
 
   @Post('cover-letter/generate')

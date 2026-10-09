@@ -6,13 +6,34 @@ import { Prisma } from '@prisma/client';
 export class ProfilesService {
   constructor(private prisma: PrismaService) {}
 
-  async upsertJobSeekerProfile(userId: string, data: Prisma.JobSeekerProfileUpdateInput & Prisma.JobSeekerProfileCreateWithoutUserInput) {
-    return this.prisma.jobSeekerProfile.upsert({
-      where: { userId },
-      update: data,
-      create: {
+  async upsertJobSeekerProfile(userId: string, data: any) {
+    const existing = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
+    if (existing) {
+      return this.prisma.jobSeekerProfile.update({
+        where: { userId },
+        data,
+      });
+    }
+    return this.prisma.jobSeekerProfile.create({
+      data: {
+        firstName: data.firstName || 'Job',
+        lastName: data.lastName || 'Seeker',
         ...data,
         user: { connect: { id: userId } },
+      },
+    });
+  }
+
+  async updateAutoApply(userId: string, enabled: boolean, keywords?: string[]) {
+    const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('Job seeker profile not found');
+    }
+    return this.prisma.jobSeekerProfile.update({
+      where: { userId },
+      data: {
+        autoApplyEnabled: enabled,
+        ...(keywords !== undefined ? { autoApplyKeywords: keywords } : {}),
       },
     });
   }

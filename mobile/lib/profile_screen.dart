@@ -165,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final newEnabled = enabled ?? (_profile?['autoApplyEnabled'] ?? false);
       final newKeywords = keywords ?? List<String>.from(_profile?['autoApplyKeywords'] ?? []);
 
-      final endpoint = _user?['role'] == 'JOB_SEEKER' ? '/profiles/job-seeker' : '/profiles/employer';
+      final endpoint = _user?['role'] == 'JOB_SEEKER' ? '/profiles/job-seeker/auto-apply' : '/profiles/employer';
       final res = await http.post(
         Uri.parse('${ApiConfig.baseUrl}$endpoint'),
         headers: {
@@ -175,6 +175,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: jsonEncode({
           'autoApplyEnabled': newEnabled,
           'autoApplyKeywords': newKeywords,
+          'enabled': newEnabled,
+          'keywords': newKeywords,
         }),
       );
 

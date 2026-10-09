@@ -214,6 +214,7 @@ export class ResumesService {
       <body>
         <div class="container">
           <div class="header">
+            <div style="font-size: 16px; font-weight: 800; letter-spacing: 3px; color: #4338ca; text-transform: uppercase; margin-bottom: 6px;">RESUME</div>
             <h1 class="name">${pi.firstName || ''} ${pi.lastName || ''}</h1>
             <div class="contact">
               ${pi.email ? pi.email + ' | ' : ''}

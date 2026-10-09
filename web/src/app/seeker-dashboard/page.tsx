@@ -434,7 +434,12 @@ export default function SeekerDashboard() {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ fontSize: '2.4rem', margin: 0 }} className="text-gradient">Job Seeker Dashboard</h1>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <Link href="/dashboard/resumes">
+            <button className="btn-outline" style={{ border: '1px solid #00f0ff', color: '#00f0ff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              📁 Saved Documents & Resumes
+            </button>
+          </Link>
           <Link href="/dashboard/resumes/builder">
             <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)', color: '#000', fontWeight: 'bold' }}>
               ✨ AI Resume Builder

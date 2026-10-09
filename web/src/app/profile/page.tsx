@@ -193,7 +193,7 @@ export default function ProfilePage() {
     setSavingAutoApply(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/profiles/job-seeker', {
+      const res = await fetch('/api/profiles/job-seeker/auto-apply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,9 +201,24 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           autoApplyEnabled,
-          autoApplyKeywords
+          autoApplyKeywords,
+          enabled: autoApplyEnabled,
+          keywords: autoApplyKeywords
         })
       });
+
+      // Also sync to autonomous service
+      await fetch('/api/jobs/autonomous/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          enabled: autoApplyEnabled,
+          keywords: autoApplyKeywords
+        })
+      }).catch(() => {});
 
       if (res.ok) {
         alert('Autonomous application preferences saved successfully!');

@@ -111,43 +111,69 @@ export class JobsService {
     if (user.role === 'JOB_SEEKER') {
       const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
       if (profile) {
-        // Collect all relevant profile data into a giant text block for keyword extraction
+        // Stop words to prevent false positives like 'team', 'work', 'years'
+        const stopWords = new Set([
+          'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are',
+          'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by',
+          'can', 'could', 'did', 'do', 'does', 'doing', 'down', 'during', 'each', 'few', 'for', 'from',
+          'had', 'has', 'have', 'having', 'he', 'her', 'here', 'hers', 'him', 'his', 'how', 'if', 'in',
+          'into', 'is', 'it', 'its', 'just', 'me', 'more', 'most', 'my', 'no', 'nor', 'not', 'of', 'off',
+          'on', 'once', 'only', 'or', 'other', 'our', 'out', 'over', 'own', 'same', 'she', 'should', 'so',
+          'some', 'such', 'than', 'that', 'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this',
+          'those', 'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'we', 'were', 'what',
+          'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'with', 'would', 'you', 'your',
+          'work', 'working', 'team', 'company', 'role', 'year', 'years', 'experience', 'candidate',
+          'looking', 'join', 'help', 'able', 'good', 'strong', 'well', 'responsible', 'skills', 'skill'
+        ]);
+
         const experienceArray = profile.experience as any[] || [];
-        const educationArray = profile.education as any[] || [];
-        const certsArray = profile.certificates as any[] || [];
+        const experienceRoles = experienceArray.map(e => e.role || '').filter(Boolean);
 
-        const experienceRoles = experienceArray.map(e => e.role).join(' ');
-        const educationCourses = educationArray.map(e => e.course).join(' ');
-        const certNames = certsArray.map(c => c.name).join(' ');
-
-        const profileTextElements = [
+        const primaryTerms = [
+          profile.desiredJobTitle,
           profile.profession,
           profile.skilledProfession,
           profile.headline,
-          profile.summary,
-          profile.desiredJobTitle,
-          profile.bio,
-          profile.resumeContent,
-          experienceRoles,
-          educationCourses,
-          certNames,
-          ...profile.skills
-        ].filter(Boolean).join(' ');
-
-        const keywords = profileTextElements.split(/[^a-zA-Z0-9]/)
-          .map(k => k.toLowerCase())
-          .filter(k => k.length > 3); // filter small noise words
+          ...experienceRoles,
+          ...(profile.skills || []),
+          ...(profile.autoApplyKeywords || [])
+        ].filter(Boolean)
+         .map(t => t.toLowerCase().trim())
+         .filter(t => !stopWords.has(t) && t.length > 2);
 
         jobs = jobs.map(job => {
-          const jobText = (job.title + ' ' + job.description).toLowerCase();
-          let score = 0;
-          for (const word of keywords) {
-            if (jobText.includes(word)) score++;
+          const jobTitleLower = (job.title || '').toLowerCase();
+          const jobDescLower = (job.description || '').toLowerCase();
+
+          let directTitleMatch = false;
+          let matchedSkillCount = 0;
+
+          for (const term of primaryTerms) {
+            if (jobTitleLower.includes(term)) {
+              directTitleMatch = true;
+              matchedSkillCount += 3;
+            } else if (jobDescLower.includes(term)) {
+              matchedSkillCount += 1;
+            }
           }
-          return { ...job, matchScore: score };
+
+          // Calculate authentic percentage match
+          let calculatedPercent = 0;
+          if (directTitleMatch) {
+            calculatedPercent = Math.min(97, 76 + (matchedSkillCount * 4));
+          } else if (matchedSkillCount >= 2) {
+            calculatedPercent = Math.min(86, 50 + (matchedSkillCount * 6));
+          } else if (matchedSkillCount === 1) {
+            calculatedPercent = 48;
+          }
+
+          return {
+            ...job,
+            matchScore: calculatedPercent,
+          };
         })
-        .filter(job => job.matchScore > 0) // ONLY return matching jobs
-        .sort((a, b) => b.matchScore - a.matchScore);
+        .filter(job => (job as any).matchScore >= 45) // ONLY return jobs that truly match candidate's profile
+        .sort((a, b) => (b as any).matchScore - (a as any).matchScore);
       }
 
       if (user.subscriptionTier === 'FREE') {

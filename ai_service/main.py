@@ -4,7 +4,7 @@ from typing import List, Optional
 import os
 import json
 from dotenv import load_dotenv
-from services.resume_engine import generate_resume, parse_resume_text, optimize_ats_resume
+from services.resume_engine import generate_resume, parse_resume_text, optimize_ats_resume, generate_comprehensive_resume_data
 from services.cover_letter_engine import generate_cover_letter
 from services.matching_engine import generate_embedding, calculate_match_score
 import google.generativeai as genai
@@ -15,19 +15,19 @@ app = FastAPI(title="Job Hub AI - FastAPI Layer")
 
 # Pydantic Models for Request Bodies
 class JobSeekerProfile(BaseModel):
-    first_name: str
-    last_name: str
-    bio: str
-    skills: List[str]
+    first_name: Optional[str] = ""
+    last_name: Optional[str] = ""
+    bio: Optional[str] = ""
+    skills: Optional[List[str]] = []
 
 class JobDescription(BaseModel):
-    title: str
-    description: str
-    company_name: str
+    title: Optional[str] = ""
+    description: Optional[str] = ""
+    company_name: Optional[str] = ""
 
 class CoverLetterRequest(BaseModel):
-    profile: JobSeekerProfile
-    job: JobDescription
+    profile: Optional[dict] = {}
+    job: Optional[dict] = {}
 
 class MatchScoreRequest(BaseModel):
     profile_text: str
@@ -41,17 +41,20 @@ def health_check():
     return {"status": "healthy", "service": "FastAPI AI Layer"}
 
 @app.post("/ai/resume/generate")
-def api_generate_resume(profile: JobSeekerProfile):
+def api_generate_resume(req: dict):
     try:
-        resume_content = generate_resume(profile.dict())
-        return {"resume": resume_content}
+        resume_content = generate_resume(req)
+        structured = generate_comprehensive_resume_data(req)
+        return {"resume": resume_content, "structured": structured}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/ai/cover-letter/generate")
-def api_generate_cover_letter(req: CoverLetterRequest):
+def api_generate_cover_letter(req: dict):
     try:
-        cover_letter = generate_cover_letter(req.profile.dict(), req.job.dict())
+        profile = req.get("profile") if "profile" in req else req
+        job = req.get("job") if "job" in req else {}
+        cover_letter = generate_cover_letter(profile, job)
         return {"cover_letter": cover_letter}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

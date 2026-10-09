@@ -172,6 +172,8 @@ export default function JobsFeedPage() {
     }
   };
 
+  const [viewingJobDetails, setViewingJobDetails] = useState<any | null>(null);
+
   const calculateMatchScore = async (job: any) => {
     setMatchScores(prev => ({ ...prev, [job.id]: { loading: true } }));
     try {
@@ -180,7 +182,20 @@ export default function JobsFeedPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const profileData = await profileRes.json();
-      const profileText = JSON.stringify(profileData);
+      const profileText = [
+        profileData.profession,
+        profileData.desiredJobTitle,
+        profileData.headline,
+        ...(profileData.skills || []),
+        profileData.bio,
+        profileData.summary
+      ].filter(Boolean).join(' ');
+
+      const jobText = [
+        job.title,
+        job.description,
+        Array.isArray(job.skillsRequired) ? job.skillsRequired.join(' ') : ''
+      ].filter(Boolean).join(' ');
 
       const res = await fetch('/api/ai/match/score', {
         method: 'POST',
@@ -190,7 +205,7 @@ export default function JobsFeedPage() {
         },
         body: JSON.stringify({
           profile_text: profileText,
-          job_description_text: job.description || job.title
+          job_description_text: jobText
         }),
       });
 
@@ -285,7 +300,16 @@ export default function JobsFeedPage() {
             <div key={job.id} className="glass-panel" style={{ padding: '1.5rem 2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{job.title}</h2>
+                  <h2 
+                    onClick={() => setViewingJobDetails(job)}
+                    style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem' }}
+                    title="Click to view full job details"
+                  >
+                    <span>{job.title}</span>
+                    <span style={{ fontSize: '0.8rem', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.4)', borderRadius: '8px', padding: '2px 8px', fontWeight: 'normal' }}>
+                      View Details
+                    </span>
+                  </h2>
                   <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                       🏢 <Link href={`/company/${job.employerId}`} style={{ color: '#00f0ff', textDecoration: 'none', fontWeight: 600 }}>{job.employer?.companyName || 'Unknown Company'}</Link>
@@ -305,6 +329,10 @@ export default function JobsFeedPage() {
                       {matchScores[job.id]?.score !== undefined ? (
                         <div style={{ background: 'rgba(0, 240, 255, 0.1)', padding: '6px 12px', borderRadius: '12px', color: '#00f0ff', fontWeight: 'bold' }}>
                           {matchScores[job.id]!.score!}% Match
+                        </div>
+                      ) : (job.matchScore && job.matchScore > 0) ? (
+                        <div style={{ background: 'rgba(0, 240, 255, 0.1)', padding: '6px 12px', borderRadius: '12px', color: '#00f0ff', fontWeight: 'bold' }}>
+                          {job.matchScore}% Match
                         </div>
                       ) : (
                         <button 
@@ -395,6 +423,93 @@ export default function JobsFeedPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Full Job Details Modal */}
+      {viewingJobDetails && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#181024', border: '1px solid rgba(0, 240, 255, 0.3)', borderRadius: '24px', maxWidth: '750px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0, 240, 255, 0.15)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', margin: 0 }}>{viewingJobDetails.title}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '1.1rem', color: '#00f0ff', fontWeight: 600 }}>
+                    🏢 {viewingJobDetails.employer?.companyName || 'Employer'}
+                  </span>
+                  {viewingJobDetails.employer?.verificationStatus === 'VERIFIED' && (
+                    <span style={{ background: 'rgba(0, 240, 255, 0.15)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.4)', borderRadius: '12px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      ✔ Verified Company
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewingJobDetails(null)}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Badges Bar */}
+            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ color: 'white' }}>📍 <strong>Location:</strong> {viewingJobDetails.location || 'Anywhere'}</span>
+              <span style={{ color: 'white' }}>{viewingJobDetails.isRemote ? '🌐 Remote' : '🏢 On-site'}</span>
+              <span style={{ color: '#00f0ff' }}>💰 <strong>Salary:</strong> {viewingJobDetails.salary || 'Competitive'}</span>
+              {viewingJobDetails.employmentType && (
+                <span style={{ color: '#a78bfa' }}>💼 <strong>Type:</strong> {viewingJobDetails.employmentType}</span>
+              )}
+              {viewingJobDetails.experienceLevel && (
+                <span style={{ color: '#34d399' }}>📈 <strong>Level:</strong> {viewingJobDetails.experienceLevel}</span>
+              )}
+            </div>
+
+            {/* Description */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ color: '#00f0ff', fontSize: '1rem', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Full Job Description</h4>
+              <div style={{ color: '#e4e4e7', whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.98rem', background: 'rgba(0,0,0,0.2)', padding: '1.2rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                {viewingJobDetails.description}
+              </div>
+            </div>
+
+            {/* Skills Required */}
+            {viewingJobDetails.skillsRequired && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ color: '#00f0ff', fontSize: '1rem', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Required Skills</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {(Array.isArray(viewingJobDetails.skillsRequired) ? viewingJobDetails.skillsRequired : [viewingJobDetails.skillsRequired]).map((skill: any, idx: number) => (
+                    <span key={idx} style={{ background: 'rgba(0, 240, 255, 0.1)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '0.85rem' }}>
+                      {typeof skill === 'object' ? skill.name || JSON.stringify(skill) : skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.2rem' }}>
+              <button 
+                onClick={() => setViewingJobDetails(null)}
+                style={{ padding: '10px 20px', borderRadius: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+              {role === 'JOB_SEEKER' && (
+                <button 
+                  className="btn-primary"
+                  style={{ padding: '10px 28px', fontWeight: 'bold' }}
+                  onClick={() => {
+                    const id = viewingJobDetails.id;
+                    setViewingJobDetails(null);
+                    setApplyingJobId(id);
+                  }}
+                >
+                  Apply Now
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </main>

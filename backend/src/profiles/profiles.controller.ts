@@ -94,7 +94,7 @@ export class ProfilesController {
   }
 
   @Post('job-seeker')
-  async upsertJobSeekerProfile(@Request() req, @Body() data: Prisma.JobSeekerProfileUpdateInput & Prisma.JobSeekerProfileCreateWithoutUserInput) {
+  async upsertJobSeekerProfile(@Request() req, @Body() data: any) {
     if (req.user.role !== 'JOB_SEEKER') {
       throw new ForbiddenException('Only JOB_SEEKERs can create this profile type.');
     }
@@ -103,6 +103,26 @@ export class ProfilesController {
       data.skills = [];
     }
     return this.profilesService.upsertJobSeekerProfile(req.user.userId, data);
+  }
+
+  @Post('job-seeker/auto-apply')
+  async updateAutoApplyPost(@Request() req, @Body() body: { autoApplyEnabled?: boolean; autoApplyKeywords?: string[]; enabled?: boolean; keywords?: string[] }) {
+    if (req.user.role !== 'JOB_SEEKER') {
+      throw new ForbiddenException('Only JOB_SEEKERs can update auto-apply settings.');
+    }
+    const enabled = body.autoApplyEnabled ?? body.enabled ?? false;
+    const keywords = body.autoApplyKeywords ?? body.keywords;
+    return this.profilesService.updateAutoApply(req.user.userId, enabled, keywords);
+  }
+
+  @Put('job-seeker/auto-apply')
+  async updateAutoApplyPut(@Request() req, @Body() body: { autoApplyEnabled?: boolean; autoApplyKeywords?: string[]; enabled?: boolean; keywords?: string[] }) {
+    if (req.user.role !== 'JOB_SEEKER') {
+      throw new ForbiddenException('Only JOB_SEEKERs can update auto-apply settings.');
+    }
+    const enabled = body.autoApplyEnabled ?? body.enabled ?? false;
+    const keywords = body.autoApplyKeywords ?? body.keywords;
+    return this.profilesService.updateAutoApply(req.user.userId, enabled, keywords);
   }
 
   @Get('talent')

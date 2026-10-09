@@ -222,5 +222,42 @@ export class ProfilesController {
       where: { id }
     });
   }
+
+  @Delete('account')
+  async deleteAccount(@Request() req) {
+    const userId = req.user.userId;
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.notification.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.message.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } }).catch(() => {});
+      await tx.payment.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.candidateNote.deleteMany({ where: { authorId: userId } }).catch(() => {});
+      await tx.like.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.comment.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.post.deleteMany({ where: { authorId: userId } }).catch(() => {});
+      await tx.connection.deleteMany({ where: { OR: [{ userId }, { connectedUserId: userId }] } }).catch(() => {});
+      await tx.companyFollower.deleteMany({ where: { userId } }).catch(() => {});
+
+      const employer = await tx.employer.findUnique({ where: { userId } });
+      if (employer) {
+        const jobs = await tx.job.findMany({ where: { employerId: employer.id } });
+        for (const job of jobs) {
+          await tx.application.deleteMany({ where: { jobId: job.id } }).catch(() => {});
+          await tx.job.delete({ where: { id: job.id } }).catch(() => {});
+        }
+        await tx.candidateTag.deleteMany({ where: { employerId: employer.id } }).catch(() => {});
+        await tx.employer.delete({ where: { id: employer.id } }).catch(() => {});
+      }
+
+      const seeker = await tx.jobSeekerProfile.findUnique({ where: { userId } });
+      if (seeker) {
+        await tx.application.deleteMany({ where: { applicantId: seeker.id } }).catch(() => {});
+        await tx.credential.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
+        await tx.jobSeekerProfile.delete({ where: { id: seeker.id } }).catch(() => {});
+      }
+
+      await tx.user.delete({ where: { id: userId } });
+      return { success: true, message: 'Your account and all associated data have been permanently deleted.' };
+    });
+  }
 }
 

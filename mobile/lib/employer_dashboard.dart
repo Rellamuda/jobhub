@@ -112,16 +112,22 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF120B1C),
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+      },
+      child: Scaffold(
         backgroundColor: const Color(0xFF120B1C),
-        elevation: 0,
-        title: Text(
-          _currentIndex == 0 ? 'My Jobs' : _currentIndex == 1 ? 'Applications' : _currentIndex == 2 ? 'Matches' : _currentIndex == 3 ? 'Messages' : 'Profile',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF120B1C),
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: Text(
+            _currentIndex == 0 ? 'My Jobs' : _currentIndex == 1 ? 'Applications' : _currentIndex == 2 ? 'Matches' : _currentIndex == 3 ? 'Messages' : 'Profile',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
-      ),
       floatingActionButton: _currentIndex == 0 ? FloatingActionButton.extended(
         onPressed: () async {
           await Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateJobScreen()));
@@ -156,8 +162,9 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildJobsTab() {
     if (_jobs.isEmpty) {

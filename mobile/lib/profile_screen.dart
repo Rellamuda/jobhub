@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'config/api_config.dart';
 import 'config/theme_manager.dart';
 import 'widgets/glass_card.dart';
@@ -374,12 +375,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openWebUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open: $url')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening link: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E142B),
+        title: const Text('⚠️ Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Are you sure you want to permanently delete your JobHub AI account?\n\nThis will permanently erase all your profile data, uploaded resumes, applications, messages, and saved jobs. This action CANNOT be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Permanently Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+
+      final res = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/profiles/account'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your account and all associated data have been permanently deleted.')),
+      );
+
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.redAccent, content: Text('Error deleting account: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushReplacement(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
     );
   }
 
@@ -927,7 +1006,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               if (_user!['role'] == 'JOB_SEEKER') _buildSeekerProfile() else _buildEmployerProfile(),
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
+              // Legal & Google Play Compliance Section
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.gavel, color: Color(0xFF00F0FF), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Legal & Account Settings',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.privacy_tip_outlined, color: Colors.white70),
+                      title: const Text('Privacy Policy', style: TextStyle(color: Colors.white)),
+                      subtitle: const Text('Data collection & user rights', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      trailing: const Icon(Icons.open_in_new, color: Color(0xFF00F0FF), size: 18),
+                      onTap: () => _openWebUrl('http://56.228.30.202:3000/privacy'),
+                    ),
+                    const Divider(color: Colors.white12),
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.description_outlined, color: Colors.white70),
+                      title: const Text('Terms of Service', style: TextStyle(color: Colors.white)),
+                      subtitle: const Text('Platform guidelines & terms', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      trailing: const Icon(Icons.open_in_new, color: Color(0xFF00F0FF), size: 18),
+                      onTap: () => _openWebUrl('http://56.228.30.202:3000/terms'),
+                    ),
+                    const Divider(color: Colors.white12),
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.support_agent, color: Colors.white70),
+                      title: const Text('Support & Inquiries', style: TextStyle(color: Colors.white)),
+                      subtitle: const Text('support@jobhubai.com', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      trailing: const Icon(Icons.mail_outline, color: Color(0xFF00F0FF), size: 18),
+                      onTap: () => _openWebUrl('mailto:support@jobhubai.com'),
+                    ),
+                    const Divider(color: Colors.white12),
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
+                      title: const Text('Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Permanently erase account & all data', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.redAccent, size: 14),
+                      onTap: _deleteAccount,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
               OutlinedButton.icon(
                 onPressed: _logout,
                 icon: const Icon(Icons.logout, color: Colors.redAccent),

@@ -169,6 +169,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         title: const Text('AI Career Hub'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -247,43 +248,49 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _currentIndex,
-              children: [
-                const JobsScreen(),
-                const ApplicationsScreen(),
-                _buildHub(),
-                _buildInbox(),
-                _buildNotifications(),
-                const ProfileScreen(),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : IndexedStack(
+                index: _currentIndex,
+                children: [
+                  const JobsScreen(),
+                  const ApplicationsScreen(),
+                  _buildHub(),
+                  _buildInbox(),
+                  _buildNotifications(),
+                  const ProfileScreen(),
+                ],
+              ),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          selectedItemColor: isDark ? const Color(0xFF00F0FF) : const Color(0xFF6366F1),
+          unselectedItemColor: isDark ? Colors.white54 : Colors.black45,
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Jobs'),
+            const BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Apps'),
+            const BottomNavigationBarItem(icon: Icon(Icons.hub), label: 'AI Hub'),
+            const BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
+            BottomNavigationBarItem(
+              icon: Badge(
+                label: _notifications.isNotEmpty ? Text('${_notifications.length}') : null,
+                isLabelVisible: _notifications.isNotEmpty,
+                child: const Icon(Icons.notifications),
+              ),
+              label: 'Alerts',
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        selectedItemColor: isDark ? const Color(0xFF00F0FF) : const Color(0xFF6366F1),
-        unselectedItemColor: isDark ? Colors.white54 : Colors.black45,
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Jobs'),
-          const BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Apps'),
-          const BottomNavigationBarItem(icon: Icon(Icons.hub), label: 'AI Hub'),
-          const BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(
-            icon: Badge(
-              label: _notifications.isNotEmpty ? Text('${_notifications.length}') : null,
-              isLabelVisible: _notifications.isNotEmpty,
-              child: const Icon(Icons.notifications),
-            ),
-            label: 'Alerts',
-          ),
-          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+            const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
       ),
     );
   }

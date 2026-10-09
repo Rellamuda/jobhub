@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 import 'config/theme_manager.dart';
+import 'config/api_config.dart';
+import 'employer_dashboard.dart';
+import 'seeker_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +51,7 @@ class JobHubAIApp extends StatelessWidget {
             textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
             useMaterial3: true,
           ),
-          home: const WelcomeScreen(),
+          home: const AppStartupScreen(),
         );
       },
     );
@@ -171,6 +176,66 @@ class WelcomeScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class AppStartupScreen extends StatefulWidget {
+  const AppStartupScreen({super.key});
+
+  @override
+  State<AppStartupScreen> createState() => _AppStartupScreenState();
+}
+
+class _AppStartupScreenState extends State<AppStartupScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    try {
+      final token = await ApiConfig.getToken();
+      if (token != null && token.isNotEmpty) {
+        final res = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/auth/me'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          final role = data['role'] ?? 'JOB_SEEKER';
+          if (!mounted) return;
+          if (role == 'EMPLOYER') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const EmployerDashboard()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SeekerDashboard()),
+            );
+          }
+          return;
+        }
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFF0A0A0A),
+      body: Center(
+        child: CircularProgressIndicator(color: Color(0xFF00F0FF)),
       ),
     );
   }

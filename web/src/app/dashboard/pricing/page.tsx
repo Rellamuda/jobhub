@@ -11,23 +11,7 @@ export default function DashboardPricingPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
 
-  // Payment checkout modal state
-  const [checkoutModal, setCheckoutModal] = useState<{
-    isOpen: boolean;
-    tier: string;
-    targetRole: string;
-    amount: number;
-    title: string;
-  }>({
-    isOpen: false,
-    tier: '',
-    targetRole: '',
-    amount: 0,
-    title: ''
-  });
-
-  const [paymentProvider, setPaymentProvider] = useState<'PAYSTACK' | 'FLUTTERWAVE'>('PAYSTACK');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [processingTier, setProcessingTier] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -49,22 +33,12 @@ export default function DashboardPricingPage() {
     }
   }, []);
 
-  const openCheckout = (tier: string, targetRole: string, amount: number, title: string) => {
-    setCheckoutModal({
-      isOpen: true,
-      tier,
-      targetRole,
-      amount,
-      title
-    });
-  };
+  const handleProcessPayment = async (tier: string, amount: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return router.push('/login');
 
-  const handleProcessPayment = async () => {
-    setIsProcessingPayment(true);
+    setProcessingTier(tier);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return router.push('/login');
-
       const res = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: {
@@ -72,10 +46,10 @@ export default function DashboardPricingPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          amount: checkoutModal.amount,
-          plan: checkoutModal.tier,
+          amount,
+          plan: tier,
           email: userEmail || 'user@jobhub.ai',
-          provider: paymentProvider,
+          provider: 'AUTO',
           callbackUrl: `${window.location.origin}/pricing?status=success`
         })
       });
@@ -90,7 +64,7 @@ export default function DashboardPricingPage() {
       console.error(e);
       alert('Network error initializing payment.');
     } finally {
-      setIsProcessingPayment(false);
+      setProcessingTier(null);
     }
   };
 
@@ -167,10 +141,11 @@ export default function DashboardPricingPage() {
                 <li className="flex items-center gap-2">✨ Career Health & Digital Credential Verification</li>
               </ul>
               <Button 
-                onClick={() => openCheckout('SILVER', 'JOB_SEEKER', 10, 'Job Seeker Silver Plan ($10/mo)')}
+                onClick={() => handleProcessPayment('SILVER', 10)}
+                disabled={processingTier !== null}
                 className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold mt-6"
               >
-                Upgrade to Silver ($10/mo)
+                {processingTier === 'SILVER' ? 'Redirecting to Checkout...' : 'Upgrade to Silver ($10/mo)'}
               </Button>
             </CardContent>
           </Card>
@@ -217,10 +192,11 @@ export default function DashboardPricingPage() {
                 <li>🚀 40 AI Match Scoring coaching</li>
               </ul>
               <Button 
-                onClick={() => openCheckout('PREMIUM', 'EMPLOYER', 50, 'Employer Premium Plan ($50/mo)')}
+                onClick={() => handleProcessPayment('PREMIUM', 50)}
+                disabled={processingTier !== null}
                 className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold mt-6"
               >
-                Upgrade to Premium ($50/mo)
+                {processingTier === 'PREMIUM' ? 'Redirecting to Checkout...' : 'Upgrade to Premium ($50/mo)'}
               </Button>
             </CardContent>
           </Card>
@@ -241,111 +217,14 @@ export default function DashboardPricingPage() {
                 <li>👑 Unlimited job postings</li>
               </ul>
               <Button 
-                onClick={() => openCheckout('SILVER', 'EMPLOYER', 100, 'Employer Silver Plan ($100/mo)')}
+                onClick={() => handleProcessPayment('SILVER', 100)}
+                disabled={processingTier !== null}
                 className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:opacity-90 text-white font-bold mt-6"
               >
-                Subscribe Silver ($100/mo)
+                {processingTier === 'SILVER' && userRole === 'EMPLOYER' ? 'Redirecting to Checkout...' : 'Subscribe Silver ($100/mo)'}
               </Button>
             </CardContent>
           </Card>
-        </div>
-      )}
-
-      {/* CHECKOUT & PAYMENT MODAL */}
-      {checkoutModal.isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#120B1C] border border-white/20 rounded-3xl max-w-md w-full p-6 md:p-8 space-y-6 text-left shadow-2xl relative">
-            <button 
-              onClick={() => setCheckoutModal({ ...checkoutModal, isOpen: false })}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white p-1 rounded-lg"
-            >
-              <X size={20} />
-            </button>
-
-            <div>
-              <div className="text-xs uppercase tracking-widest font-black text-cyan-400 mb-1 flex items-center gap-1.5">
-                <Lock size={13} /> SECURE CHECKOUT
-              </div>
-              <h3 className="text-2xl font-black text-white">
-                {checkoutModal.title}
-              </h3>
-              <p className="text-xs text-gray-400 mt-1">
-                Select your payment gateway to activate your subscription.
-              </p>
-            </div>
-
-            <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-between items-center">
-              <div>
-                <span className="text-xs text-gray-400">Total Due:</span>
-                <div className="text-2xl font-black text-white">${checkoutModal.amount} <span className="text-xs font-normal text-gray-400">USD</span></div>
-              </div>
-              <div className="text-xs text-right text-cyan-400 font-semibold">
-                Instant Activation • Cancel Anytime
-              </div>
-            </div>
-
-            {/* Payment Method Selector */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-300">Choose Gateway:</label>
-              
-              {/* Paystack Option */}
-              <div 
-                onClick={() => setPaymentProvider('PAYSTACK')}
-                className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between ${paymentProvider === 'PAYSTACK' ? 'border-cyan-400 bg-cyan-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-600/30 flex items-center justify-center text-blue-400 font-bold text-xs">
-                    💳
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Paystack</h4>
-                    <p className="text-xs text-gray-400">Cards, Bank Transfer, USSD & Apple Pay</p>
-                  </div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentProvider === 'PAYSTACK' ? 'border-cyan-400 bg-cyan-400' : 'border-gray-500'}`}>
-                  {paymentProvider === 'PAYSTACK' && <div className="w-1.5 h-1.5 bg-black rounded-full" />}
-                </div>
-              </div>
-
-              {/* Flutterwave Option */}
-              <div 
-                onClick={() => setPaymentProvider('FLUTTERWAVE')}
-                className={`p-4 rounded-xl border cursor-pointer transition flex items-center justify-between ${paymentProvider === 'FLUTTERWAVE' ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-orange-600/30 flex items-center justify-center text-orange-400 font-bold text-xs">
-                    🌊
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Flutterwave</h4>
-                    <p className="text-xs text-gray-400">Debit/Credit Card, Mobile Money, Bank Account</p>
-                  </div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentProvider === 'FLUTTERWAVE' ? 'border-orange-400 bg-orange-400' : 'border-gray-500'}`}>
-                  {paymentProvider === 'FLUTTERWAVE' && <div className="w-1.5 h-1.5 bg-black rounded-full" />}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleProcessPayment}
-              disabled={isProcessingPayment}
-              className="w-full py-3.5 rounded-xl font-black text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-95 transition shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isProcessingPayment ? (
-                'Connecting to Secure Gateway...'
-              ) : (
-                <>
-                  Proceed with {paymentProvider === 'PAYSTACK' ? 'Paystack' : 'Flutterwave'} <ArrowRight size={16} />
-                </>
-              )}
-            </button>
-
-            <div className="text-center text-[11px] text-gray-500 flex items-center justify-center gap-2">
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <span>256-Bit SSL Encrypted & PCI-DSS Level 1 Certified</span>
-            </div>
-          </div>
         </div>
       )}
     </div>

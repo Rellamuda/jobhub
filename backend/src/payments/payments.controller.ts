@@ -8,7 +8,7 @@ export class PaymentsController {
 
   @Post('initialize')
   @UseGuards(JwtAuthGuard)
-  async initialize(@Request() req, @Body() body: { amount: number; plan: string; email: string; provider?: 'PAYSTACK' | 'FLUTTERWAVE'; callbackUrl?: string }) {
+  async initialize(@Request() req, @Body() body: { amount: number; plan: string; email: string; provider?: 'PAYSTACK' | 'FLUTTERWAVE' | 'AUTO'; callbackUrl?: string }) {
     return this.paymentsService.initializePayment(req.user.userId, body.amount, body.plan, body.email, body.provider, body.callbackUrl);
   }
 

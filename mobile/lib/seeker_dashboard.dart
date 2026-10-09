@@ -99,34 +99,37 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
       if (token == null) return;
 
       final applyRes = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/applications/$jobId/apply'),
+        Uri.parse('${ApiConfig.baseUrl}/jobs/autonomous/approve/$jobId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'coverLetter': 'Applied automatically via Smart Match Alert with seeker consent.',
-        }),
       );
 
+      final data = jsonDecode(applyRes.body);
       if (applyRes.statusCode == 200 || applyRes.statusCode == 201) {
-        await http.delete(
-          Uri.parse('${ApiConfig.baseUrl}/profiles/notifications/${notification['id']}'),
-          headers: {'Authorization': 'Bearer $token'},
-        );
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Successfully applied!')),
+          SnackBar(
+            backgroundColor: const Color(0xFF10B981),
+            content: Text(data['message'] ?? 'Successfully applied with Autonomous AI!'),
+          ),
         );
         _fetchData();
       } else {
+        final errorMsg = data['message'] ?? 'Failed to apply.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to apply. You might have already applied.')),
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text(errorMsg),
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error applying for job.')),
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('Error applying: $e'),
+        ),
       );
     }
   }

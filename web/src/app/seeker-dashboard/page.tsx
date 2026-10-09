@@ -285,28 +285,20 @@ export default function SeekerDashboard() {
     if (!notification.jobId) return;
     const token = localStorage.getItem('token');
     try {
-      const applyRes = await fetch(`/api/applications/${notification.jobId}/apply`, {
+      const applyRes = await fetch(`/api/jobs/autonomous/approve/${notification.jobId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          coverLetter: "Applied automatically via Smart Match Alert with seeker consent."
-        })
+        }
       });
       
+      const resData = await applyRes.json();
       if (!applyRes.ok) {
-        const errData = await applyRes.json();
-        throw new Error(errData.message || 'Application failed');
+        throw new Error(resData.message || 'Application failed');
       }
 
-      await fetch(`/api/profiles/notifications/${notification.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      alert(`Successfully applied for the job!`);
+      alert(resData.message || `Successfully applied with Autonomous AI!`);
       fetchNotifications();
       
       const appRes = await fetch('/api/applications/my-applications', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -618,48 +610,10 @@ export default function SeekerDashboard() {
 
                 {/* Target keywords manager */}
                 <div>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>Target Roles & Keywords</h3>
-                  <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    The AI matches job titles and descriptions against these keywords.
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>Automatic AI Profile Matching</h3>
+                  <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                    JobHub AI uses your profile skills, experience, and target roles to continuously scan for matching vacancies. When a qualified job matches your profile, the AI requests your permission with a 1-tap approval before submitting on your behalf.
                   </p>
-
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                    <input 
-                      type="text" 
-                      value={keywordInput}
-                      onChange={(e) => setKeywordInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddKeyword(); } }}
-                      placeholder="Add keyword (e.g. React, Fullstack, Python, AWS)..."
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        background: 'rgba(255,255,255,0.06)',
-                        color: 'var(--text-primary)',
-                        minWidth: '280px',
-                      }}
-                    />
-                    <button 
-                      type="button" 
-                      onClick={handleAddKeyword}
-                      className="btn-primary" 
-                      style={{ padding: '0 18px', fontSize: '0.9rem' }}
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {autoApplyKeywords.map(kw => (
-                      <span key={kw} style={{ background: 'rgba(0, 240, 255, 0.12)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '5px 12px', borderRadius: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {kw}
-                        <button onClick={() => handleRemoveKeyword(kw)} style={{ background: 'none', border: 'none', color: '#00f0ff', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}>×</button>
-                      </span>
-                    ))}
-                    {autoApplyKeywords.length === 0 && (
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No keywords set. Add your desired roles above!</span>
-                    )}
-                  </div>
                 </div>
 
                 <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>

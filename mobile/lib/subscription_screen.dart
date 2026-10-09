@@ -79,161 +79,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  void _showPaymentModal(String tier, String role, int amount) {
-    String selectedProvider = 'PAYSTACK';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF161028),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 48,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Row(
-                    children: [
-                      Icon(Icons.lock, color: Color(0xFF00F0FF), size: 16),
-                      SizedBox(width: 6),
-                      Text('SECURE CHECKOUT', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.5)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Upgrade to $tier Plan',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Total amount due: \$$amount USD / month',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Select Payment Gateway:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 12),
-
-                  // Paystack tile
-                  InkWell(
-                    onTap: () => setModalState(() => selectedProvider = 'PAYSTACK'),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: selectedProvider == 'PAYSTACK' ? const Color(0xFF00F0FF).withOpacity(0.12) : Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: selectedProvider == 'PAYSTACK' ? const Color(0xFF00F0FF) : Colors.white10,
-                          width: selectedProvider == 'PAYSTACK' ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.credit_card, color: Color(0xFF00F0FF), size: 24),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Paystack', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                                SizedBox(height: 2),
-                                Text('Cards, Bank Transfer, USSD & Apple Pay', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            selectedProvider == 'PAYSTACK' ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: selectedProvider == 'PAYSTACK' ? const Color(0xFF00F0FF) : Colors.white30,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Flutterwave tile
-                  InkWell(
-                    onTap: () => setModalState(() => selectedProvider = 'FLUTTERWAVE'),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: selectedProvider == 'FLUTTERWAVE' ? const Color(0xFFF59E0B).withOpacity(0.12) : Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: selectedProvider == 'FLUTTERWAVE' ? const Color(0xFFF59E0B) : Colors.white10,
-                          width: selectedProvider == 'FLUTTERWAVE' ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.waves, color: Color(0xFFF59E0B), size: 24),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Flutterwave', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                                SizedBox(height: 2),
-                                Text('Debit/Credit Cards, Mobile Money, Accounts', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            selectedProvider == 'FLUTTERWAVE' ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: selectedProvider == 'FLUTTERWAVE' ? const Color(0xFFF59E0B) : Colors.white30,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _processPaymentAndUpgrade(tier, role, amount, selectedProvider);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00F0FF),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: Text(
-                        'Proceed with $selectedProvider (\$$amount)',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _processPaymentAndUpgrade(String tier, String role, int amount, String provider) async {
+  Future<void> _processPaymentAndUpgrade(String tier, String role, int amount) async {
     setState(() => _isLoading = true);
     try {
       final token = await ApiConfig.getToken();
@@ -246,7 +92,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         return;
       }
 
-      // Initialize payment via backend gateway
+      // Initialize payment via smart automatic gateway selection
       final res = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/payments/initialize'),
         headers: {
@@ -257,7 +103,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'amount': amount,
           'plan': tier,
           'email': _userEmail ?? 'user@jobhub.ai',
-          'provider': provider,
+          'provider': 'AUTO',
           'callbackUrl': 'http://56.228.30.202:3000/pricing?status=success',
         }),
       );
@@ -266,6 +112,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if ((res.statusCode == 200 || res.statusCode == 201) && data['authorization_url'] != null) {
         final authUrl = data['authorization_url'] as String;
         final reference = data['reference'] as String? ?? '';
+        final provider = data['provider'] as String? ?? 'PAYMENT';
 
         if (!mounted) return;
         final bool? upgraded = await Navigator.push<bool>(
@@ -433,7 +280,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       isPopular: true,
                       isCurrent: _currentTier == 'SILVER' || _currentTier == 'PREMIUM',
                       accentColor: const Color(0xFF00F0FF),
-                      onUpgrade: () => _showPaymentModal('SILVER', 'JOB_SEEKER', 10),
+                      onUpgrade: () => _processPaymentAndUpgrade('SILVER', 'JOB_SEEKER', 10),
                     ),
                   ],
 
@@ -441,7 +288,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   if (_userRole == 'EMPLOYER' || (_userRole == null && _selectedTab == 1)) ...[
                     _buildPlanCard(
                       title: 'Free Tier',
-                      price: '\$0',
+                      price: '$0',
                       subtitle: 'Post limited jobs and test hiring tools',
                       features: [
                         'Post up to 3 jobs',
@@ -455,7 +302,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                     _buildPlanCard(
                       title: 'Premium',
-                      price: '\$50',
+                      price: '$50',
                       subtitle: 'Scale active hiring with high-impact AI',
                       features: [
                         'Post up to 70 jobs per month',
@@ -468,13 +315,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       isPopular: true,
                       isCurrent: _currentTier == 'PREMIUM',
                       accentColor: const Color(0xFF00F0FF),
-                      onUpgrade: () => _showPaymentModal('PREMIUM', 'EMPLOYER', 50),
+                      onUpgrade: () => _processPaymentAndUpgrade('PREMIUM', 'EMPLOYER', 50),
                     ),
                     const SizedBox(height: 20),
 
                     _buildPlanCard(
                       title: 'Silver / Enterprise',
-                      price: '\$100',
+                      price: '$100',
                       subtitle: 'Full agency recruitment powerhouse',
                       features: [
                         'Unlimited AI Resume & Cover Letter building',
@@ -486,7 +333,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       ],
                       isCurrent: _currentTier == 'SILVER',
                       accentColor: const Color(0xFFC084FC),
-                      onUpgrade: () => _showPaymentModal('SILVER', 'EMPLOYER', 100),
+                      onUpgrade: () => _processPaymentAndUpgrade('SILVER', 'EMPLOYER', 100),
                     ),
                   ],
                 ],

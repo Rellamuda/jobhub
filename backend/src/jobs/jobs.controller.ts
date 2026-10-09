@@ -17,13 +17,28 @@ export class JobsController {
     return this.autonomousService.runForUser(req.user.userId);
   }
 
-  @Post('autonomous/settings')
+  @Post('autonomous/approve/:jobId')
   @UseGuards(JwtAuthGuard)
-  async updateAutonomousSettings(
-    @Request() req,
-    @Body() body: { enabled: boolean; keywords?: string[] },
-  ) {
-    return this.autonomousService.updateSettings(req.user.userId, body.enabled, body.keywords);
+  async approveAutonomousApplication(@Request() req, @Param('jobId') jobId: string) {
+    return this.autonomousService.approveApplication(req.user.userId, jobId);
+  }
+
+  @Post('autonomous/dismiss/:jobId')
+  @UseGuards(JwtAuthGuard)
+  async dismissAutonomousMatch(@Request() req, @Param('jobId') jobId: string) {
+    return this.autonomousService.dismissMatch(req.user.userId, jobId);
+  }
+
+  @Get('autonomous/pending')
+  @UseGuards(JwtAuthGuard)
+  async getPendingAutonomousApprovals(@Request() req) {
+    return this.autonomousService.getPendingApprovals(req.user.userId);
+  }
+
+  @Get('autonomous/eligibility')
+  @UseGuards(JwtAuthGuard)
+  async getAutonomousEligibility(@Request() req) {
+    return this.autonomousService.checkEligibility(req.user.userId);
   }
 
   @Get('autonomous/status')

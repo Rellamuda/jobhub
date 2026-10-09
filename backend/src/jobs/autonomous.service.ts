@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -10,57 +10,267 @@ export class AutonomousService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
-    this.logger.debug('Running autonomous applications for users...');
-    
+    this.logger.debug('Running autonomous job matching and permission requests...');
     const profiles = await this.prisma.jobSeekerProfile.findMany({
-      where: { autoApplyEnabled: true },
+      include: { user: true },
     });
 
     for (const profile of profiles) {
-      await this.processApplicationsForProfile(profile);
+      await this.evaluateMatchesForProfile(profile);
     }
   }
 
-  async runForUser(userId: string) {
-    const profile = await this.prisma.jobSeekerProfile.findUnique({
-      where: { userId },
+  // Check subscription quota: Paid (Silver/Premium) = Unlimited; Free = 1 Free Credit
+  async checkEligibility(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        jobSeekerProfile: {
+          include: {
+            applications: {
+              where: { coverLetter: { contains: 'Autonomous Agent' } },
+            },
+          },
+        },
+      },
     });
 
-    if (!profile) {
+    if (!user || !user.jobSeekerProfile) {
       throw new NotFoundException('Job seeker profile not found');
     }
 
-    const appliedJobs = await this.processApplicationsForProfile(profile);
+    const isPaid = user.subscriptionTier === 'SILVER' || user.subscriptionTier === 'PREMIUM';
+    if (isPaid) {
+      return { eligible: true, isUnlimited: true, remainingCredits: 999 };
+    }
+
+    const usedCount = user.jobSeekerProfile.applications.length;
+    const remaining = Math.max(0, 1 - usedCount);
+
     return {
-      success: true,
-      message: `Autonomous agent applied to ${appliedJobs.length} matching jobs!`,
-      appliedCount: appliedJobs.length,
-      jobs: appliedJobs,
+      eligible: remaining > 0,
+      isUnlimited: false,
+      remainingCredits: remaining,
+      message: remaining > 0 
+        ? 'You have 1 free autonomous application remaining.'
+        : 'You have used your free autonomous application credit. Upgrade to Silver for unlimited applications!',
     };
   }
 
-  async updateSettings(userId: string, enabled: boolean, keywords?: string[]) {
+  // Seeker taps "Approve & Submit" for an autonomous match
+  async approveApplication(userId: string, jobId: string) {
+    const eligibility = await this.checkEligibility(userId);
+    if (!eligibility.eligible) {
+      throw new BadRequestException(eligibility.message);
+    }
+
     const profile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
     });
+    if (!profile) throw new NotFoundException('Profile not found');
 
-    if (!profile) {
-      throw new NotFoundException('Job seeker profile not found');
+    const job = await this.prisma.job.findUnique({
+      where: { id: jobId },
+      include: { employer: true },
+    });
+    if (!job) throw new NotFoundException('Job not found');
+
+    const existing = await this.prisma.application.findFirst({
+      where: { jobId, jobSeekerId: profile.id },
+    });
+    if (existing) {
+      return { success: true, message: 'You have already applied to this job.', application: existing };
     }
 
-    const updated = await this.prisma.jobSeekerProfile.update({
-      where: { id: profile.id },
+    // Submit autonomous application
+    const application = await this.prisma.application.create({
       data: {
-        autoApplyEnabled: enabled,
-        ...(keywords ? { autoApplyKeywords: keywords } : {}),
+        jobId: job.id,
+        jobSeekerId: profile.id,
+        coverLetter: 'Automatically submitted by JobHub AI Autonomous Agent (approved by candidate).',
+        status: 'APPLIED',
+        aiMatchScore: 92,
+      },
+      include: { job: true },
+    });
+
+    // Mark approval notification as read and send confirmation notification
+    await this.prisma.notification.updateMany({
+      where: { userId, jobId },
+      data: { isRead: true },
+    });
+
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        jobId: job.id,
+        matchProbability: 92,
+        message: `🎉 Autonomous Application Submitted: Applied for "${job.title}" at "${job.employer.companyName}".`,
       },
     });
 
     return {
       success: true,
-      autoApplyEnabled: updated.autoApplyEnabled,
-      autoApplyKeywords: updated.autoApplyKeywords,
+      message: `Autonomous application submitted for "${job.title}"!`,
+      application,
     };
+  }
+
+  // Dismiss a match request
+  async dismissMatch(userId: string, jobId: string) {
+    await this.prisma.notification.updateMany({
+      where: { userId, jobId },
+      data: { isRead: true },
+    });
+    return { success: true, message: 'Match dismissed.' };
+  }
+
+  // Get pending autonomous approval requests
+  async getPendingApprovals(userId: string) {
+    const profile = await this.prisma.jobSeekerProfile.findUnique({
+      where: { userId },
+      include: { applications: true },
+    });
+    if (!profile) throw new NotFoundException('Profile not found');
+
+    const appliedJobIds = profile.applications.map((a) => a.jobId);
+
+    // Get unread autonomous notifications
+    const notifications = await this.prisma.notification.findMany({
+      where: {
+        userId,
+        isRead: false,
+        message: { contains: 'Permission to Apply' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const jobIds = notifications.map((n) => n.jobId).filter(Boolean) as string[];
+
+    const jobs = await this.prisma.job.findMany({
+      where: {
+        id: { in: jobIds, notIn: appliedJobIds },
+      },
+      include: { employer: { select: { companyName: true, isVerified: true } } },
+    });
+
+    const eligibility = await this.checkEligibility(userId);
+
+    return {
+      eligibility,
+      pendingCount: jobs.length,
+      jobs,
+    };
+  }
+
+  // Evaluates matches and generates permission requests
+  async runForUser(userId: string) {
+    const profile = await this.prisma.jobSeekerProfile.findUnique({
+      where: { userId },
+      include: { user: true },
+    });
+    if (!profile) throw new NotFoundException('Job seeker profile not found');
+
+    const createdNotifications = await this.evaluateMatchesForProfile(profile);
+
+    return {
+      success: true,
+      message: `Evaluated matches: created ${createdNotifications.length} autonomous permission requests.`,
+      count: createdNotifications.length,
+    };
+  }
+
+  // Evaluate matches for a profile based on skills and profession
+  async evaluateMatchesForProfile(profile: any) {
+    const eligibility = await this.checkEligibility(profile.userId);
+    if (!eligibility.eligible) return [];
+
+    const existingApplications = await this.prisma.application.findMany({
+      where: { jobSeekerId: profile.id },
+      select: { jobId: true },
+    });
+    const appliedJobIds = existingApplications.map((a) => a.jobId);
+
+    const existingNotifs = await this.prisma.notification.findMany({
+      where: { userId: profile.userId },
+      select: { jobId: true },
+    });
+    const notifJobIds = existingNotifs.map((n) => n.jobId).filter(Boolean) as string[];
+
+    const excludeJobIds = Array.from(new Set([...appliedJobIds, ...notifJobIds]));
+
+    // Match criteria based on profile
+    const skills = profile.skills || [];
+    const profession = profile.profession || profile.desiredJobTitle || '';
+
+    const matchingJobs = await this.prisma.job.findMany({
+      where: {
+        id: { notIn: excludeJobIds },
+        OR: [
+          ...(skills.length > 0 ? skills.slice(0, 5).map((s: string) => ({ title: { contains: s, mode: 'insensitive' as const } })) : []),
+          ...(profession ? [{ title: { contains: profession, mode: 'insensitive' as const } }] : []),
+        ],
+      },
+      include: { employer: true },
+      take: 5,
+    });
+
+    const created: any[] = [];
+    for (const job of matchingJobs) {
+      const notif = await this.prisma.notification.create({
+        data: {
+          userId: profile.userId,
+          jobId: job.id,
+          matchProbability: 92,
+          message: `🎯 Autonomous Match: Permission to Apply on Your Behalf for "${job.title}" at "${job.employer.companyName}". Tap to Approve.`,
+        },
+      });
+      created.push(notif);
+    }
+
+    return created;
+  }
+
+  // When employer posts a new job, evaluate matching seekers
+  async autoApplyJobForMatchingSeekers(job: any) {
+    const jobText = `${job.title} ${job.description || ''} ${job.skills ? job.skills.join(' ') : ''}`.toLowerCase();
+    const profiles = await this.prisma.jobSeekerProfile.findMany({
+      include: { user: true },
+    });
+
+    for (const profile of profiles) {
+      const eligibility = await this.checkEligibility(profile.userId);
+      if (!eligibility.eligible) continue;
+
+      const keywords = [
+        ...(profile.skills || []),
+        profile.profession || '',
+        profile.desiredJobTitle || '',
+      ].filter(Boolean).map((k: string) => k.toLowerCase().trim());
+
+      const isMatch = keywords.some((k) => k.length > 2 && jobText.includes(k));
+      if (!isMatch) continue;
+
+      const existing = await this.prisma.application.findFirst({
+        where: { jobId: job.id, jobSeekerId: profile.id },
+      });
+      if (existing) continue;
+
+      const existingNotif = await this.prisma.notification.findFirst({
+        where: { userId: profile.userId, jobId: job.id },
+      });
+      if (existingNotif) continue;
+
+      // Create Permission Request Notification
+      await this.prisma.notification.create({
+        data: {
+          userId: profile.userId,
+          jobId: job.id,
+          matchProbability: 92,
+          message: `🎯 Autonomous Match: Permission to Apply on Your Behalf for "${job.title}". Tap to Approve.`,
+        },
+      });
+    }
   }
 
   async getStatus(userId: string) {
@@ -68,7 +278,7 @@ export class AutonomousService {
       where: { userId },
       include: {
         applications: {
-          where: { coverLetter: { contains: 'JobHub AI Autonomous Agent' } },
+          where: { coverLetter: { contains: 'Autonomous Agent' } },
           include: { job: { include: { employer: { select: { companyName: true } } } } },
           orderBy: { createdAt: 'desc' },
           take: 20,
@@ -80,116 +290,13 @@ export class AutonomousService {
       throw new NotFoundException('Job seeker profile not found');
     }
 
+    const eligibility = await this.checkEligibility(userId);
+
     return {
-      autoApplyEnabled: profile.autoApplyEnabled,
-      autoApplyKeywords: profile.autoApplyKeywords || [],
+      autoApplyEnabled: true,
+      eligibility,
       totalAutoApplied: profile.applications.length,
       applications: profile.applications,
     };
-  }
-
-  async autoApplyJobForMatchingSeekers(job: any) {
-    this.logger.debug(`Evaluating autonomous applications for new job: ${job.title}`);
-    const profiles = await this.prisma.jobSeekerProfile.findMany({
-      where: { autoApplyEnabled: true },
-    });
-
-    const jobText = `${job.title} ${job.description || ''} ${job.skills ? job.skills.join(' ') : ''}`.toLowerCase();
-
-    for (const profile of profiles) {
-      const keywords = [
-        ...(profile.autoApplyKeywords || []),
-        ...(profile.skills || []),
-        profile.profession || '',
-        profile.desiredJobTitle || '',
-      ].filter(Boolean).map(k => k.toLowerCase().trim());
-
-      const isMatch = keywords.some(k => k.length > 2 && jobText.includes(k));
-      if (!isMatch) continue;
-
-      const existing = await this.prisma.application.findFirst({
-        where: { jobId: job.id, jobSeekerId: profile.id },
-      });
-      if (existing) continue;
-
-      await this.prisma.application.create({
-        data: {
-          jobId: job.id,
-          jobSeekerId: profile.id,
-          coverLetter: 'Automatically applied by JobHub AI Autonomous Agent.',
-          status: 'APPLIED',
-          aiMatchScore: 92,
-        },
-      });
-
-      await this.prisma.notification.create({
-        data: {
-          userId: profile.userId,
-          jobId: job.id,
-          matchProbability: 92,
-          message: `🤖 Auto-Applied: Your Autonomous Agent submitted an application for "${job.title}".`,
-        },
-      });
-    }
-  }
-
-  private async processApplicationsForProfile(profile: any) {
-    const keywords = [
-      ...(profile.autoApplyKeywords || []),
-      ...(profile.skills || []),
-      profile.profession || '',
-      profile.desiredJobTitle || '',
-    ].filter(Boolean);
-
-    let whereClause: any = {
-      NOT: {
-        applications: {
-          some: {
-            jobSeekerId: profile.id,
-          },
-        },
-      },
-    };
-
-    if (keywords.length > 0) {
-      whereClause.OR = keywords.slice(0, 10).map((k) => ({
-        OR: [
-          { title: { contains: k, mode: 'insensitive' } },
-          { description: { contains: k, mode: 'insensitive' } },
-        ],
-      }));
-    }
-
-    const matchingJobs = await this.prisma.job.findMany({
-      where: whereClause,
-      take: 5,
-    });
-
-    const applied: any[] = [];
-    for (const job of matchingJobs) {
-      this.logger.debug(`Auto-applying ${profile.id} to job ${job.id}`);
-      const app = await this.prisma.application.create({
-        data: {
-          jobId: job.id,
-          jobSeekerId: profile.id,
-          coverLetter: 'Automatically applied by JobHub AI Autonomous Agent.',
-          status: 'APPLIED',
-          aiMatchScore: 90,
-        },
-        include: { job: true },
-      });
-      applied.push(app);
-
-      await this.prisma.notification.create({
-        data: {
-          userId: profile.userId,
-          jobId: job.id,
-          matchProbability: 90,
-          message: `🤖 Auto-Applied: Your Autonomous Agent submitted an application for "${job.title}".`,
-        },
-      });
-    }
-
-    return applied;
   }
 }

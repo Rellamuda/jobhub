@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ThemeToggle } from './ThemeToggle';
 import { Sparkles, Briefcase, FileText, Bot, Wallet, Globe, Users, Shield, PlusCircle, User } from 'lucide-react';
 
 export default function Header() {

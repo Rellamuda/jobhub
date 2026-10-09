@@ -21,17 +21,17 @@ class JobHubAIApp extends StatelessWidget {
         return MaterialApp(
           title: 'JobHub AI',
           debugShowCheckedModeBanner: false,
-          themeMode: currentMode,
+          themeMode: ThemeMode.dark,
           theme: ThemeData(
-            brightness: Brightness.light,
-            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF0A0A0A),
             primaryColor: const Color(0xFF6366F1),
-            colorScheme: const ColorScheme.light(
+            colorScheme: const ColorScheme.dark(
               primary: Color(0xFF6366F1),
-              secondary: Color(0xFF00B4D8),
-              surface: Colors.white,
+              secondary: Color(0xFF00F0FF),
+              surface: Color(0xFF120B1C),
             ),
-            textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),
+            textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
             useMaterial3: true,
           ),
           darkTheme: ThemeData(
@@ -58,17 +58,13 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.5,
-            colors: isDark
-                ? const [Color(0xFF120B1C), Color(0xFF0A0A0A)]
-                : const [Color(0xFFEEF2FF), Color(0xFFF8FAFC)],
+            colors: [Color(0xFF120B1C), Color(0xFF0A0A0A)],
           ),
         ),
         child: SafeArea(
@@ -78,17 +74,6 @@ class WelcomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: Icon(
-                      isDark ? Icons.light_mode : Icons.dark_mode,
-                      color: isDark ? const Color(0xFF00F0FF) : const Color(0xFF6366F1),
-                    ),
-                    tooltip: 'Toggle Theme',
-                    onPressed: () => ThemeManager.toggleTheme(),
-                  ),
-                ),
                 const Spacer(),
                 Text(
                   'Welcome to\nJobHub AI',

@@ -166,16 +166,6 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         title: const Text('AI Career Hub'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
-              color: isDark ? const Color(0xFF00F0FF) : const Color(0xFF6366F1),
-            ),
-            tooltip: 'Toggle Theme',
-            onPressed: () => ThemeManager.toggleTheme(),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

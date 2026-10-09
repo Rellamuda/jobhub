@@ -1014,21 +1014,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     'My Profile',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: Colors.white,
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      isDark ? Icons.light_mode : Icons.dark_mode,
-                      color: isDark ? const Color(0xFF00F0FF) : const Color(0xFF6366F1),
-                    ),
-                    tooltip: 'Toggle Theme',
-                    onPressed: () => ThemeManager.toggleTheme(),
                   ),
                 ],
               ),

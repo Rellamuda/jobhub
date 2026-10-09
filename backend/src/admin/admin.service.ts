@@ -108,8 +108,8 @@ export class AdminService {
                 select: {
                   id: true,
                   title: true,
-                  status: true,
                   location: true,
+                  isRemote: true,
                   createdAt: true,
                 },
               },
@@ -173,7 +173,7 @@ export class AdminService {
         await tx.candidateNote.deleteMany({ where: { authorId: id } }).catch(() => {});
         // 5. Delete connections, posts, comments, likes
         await tx.like.deleteMany({ where: { userId: id } }).catch(() => {});
-        await tx.comment.deleteMany({ where: { userId: id } }).catch(() => {});
+        await tx.comment.deleteMany({ where: { authorId: id } }).catch(() => {});
         await tx.post.deleteMany({ where: { authorId: id } }).catch(() => {});
         await tx.connection.deleteMany({ where: { OR: [{ userId: id }, { connectedUserId: id }] } }).catch(() => {});
         await tx.companyFollower.deleteMany({ where: { userId: id } }).catch(() => {});
@@ -186,15 +186,15 @@ export class AdminService {
             await tx.application.deleteMany({ where: { jobId: job.id } }).catch(() => {});
             await tx.job.delete({ where: { id: job.id } }).catch(() => {});
           }
-          await tx.candidateTag.deleteMany({ where: { employerId: employer.id } }).catch(() => {});
           await tx.employer.delete({ where: { id: employer.id } }).catch(() => {});
         }
 
         // 7. Check and delete jobSeekerProfile
         const seeker = await tx.jobSeekerProfile.findUnique({ where: { userId: id } });
         if (seeker) {
-          await tx.application.deleteMany({ where: { applicantId: seeker.id } }).catch(() => {});
-          await tx.credential.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
+          await tx.application.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
+          await tx.credential.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
+          await tx.candidateTag.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
           await tx.jobSeekerProfile.delete({ where: { id: seeker.id } }).catch(() => {});
         }
 

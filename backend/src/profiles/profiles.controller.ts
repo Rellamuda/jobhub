@@ -232,7 +232,7 @@ export class ProfilesController {
       await tx.payment.deleteMany({ where: { userId } }).catch(() => {});
       await tx.candidateNote.deleteMany({ where: { authorId: userId } }).catch(() => {});
       await tx.like.deleteMany({ where: { userId } }).catch(() => {});
-      await tx.comment.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.comment.deleteMany({ where: { authorId: userId } }).catch(() => {});
       await tx.post.deleteMany({ where: { authorId: userId } }).catch(() => {});
       await tx.connection.deleteMany({ where: { OR: [{ userId }, { connectedUserId: userId }] } }).catch(() => {});
       await tx.companyFollower.deleteMany({ where: { userId } }).catch(() => {});
@@ -244,14 +244,14 @@ export class ProfilesController {
           await tx.application.deleteMany({ where: { jobId: job.id } }).catch(() => {});
           await tx.job.delete({ where: { id: job.id } }).catch(() => {});
         }
-        await tx.candidateTag.deleteMany({ where: { employerId: employer.id } }).catch(() => {});
         await tx.employer.delete({ where: { id: employer.id } }).catch(() => {});
       }
 
       const seeker = await tx.jobSeekerProfile.findUnique({ where: { userId } });
       if (seeker) {
-        await tx.application.deleteMany({ where: { applicantId: seeker.id } }).catch(() => {});
-        await tx.credential.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
+        await tx.application.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
+        await tx.credential.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
+        await tx.candidateTag.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
         await tx.jobSeekerProfile.delete({ where: { id: seeker.id } }).catch(() => {});
       }
 

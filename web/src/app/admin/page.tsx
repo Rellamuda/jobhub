@@ -54,7 +54,7 @@ interface UserData {
     jobs?: Array<{
       id: string;
       title: string;
-      status: string;
+      isRemote?: boolean;
       location?: string;
       createdAt: string;
     }>;
@@ -966,7 +966,7 @@ export default function AdminDashboard() {
                         {selectedUser.employer.jobs.map((job) => (
                           <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.8rem', backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '8px', fontSize: '0.85rem' }}>
                             <span style={{ fontWeight: 600 }}>{job.title}</span>
-                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{job.location || 'Remote'} • {job.status}</span>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{job.location || 'Remote'} • {job.isRemote ? 'Remote' : 'On-site'}</span>
                           </div>
                         ))}
                       </div>

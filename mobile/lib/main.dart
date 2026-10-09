@@ -76,6 +76,15 @@ class WelcomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
+                Center(
+                  child: Image.asset(
+                    'assets/logo.png',
+                    height: 84,
+                    width: 84,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Text(
                   'Welcome to\nJobHub AI',
                   textAlign: TextAlign.center,

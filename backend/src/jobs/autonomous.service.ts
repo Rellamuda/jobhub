@@ -242,13 +242,34 @@ export class AutonomousService {
       const eligibility = await this.checkEligibility(profile.userId);
       if (!eligibility.eligible) continue;
 
-      const keywords = [
-        ...(profile.skills || []),
-        profile.profession || '',
-        profile.desiredJobTitle || '',
-      ].filter(Boolean).map((k: string) => k.toLowerCase().trim());
+      const stopWords = new Set([
+        'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are',
+        'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by',
+        'can', 'could', 'did', 'do', 'does', 'doing', 'down', 'during', 'each', 'few', 'for', 'from',
+        'had', 'has', 'have', 'having', 'he', 'her', 'here', 'hers', 'him', 'his', 'how', 'if', 'in',
+        'into', 'is', 'it', 'its', 'just', 'me', 'more', 'most', 'my', 'no', 'nor', 'not', 'of', 'off',
+        'on', 'once', 'only', 'or', 'other', 'our', 'out', 'over', 'own', 'same', 'she', 'should', 'so',
+        'some', 'such', 'than', 'that', 'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this',
+        'those', 'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'we', 'were', 'what',
+        'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'with', 'would', 'you', 'your',
+        'work', 'working', 'team', 'company', 'role', 'year', 'years', 'experience', 'candidate',
+        'looking', 'join', 'help', 'able', 'good', 'strong', 'well', 'responsible', 'skills', 'skill'
+      ]);
 
-      const isMatch = keywords.some((k) => k.length > 2 && jobText.includes(k));
+      const jobTitleLower = (job.title || '').toLowerCase().trim();
+      const profession = (profile.profession || '').toLowerCase().trim();
+      const desiredTitle = (profile.desiredJobTitle || '').toLowerCase().trim();
+
+      const hasTitleMatch = (desiredTitle.length > 2 && (jobTitleLower.includes(desiredTitle) || desiredTitle.includes(jobTitleLower))) ||
+                            (profession.length > 2 && (jobTitleLower.includes(profession) || profession.includes(jobTitleLower)));
+
+      const validSkills = (profile.skills || [])
+        .map((s: string) => s.toLowerCase().trim())
+        .filter((s: string) => s.length > 2 && !stopWords.has(s));
+
+      const matchedSkillCount = validSkills.filter((s: string) => jobText.includes(s)).length;
+
+      const isMatch = hasTitleMatch || (matchedSkillCount >= 2);
       if (!isMatch) continue;
 
       const existing = await this.prisma.application.findFirst({

@@ -48,6 +48,15 @@ export class JobsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('bulk')
+  async createJobsBulk(@Request() req, @Body() data: { jobs: Prisma.JobCreateWithoutEmployerInput[] }) {
+    if (req.user.role !== 'EMPLOYER') {
+      throw new ForbiddenException('Only EMPLOYERs can post jobs.');
+    }
+    return this.jobsService.createJobsBulk(req.user.userId, data.jobs || []);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post()
   async createJob(@Request() req, @Body() data: Prisma.JobCreateWithoutEmployerInput) {
     if (req.user.role !== 'EMPLOYER') {

@@ -104,6 +104,138 @@ export default function OnboardingPage() {
   // Shared
   const [profilePicUrl, setProfilePicUrl] = useState('');
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [validationError, setValidationError] = useState('');
+
+  const validateCurrentStep = (currentStep: number): boolean => {
+    setValidationError('');
+    const isSeeker = user?.role === 'JOB_SEEKER';
+
+    if (isSeeker) {
+      switch (currentStep) {
+        case 1:
+          if (!firstName.trim()) {
+            setValidationError('Please enter your First Name.');
+            return false;
+          }
+          if (!lastName.trim()) {
+            setValidationError('Please enter your Last Name.');
+            return false;
+          }
+          if (!phone.trim() || phone.replace(/\D/g, '').length < 6) {
+            setValidationError('Please enter a valid Phone Number (minimum 6 digits).');
+            return false;
+          }
+          if (!dateOfBirth) {
+            setValidationError('Please enter your Date of Birth.');
+            return false;
+          }
+          const dobDate = new Date(dateOfBirth);
+          if (isNaN(dobDate.getTime()) || dobDate > new Date()) {
+            setValidationError('Please enter a valid past Date of Birth.');
+            return false;
+          }
+          return true;
+        case 2:
+          if (!headline.trim()) {
+            setValidationError('Please enter your Professional Headline.');
+            return false;
+          }
+          if (!profession.trim()) {
+            setValidationError('Please enter your Primary Profession.');
+            return false;
+          }
+          return true;
+        case 3:
+          if (!residenceCountry) {
+            setValidationError('Please select your Resident Country.');
+            return false;
+          }
+          if (!citizenshipCountry) {
+            setValidationError('Please select your Citizenship Country / Nationality.');
+            return false;
+          }
+          if (!residenceState.trim()) {
+            setValidationError('Please enter your State / Province.');
+            return false;
+          }
+          if (!residenceCity.trim()) {
+            setValidationError('Please enter your City / Town.');
+            return false;
+          }
+          return true;
+        case 4:
+          if (!desiredJobTitle.trim()) {
+            setValidationError('Please enter your Desired Job Title.');
+            return false;
+          }
+          if (!preferredWorkCountry) {
+            setValidationError('Please select your Preferred Work Country (or select Any Country).');
+            return false;
+          }
+          return true;
+        default:
+          return true;
+      }
+    } else {
+      switch (currentStep) {
+        case 1:
+          if (!companyName.trim()) {
+            setValidationError('Please enter your Company / Agency Name.');
+            return false;
+          }
+          if (!description.trim()) {
+            setValidationError('Please enter a brief Company Description.');
+            return false;
+          }
+          if (!industry.trim()) {
+            setValidationError('Please enter your Industry / Sector.');
+            return false;
+          }
+          if (!companySize.trim()) {
+            setValidationError('Please select or enter Team Size.');
+            return false;
+          }
+          if (foundedYear.trim()) {
+            const yr = parseInt(foundedYear);
+            const currentYear = new Date().getFullYear();
+            if (isNaN(yr) || yr < 1800 || yr > currentYear) {
+              setValidationError(`Founded Year must be a 4-digit year between 1800 and ${currentYear}.`);
+              return false;
+            }
+          }
+          return true;
+        case 2:
+          if (!locationCountry) {
+            setValidationError('Please select or enter Location Country.');
+            return false;
+          }
+          if (!locationState.trim()) {
+            setValidationError('Please enter Location State / Province.');
+            return false;
+          }
+          if (!locationCity.trim()) {
+            setValidationError('Please enter Location City / Town.');
+            return false;
+          }
+          if (!hrContactName.trim()) {
+            setValidationError('Please enter HR Contact Name.');
+            return false;
+          }
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!hrEmail.trim() || !emailRegex.test(hrEmail.trim())) {
+            setValidationError('Please enter a valid HR Contact Email address.');
+            return false;
+          }
+          if (!hrPhone.trim() || hrPhone.replace(/\D/g, '').length < 6) {
+            setValidationError('Please enter a valid HR Contact Phone Number.');
+            return false;
+          }
+          return true;
+        default:
+          return true;
+      }
+    }
+  };
   
   useEffect(() => {
     const fetchUser = async () => {
@@ -275,7 +407,11 @@ export default function OnboardingPage() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        window.location.href = '/profile';
+        if (user?.role === 'EMPLOYER') {
+          window.location.href = '/applications';
+        } else {
+          window.location.href = '/seeker-dashboard';
+        }
       } else {
         alert('Failed to save profile.');
       }
@@ -442,6 +578,7 @@ export default function OnboardingPage() {
             <label style={{ color: 'white', fontSize: '0.9rem', display: 'block', marginBottom: '0.2rem' }}>Preferred Country to Work In</label>
             <select value={preferredWorkCountry} onChange={e => setPreferredWorkCountry(e.target.value)} className="input-field">
               <option value="">Select Preferred Work Country</option>
+              <option value="Any Country">Any Country (Global)</option>
               {countriesList.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -755,19 +892,45 @@ export default function OnboardingPage() {
       `}</style>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', padding: '3rem 2rem', overflow: 'hidden' }}>
         <h1 className="text-gradient" style={{ textAlign: 'center', margin: 0 }}>Complete Your Profile</h1>
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '2rem' }}>Step {step} of {totalSteps}</p>
-        <div style={{ margin: '2rem 0' }}>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Step {step} of {totalSteps}</p>
+        
+        {validationError && (
+          <div style={{ padding: '0.8rem 1rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '8px', color: '#fca5a5', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center' }}>
+            ⚠️ {validationError}
+          </div>
+        )}
+
+        <div style={{ margin: '1.5rem 0' }}>
           {user?.role === 'JOB_SEEKER' ? renderSeekerSteps() : renderEmployerSteps()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
           {step > 1 ? (
-            <button className="btn-primary" style={{ background: 'transparent', border: '1px solid #00f0ff' }} onClick={() => setStep(step - 1)}>Back</button>
+            <button className="btn-primary" style={{ background: 'transparent', border: '1px solid #00f0ff' }} onClick={() => { setValidationError(''); setStep(step - 1); }}>Back</button>
           ) : <div />}
           
           {step < totalSteps ? (
-            <button className="btn-primary" onClick={() => setStep(step + 1)}>Next</button>
+            <button 
+              className="btn-primary" 
+              onClick={() => {
+                if (validateCurrentStep(step)) {
+                  setStep(step + 1);
+                }
+              }}
+            >
+              Next
+            </button>
           ) : (
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Profile'}</button>
+            <button 
+              className="btn-primary" 
+              onClick={() => {
+                if (validateCurrentStep(step)) {
+                  handleSave();
+                }
+              }} 
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
           )}
         </div>
       </div>

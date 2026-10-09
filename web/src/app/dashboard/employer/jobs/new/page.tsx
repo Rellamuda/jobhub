@@ -1,10 +1,11 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, UploadCloud } from 'lucide-react';
 
 export default function CreateJobPage() {
   const [prompt, setPrompt] = useState('We need a Flutter developer.');
@@ -86,9 +87,17 @@ export default function CreateJobPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold">Create New Job</h1>
-        <p className="text-gray-500 mt-2">Use our AI to instantly generate a comprehensive job description.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold">Create New Job</h1>
+          <p className="text-gray-500 mt-2">Use our AI to instantly generate a comprehensive job description or bulk import roles.</p>
+        </div>
+        <Link 
+          href="/jobs/create" 
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-medium text-sm transition"
+        >
+          <UploadCloud className="w-4 h-4" /> Bulk Import Vacancies (CSV)
+        </Link>
       </div>
 
       {error && (

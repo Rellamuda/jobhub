@@ -52,6 +52,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _expectedSalary = TextEditingController();
   final _availability = TextEditingController();
   String _phoneCode = '+1';
+  String _phoneCodeKey = '+1__United States';
   String _preferredWorkCountry = '';
 
   // Lists for arrays
@@ -289,7 +290,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (!mounted) return;
-        Navigator.pop(context); // Go back after onboarding
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Onboarding completed! Welcome to JobHub AI 🎉'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        if (_user?['role'] == 'EMPLOYER') {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const EmployerDashboard()),
+            (route) => false,
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const SeekerDashboard()),
+            (route) => false,
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save profile')));
       }
@@ -298,6 +318,138 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } finally {
       setState(() => _isSaving = false);
     }
+  }
+
+  bool _validateCurrentStep() {
+    if (_user == null) return true;
+    final isSeeker = _user!['role'] == 'JOB_SEEKER';
+
+    if (isSeeker) {
+      switch (_currentStep) {
+        case 1:
+          if (_firstName.text.trim().isEmpty) {
+            _showError('First Name is required');
+            return false;
+          }
+          if (_lastName.text.trim().isEmpty) {
+            _showError('Last Name is required');
+            return false;
+          }
+          if (_phone.text.trim().isEmpty || _phone.text.trim().replaceAll(RegExp(r'\D'), '').length < 6) {
+            _showError('Please enter a valid Phone Number (minimum 6 digits)');
+            return false;
+          }
+          if (_dateOfBirth.text.trim().isEmpty) {
+            _showError('Date of Birth is required');
+            return false;
+          }
+          return true;
+        case 2:
+          if (_headline.text.trim().isEmpty) {
+            _showError('Professional Headline is required');
+            return false;
+          }
+          if (_profession.text.trim().isEmpty) {
+            _showError('Primary Profession is required');
+            return false;
+          }
+          return true;
+        case 3:
+          if (_residenceCountry.text.trim().isEmpty) {
+            _showError('Resident Country is required');
+            return false;
+          }
+          if (_citizenshipCountry.text.trim().isEmpty) {
+            _showError('Citizenship Country / Nationality is required');
+            return false;
+          }
+          if (_residenceState.text.trim().isEmpty) {
+            _showError('State / Province is required');
+            return false;
+          }
+          if (_residenceCity.text.trim().isEmpty) {
+            _showError('City / Town is required');
+            return false;
+          }
+          return true;
+        case 4:
+          if (_desiredJobTitle.text.trim().isEmpty) {
+            _showError('Desired Job Title is required');
+            return false;
+          }
+          if (_preferredWorkCountry.trim().isEmpty) {
+            _showError('Preferred Work Country is required (choose Any Country if flexible)');
+            return false;
+          }
+          return true;
+        default:
+          return true;
+      }
+    } else {
+      switch (_currentStep) {
+        case 1:
+          if (_companyName.text.trim().isEmpty) {
+            _showError('Company or Agency Name is required');
+            return false;
+          }
+          if (_description.text.trim().isEmpty) {
+            _showError('Company Description is required');
+            return false;
+          }
+          if (_industry.text.trim().isEmpty) {
+            _showError('Industry is required');
+            return false;
+          }
+          if (_companySize.text.trim().isEmpty) {
+            _showError('Company Size is required');
+            return false;
+          }
+          if (_foundedYear.text.trim().isNotEmpty) {
+            final year = int.tryParse(_foundedYear.text.trim());
+            final currentYear = DateTime.now().year;
+            if (year == null || year < 1800 || year > currentYear) {
+              _showError('Founded Year must be between 1800 and $currentYear');
+              return false;
+            }
+          }
+          return true;
+        case 2:
+          if (_locationCity.text.trim().isEmpty) {
+            _showError('City is required');
+            return false;
+          }
+          if (_locationCountry.text.trim().isEmpty) {
+            _showError('Country is required');
+            return false;
+          }
+          if (_hrContactName.text.trim().isEmpty) {
+            _showError('HR Contact Name is required');
+            return false;
+          }
+          final emailPattern = RegExp(r'^[\w\.\-]+@[a-zA-Z0-9\-]+(\.[a-zA-Z0-9\-]+)+$');
+          if (_hrEmail.text.trim().isEmpty || !emailPattern.hasMatch(_hrEmail.text.trim())) {
+            _showError('Please enter a valid HR Email address');
+            return false;
+          }
+          if (_hrPhone.text.trim().isEmpty || _hrPhone.text.trim().replaceAll(RegExp(r'\D'), '').length < 6) {
+            _showError('Please enter a valid HR Phone Number');
+            return false;
+          }
+          return true;
+        default:
+          return true;
+      }
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Widget _buildTextField(TextEditingController ctrl, String label, {int maxLines = 1}) {
@@ -339,7 +491,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     flex: 4,
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: _phoneCode,
+                      value: _phoneCodeKey,
                       dropdownColor: const Color(0xFF120B1C),
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
@@ -351,14 +503,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
                       ),
                       items: phoneCodes.map((pc) {
+                        final key = '${pc.code}__${pc.name}';
                         return DropdownMenuItem<String>(
-                          value: pc.code,
+                          value: key,
                           child: Text('${pc.code} (${pc.name})', overflow: TextOverflow.ellipsis),
                         );
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setState(() => _phoneCode = val);
+                          setState(() {
+                            _phoneCodeKey = val;
+                            _phoneCode = val.split('__')[0];
+                          });
                         }
                       },
                     ),
@@ -538,12 +694,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
                 ),
-                items: countriesList.map((c) {
-                  return DropdownMenuItem<String>(
-                    value: c,
-                    child: Text(c),
-                  );
-                }).toList(),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: 'Any Country',
+                    child: Text('Any Country (Global)'),
+                  ),
+                  ...countriesList.map((c) {
+                    return DropdownMenuItem<String>(
+                      value: c,
+                      child: Text(c),
+                    );
+                  }).toList(),
+                ],
                 onChanged: (val) {
                   if (val != null) {
                     setState(() {
@@ -662,9 +824,96 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Experience', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Work Experience', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _experience.add({'company': '', 'role': '', 'dates': '', 'responsibilities': ''});
+                    });
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add Role'),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1), foregroundColor: Colors.white),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
-            const Text('Please add these details on the Web platform for now.', style: TextStyle(color: Colors.white70)),
+            if (_experience.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.work_outline, size: 40, color: Colors.white38),
+                    const SizedBox(height: 8),
+                    const Text('No work experience records added yet.', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    const Text('Tap "Add Role" above to enter your career experience.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  ],
+                ),
+              )
+            else
+              ...List.generate(_experience.length, (index) {
+                return Card(
+                  color: Colors.white.withOpacity(0.05),
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.white.withOpacity(0.1))),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Experience #${index + 1}', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _experience.removeAt(index);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        TextFormField(
+                          initialValue: _experience[index]['company'] ?? '',
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(labelText: 'Company / Organization', labelStyle: TextStyle(color: Colors.white70)),
+                          onChanged: (val) => _experience[index]['company'] = val,
+                        ),
+                        TextFormField(
+                          initialValue: _experience[index]['role'] ?? '',
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(labelText: 'Job Title / Role', labelStyle: TextStyle(color: Colors.white70)),
+                          onChanged: (val) => _experience[index]['role'] = val,
+                        ),
+                        TextFormField(
+                          initialValue: _experience[index]['dates'] ?? '',
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(labelText: 'Dates (e.g. Jan 2021 - Present)', labelStyle: TextStyle(color: Colors.white70)),
+                          onChanged: (val) => _experience[index]['dates'] = val,
+                        ),
+                        TextFormField(
+                          initialValue: _experience[index]['responsibilities'] ?? '',
+                          maxLines: 3,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(labelText: 'Responsibilities & Achievements', labelStyle: TextStyle(color: Colors.white70)),
+                          onChanged: (val) => _experience[index]['responsibilities'] = val,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
           ],
         );
       case 7:
@@ -944,13 +1193,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   if (_currentStep < maxSteps)
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF)),
-                      onPressed: () => setState(() => _currentStep++),
+                      onPressed: () {
+                        if (_validateCurrentStep()) {
+                          setState(() => _currentStep++);
+                        }
+                      },
                       child: const Text('Next', style: TextStyle(color: Colors.black)),
                     )
                   else
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
-                      onPressed: _isSaving ? null : _saveProfile,
+                      onPressed: _isSaving ? null : () {
+                        if (_validateCurrentStep()) {
+                          _saveProfile();
+                        }
+                      },
                       child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Complete', style: TextStyle(color: Colors.white)),
                     ),
                 ],

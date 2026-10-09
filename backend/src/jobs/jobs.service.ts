@@ -42,6 +42,56 @@ export class JobsService {
     return newJob;
   }
 
+  async createJobsBulk(userId: string, jobsData: Prisma.JobCreateWithoutEmployerInput[]) {
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId },
+    });
+
+    if (!employer) {
+      throw new ForbiddenException('You must create an employer profile before posting jobs.');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isFree = user?.subscriptionTier === 'FREE';
+
+    let currentJobCount = await this.prisma.job.count({ where: { employerId: employer.id } });
+    const createdJobs: any[] = [];
+    const errors: string[] = [];
+
+    for (const data of jobsData) {
+      if (isFree && currentJobCount >= 3) {
+        errors.push(`Free tier limit reached (max 3 jobs). Created ${createdJobs.length} jobs. Upgrade for unlimited posting.`);
+        break;
+      }
+
+      if (!data.title || !data.title.trim()) {
+        continue;
+      }
+
+      const newJob = await this.prisma.job.create({
+        data: {
+          ...data,
+          employer: { connect: { id: employer.id } },
+        },
+      });
+
+      currentJobCount++;
+      createdJobs.push(newJob);
+
+      this.generateSmartAlerts(newJob).catch(console.error);
+      this.runFraudCheck(newJob).catch(console.error);
+      this.autonomousService.autoApplyJobForMatchingSeekers(newJob).catch(console.error);
+    }
+
+    return {
+      success: true,
+      count: createdJobs.length,
+      jobs: createdJobs,
+      message: `Successfully posted ${createdJobs.length} job vacancy roles!`,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  }
+
   private async runFraudCheck(job: any) {
     // In real app, call AI service
     const text = job.title + ' ' + job.description;
@@ -141,9 +191,16 @@ export class JobsService {
          .map(t => t.toLowerCase().trim())
          .filter(t => !stopWords.has(t) && t.length > 2);
 
+        const prefLocations = (typeof profile.preferredLocations === 'string' ? profile.preferredLocations : (Array.isArray(profile.preferredLocations) ? profile.preferredLocations.join(' ') : '')).toLowerCase();
+        const prefersAnyCountry = prefLocations.includes('any country') || prefLocations.includes('any') || profile.willingToRelocate;
+        const seekerCountry = (profile.residenceCountry || '').toLowerCase();
+        const seekerCity = (profile.residenceCity || '').toLowerCase();
+
         jobs = jobs.map(job => {
           const jobTitleLower = (job.title || '').toLowerCase();
           const jobDescLower = (job.description || '').toLowerCase();
+          const jobLocationLower = (job.location || '').toLowerCase();
+          const isJobRemote = !!job.isRemote || jobLocationLower.includes('remote');
 
           let directTitleMatch = false;
           let matchedSkillCount = 0;
@@ -157,14 +214,19 @@ export class JobsService {
             }
           }
 
+          // Location compatibility
+          const locationOk = isJobRemote || prefersAnyCountry || !jobLocationLower ||
+            (seekerCountry && jobLocationLower.includes(seekerCountry)) ||
+            (seekerCity && jobLocationLower.includes(seekerCity));
+
           // Calculate authentic percentage match
           let calculatedPercent = 0;
           if (directTitleMatch) {
-            calculatedPercent = Math.min(97, 76 + (matchedSkillCount * 4));
+            calculatedPercent = Math.min(98, 76 + (matchedSkillCount * 4) + (locationOk ? 6 : 0));
           } else if (matchedSkillCount >= 2) {
-            calculatedPercent = Math.min(86, 50 + (matchedSkillCount * 6));
-          } else if (matchedSkillCount === 1) {
-            calculatedPercent = 48;
+            calculatedPercent = Math.min(88, 54 + (matchedSkillCount * 5) + (locationOk ? 6 : 0));
+          } else if (matchedSkillCount === 1 && locationOk) {
+            calculatedPercent = 50;
           }
 
           return {
@@ -172,7 +234,7 @@ export class JobsService {
             matchScore: calculatedPercent,
           };
         })
-        .filter(job => (job as any).matchScore >= 45) // ONLY return jobs that truly match candidate's profile
+        .filter(job => (job as any).matchScore >= 50) // ONLY return jobs that truly match candidate's profile
         .sort((a, b) => (b as any).matchScore - (a as any).matchScore);
       }
 
@@ -274,43 +336,107 @@ export class JobsService {
       throw new ForbiddenException('You do not own this job posting.');
     }
 
-    const jobText = (job.title + ' ' + job.description).toLowerCase();
-    const jobWords = jobText.split(/[^a-z0-9]/).filter(w => w.length > 3);
+    const stopWords = new Set([
+      'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are',
+      'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by',
+      'can', 'could', 'did', 'do', 'does', 'doing', 'down', 'during', 'each', 'few', 'for', 'from',
+      'had', 'has', 'have', 'having', 'he', 'her', 'here', 'hers', 'him', 'his', 'how', 'if', 'in',
+      'into', 'is', 'it', 'its', 'just', 'me', 'more', 'most', 'my', 'no', 'nor', 'not', 'of', 'off',
+      'on', 'once', 'only', 'or', 'other', 'our', 'out', 'over', 'own', 'same', 'she', 'should', 'so',
+      'some', 'such', 'than', 'that', 'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this',
+      'those', 'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'we', 'were', 'what',
+      'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'with', 'would', 'you', 'your',
+      'work', 'working', 'team', 'company', 'role', 'year', 'years', 'experience', 'candidate',
+      'looking', 'join', 'help', 'able', 'good', 'strong', 'well', 'responsible', 'skills', 'skill',
+      'must', 'will', 'also', 'part', 'time', 'full', 'great', 'high', 'need', 'needs', 'plus',
+      'applicant', 'requirements', 'duties', 'responsibilities', 'opportunity'
+    ]);
 
-    const profiles = await this.prisma.jobSeekerProfile.findMany({
-      include: { user: { select: { id: true, email: true } } }
-    });
+    const jobTitleLower = (job.title || '').toLowerCase().trim();
+    const jobTitleKeywords = jobTitleLower
+      .split(/[^a-z0-9]/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+
+    const jobDescLower = (job.description || '').toLowerCase();
+    const jobLocationLower = (job.location || '').toLowerCase();
+    const isJobRemote = !!job.isRemote || jobLocationLower.includes('remote');
 
     let scored = profiles.map(profile => {
-      const experienceArray = profile.experience as any[] || [];
-      const educationArray = profile.education as any[] || [];
-      const certsArray = profile.certificates as any[] || [];
-
-      const experienceRoles = experienceArray.map(e => e.role).join(' ');
-      const educationCourses = educationArray.map(e => e.course).join(' ');
-      const certNames = certsArray.map(c => c.name).join(' ');
-
-      const profileTextElements = [
+      const experienceArray = (profile.experience as any[]) || [];
+      const experienceRoles = experienceArray.map(e => (e.role || '').toLowerCase()).filter(Boolean);
+      
+      const candidateTitles = [
+        profile.desiredJobTitle,
         profile.profession,
         profile.skilledProfession,
         profile.headline,
-        profile.summary,
-        profile.desiredJobTitle,
-        profile.bio,
-        profile.resumeContent,
-        experienceRoles,
-        educationCourses,
-        certNames,
-        ...profile.skills
-      ].filter(Boolean).join(' ');
+        ...experienceRoles,
+      ].filter(Boolean).map(t => t.toLowerCase().trim());
 
-      const profileText = profileTextElements.toLowerCase();
-      let score = 0;
-      for (const word of jobWords) {
-        if (profileText.includes(word)) score++;
+      const candidateSkills = (profile.skills || []).map((s: string) => s.toLowerCase().trim()).filter(Boolean);
+
+      // 1. Direct Title / Profession Matching (0 to 45 pts)
+      let titleScore = 0;
+      let hasRoleMatch = false;
+
+      for (const cTitle of candidateTitles) {
+        if (!cTitle) continue;
+        if (jobTitleLower.includes(cTitle) || cTitle.includes(jobTitleLower)) {
+          titleScore = 45;
+          hasRoleMatch = true;
+          break;
+        }
+        const cKeywords = cTitle.split(/[^a-z0-9]/).filter(w => w.length > 2 && !stopWords.has(w));
+        const matchingKeywords = jobTitleKeywords.filter(k => cKeywords.includes(k));
+        if (matchingKeywords.length >= 2) {
+          titleScore = Math.max(titleScore, 38);
+          hasRoleMatch = true;
+        } else if (matchingKeywords.length === 1 && jobTitleKeywords.length <= 2) {
+          titleScore = Math.max(titleScore, 28);
+          hasRoleMatch = true;
+        }
       }
-      return { ...profile, matchScore: score };
-    }).filter(p => p.matchScore > 0).sort((a, b) => b.matchScore - a.matchScore);
+
+      // 2. Skill Overlap Matching (0 to 40 pts)
+      let matchedSkillCount = 0;
+      for (const skill of candidateSkills) {
+        if (skill.length <= 2 || stopWords.has(skill)) continue;
+        if (jobTitleLower.includes(skill)) {
+          matchedSkillCount += 2;
+        } else if (jobDescLower.includes(skill)) {
+          matchedSkillCount += 1;
+        }
+      }
+      const skillScore = Math.min(40, matchedSkillCount * 10);
+
+      // 3. Location / Work Preference Match (0 to 15 pts)
+      let locationScore = 0;
+      const prefCountry = (typeof profile.preferredLocations === 'string' ? profile.preferredLocations : '').toLowerCase();
+      const resCountry = (profile.residenceCountry || '').toLowerCase();
+      const resCity = (profile.residenceCity || '').toLowerCase();
+
+      if (isJobRemote || profile.willingToRelocate || prefCountry === 'any country' || prefCountry.includes('any')) {
+        locationScore = 15;
+      } else if (jobLocationLower && (
+        (resCountry && jobLocationLower.includes(resCountry)) ||
+        (resCity && jobLocationLower.includes(resCity)) ||
+        (prefCountry && jobLocationLower.includes(prefCountry))
+      )) {
+        locationScore = 15;
+      } else if (!jobLocationLower) {
+        locationScore = 10;
+      }
+
+      const totalScore = titleScore + skillScore + locationScore;
+      const isGenuineMatch = (hasRoleMatch && (skillScore > 0 || totalScore >= 50)) || (matchedSkillCount >= 2);
+
+      return {
+        ...profile,
+        matchScore: isGenuineMatch ? Math.min(99, Math.max(50, totalScore)) : 0,
+      };
+    })
+    .filter(p => p.matchScore >= 55) // Only genuinely matching candidates!
+    .sort((a, b) => b.matchScore - a.matchScore);
 
     // Apply Employer Monetization Limits:
     // Free: 3 candidate matches

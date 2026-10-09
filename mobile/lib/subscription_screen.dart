@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config/api_config.dart';
+import 'payment_webview_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   final String? initialRole;
@@ -266,16 +266,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if ((res.statusCode == 200 || res.statusCode == 201) && data['authorization_url'] != null) {
         final authUrl = data['authorization_url'] as String;
         final reference = data['reference'] as String? ?? '';
-        final uri = Uri.parse(authUrl);
 
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          await launchUrl(uri);
-        }
+        if (!mounted) return;
+        final bool? upgraded = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentWebViewScreen(
+              checkoutUrl: authUrl,
+              reference: reference,
+              provider: provider,
+              tier: tier,
+            ),
+          ),
+        );
 
-        if (mounted) {
-          _showPaymentVerificationDialog(reference, tier, authUrl, provider);
+        if (upgraded == true && mounted) {
+          _fetchUserRole();
         }
       } else {
         final errorMsg = data['message'] ?? 'Payment initialization failed. Please try again.';
@@ -300,119 +306,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showPaymentVerificationDialog(String reference, String tier, String authUrl, String provider) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) {
-        bool isVerifying = false;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1E1435),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: const BorderSide(color: Color(0xFF00F0FF), width: 1.5),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.open_in_browser, color: Color(0xFF00F0FF)),
-                  SizedBox(width: 10),
-                  Text('Checkout Launched', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'We have opened the secure $provider payment checkout in your external browser.',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '1. Complete your card / bank payment in the browser window.\n2. Tap "Verify Payment" below once finished.',
-                    style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
-                  ),
-                  if (isVerifying) ...[
-                    const SizedBox(height: 16),
-                    const Center(child: CircularProgressIndicator(color: Color(0xFF00F0FF))),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  child: const Text('Close', style: TextStyle(color: Colors.white54)),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final uri = Uri.parse(authUrl);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  child: const Text('Re-open Link', style: TextStyle(color: Color(0xFF00F0FF))),
-                ),
-                ElevatedButton(
-                  onPressed: isVerifying
-                      ? null
-                      : () async {
-                          setDialogState(() => isVerifying = true);
-                          try {
-                            final res = await http.get(
-                              Uri.parse('${ApiConfig.baseUrl}/payments/verify/$reference?provider=$provider'),
-                            );
-                            final verifyData = jsonDecode(res.body);
-                            if (res.statusCode == 200 && verifyData['success'] == true) {
-                              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    backgroundColor: const Color(0xFF10B981),
-                                    content: Text('🎉 Payment verified! Successfully upgraded to $tier tier!'),
-                                  ),
-                                );
-                                _fetchUserRole();
-                              }
-                            } else {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    backgroundColor: Colors.amber[800],
-                                    content: Text(verifyData['message'] ?? 'Payment verification pending. If you just paid, please wait a few seconds and try again.'),
-                                  ),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: Colors.redAccent,
-                                  content: Text('Verification check error: $e'),
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (dialogCtx.mounted) setDialogState(() => isVerifying = false);
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00F0FF),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Verify Payment', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
   }
 
   @override

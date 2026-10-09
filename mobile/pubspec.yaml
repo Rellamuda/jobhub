@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: ^2.2.3
   image_picker: any
   url_launcher: ^6.3.0
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_test:

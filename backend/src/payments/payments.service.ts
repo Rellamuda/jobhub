@@ -23,11 +23,11 @@ export class PaymentsService {
       try {
         const user = await this.prisma.user.findUnique({
           where: { id: userId },
-          include: { jobSeekerProfile: true, employerProfile: true },
+          include: { jobSeekerProfile: true, employer: true },
         });
         const country = (
           user?.jobSeekerProfile?.residenceCountry ||
-          user?.employerProfile?.companyCountry ||
+          user?.employer?.locationCountry ||
           ''
         ).toLowerCase();
         const isNigeria = country.includes('nigeria') || country.includes('ng') || (email || '').toLowerCase().endsWith('.ng');

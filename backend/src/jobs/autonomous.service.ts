@@ -151,7 +151,7 @@ export class AutonomousService {
       where: {
         id: { in: jobIds, notIn: appliedJobIds },
       },
-      include: { employer: { select: { companyName: true, isVerified: true } } },
+      include: { employer: { select: { companyName: true, verificationStatus: true } } },
     });
 
     const eligibility = await this.checkEligibility(userId);

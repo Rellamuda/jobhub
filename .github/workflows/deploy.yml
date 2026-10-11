@@ -40,8 +40,11 @@ jobs:
           curl -s -d @before_deploy.log https://ntfy.sh/jobhubai-debug-1783433696
           
           # Execute Deployment
-          git fetch origin main
+          git checkout -B main origin/main
           git reset --hard origin/main
+          git clean -fd
+          echo "Current git commit:" && git log -n 1 --oneline
+          
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > ai-service/.env
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > ai_service/.env
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
@@ -65,6 +68,7 @@ jobs:
           df -h
           
           docker compose down
+          docker image rm -f jobhub-web jobhub_web 2>/dev/null || true
           docker compose build --no-cache web
           docker compose build
           docker compose up -d --force-recreate

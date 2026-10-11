@@ -46,6 +46,33 @@ export class AiController {
     return typeof result === 'object' ? result : { resume: resumeText };
   }
 
+  @Post('company-profile/generate')
+  async generateCompanyProfile(@Request() req, @Body() companyData: any) {
+    if (req.user.role !== 'EMPLOYER' && req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only Employers can generate AI Company Profiles.');
+    }
+    const result = await this.aiService.generateCompanyProfile(companyData);
+
+    if (req.user.role === 'EMPLOYER' && companyData?.autoSave) {
+      await this.prisma.employer.update({
+        where: { userId: req.user.userId },
+        data: {
+          description: result.description,
+          mission: result.mission,
+          vision: result.vision,
+          coreValues: result.coreValues,
+          culture: result.culture,
+          whyWorkWithUs: result.whyWorkWithUs,
+          benefits: result.benefits,
+          ...(result.industry ? { industry: result.industry } : {}),
+          ...(result.businessType ? { businessType: result.businessType } : {}),
+        }
+      });
+    }
+
+    return result;
+  }
+
   @Post('cover-letter/generate')
   async generateCoverLetter(
     @Request() req,

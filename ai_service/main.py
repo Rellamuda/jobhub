@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from services.resume_engine import generate_resume, parse_resume_text, optimize_ats_resume, generate_comprehensive_resume_data
 from services.cover_letter_engine import generate_cover_letter
 from services.matching_engine import generate_embedding, calculate_match_score
+from services.company_profile_engine import generate_company_profile
 import google.generativeai as genai
 
 load_dotenv()
@@ -46,6 +47,14 @@ def api_generate_resume(req: dict):
         resume_content = generate_resume(req)
         structured = generate_comprehensive_resume_data(req)
         return {"resume": resume_content, "structured": structured}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ai/company-profile/generate")
+def api_generate_company_profile(req: dict):
+    try:
+        profile_data = generate_company_profile(req)
+        return profile_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

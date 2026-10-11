@@ -170,6 +170,184 @@ class _EmployerCrmScreenState extends State<EmployerCrmScreen> {
     );
   }
 
+  void _showReviewApplicantSheet(dynamic app) {
+    final seeker = app['jobSeekerProfile'] ?? {};
+    final resume = app['resume'] ?? {};
+    final coverLetter = app['coverLetter'];
+    final skills = (resume['skills'] is List) ? List<dynamic>.from(resume['skills']) : (seeker['skills'] is List ? List<dynamic>.from(seeker['skills']) : []);
+    final experience = (resume['experience'] is List) ? List<dynamic>.from(resume['experience']) : (seeker['experience'] is List ? List<dynamic>.from(seeker['experience']) : []);
+    final education = (resume['education'] is List) ? List<dynamic>.from(resume['education']) : (seeker['education'] is List ? List<dynamic>.from(seeker['education']) : []);
+    final summary = resume['summary'] ?? seeker['summary'] ?? seeker['bio'] ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF120B1C),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text('${seeker['firstName'] ?? ''} ${seeker['lastName'] ?? ''}', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                      ),
+                      if (app['aiMatchScore'] != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFF00F0FF).withOpacity(0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF00F0FF))),
+                          child: Text('⭐ ${app['aiMatchScore']}% Match', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(seeker['headline'] ?? seeker['profession'] ?? 'Candidate', style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.w600)),
+                  Text('${seeker['residenceCity'] ?? 'Remote'}, ${seeker['residenceCountry'] ?? 'Global'}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  
+                  const SizedBox(height: 20),
+                  // Decision Buttons
+                  const Text('Final Decision Actions:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _updateStatus(app['id'], 'SHORTLISTED');
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        child: const Text('⭐ Shortlist', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showScheduleDialog(app['id']);
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        child: const Text('📅 Schedule Interview', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _updateStatus(app['id'], 'HIRED');
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        child: const Text('🎉 Hire', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                      OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _updateStatus(app['id'], 'REJECTED');
+                        },
+                        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        child: const Text('Reject', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+
+                  if (coverLetter != null && coverLetter.toString().isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    const Text('Submitted Cover Letter', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white10)),
+                      child: Text(coverLetter.toString(), style: const TextStyle(color: Colors.white70, height: 1.5, fontSize: 13)),
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+                  const Text('Resume & Qualifications', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Divider(color: Colors.white12, height: 20),
+
+                  if (summary.toString().isNotEmpty) ...[
+                    const Text('Professional Summary', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text(summary.toString(), style: const TextStyle(color: Colors.white70, height: 1.5, fontSize: 13)),
+                    const SizedBox(height: 16),
+                  ],
+
+                  if (skills.isNotEmpty) ...[
+                    const Text('Skills', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: skills.map((s) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5))),
+                        child: Text(s.toString(), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  if (experience.isNotEmpty) ...[
+                    const Text('Experience', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    ...experience.map((exp) => Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(8), border: const Border(left: BorderSide(color: Color(0xFF00F0FF), width: 3))),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(exp['role'] ?? exp['title'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text('${exp['company'] ?? ''} • ${exp['dates'] ?? ''}', style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11)),
+                          if (exp['responsibilities'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(exp['responsibilities'].toString(), style: const TextStyle(color: Colors.white60, fontSize: 11, height: 1.4)),
+                            ),
+                        ],
+                      ),
+                    )),
+                    const SizedBox(height: 16),
+                  ],
+
+                  if (education.isNotEmpty) ...[
+                    const Text('Education', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    ...education.map((ed) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(8)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(ed['school'] ?? ed['institution'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text('${ed['course'] ?? ed['degree'] ?? ''} (${ed['dates'] ?? ed['yearGraduated'] ?? ''})', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                        ],
+                      ),
+                    )),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final columns = ['APPLIED', 'SHORTLISTED', 'INVITED', 'HIRED', 'REJECTED'];
@@ -235,7 +413,29 @@ class _EmployerCrmScreenState extends State<EmployerCrmScreen> {
                                       ),
                                     ],
 
-                                    const SizedBox(height: 16),
+                                    if (app['aiMatchScore'] != null) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(color: const Color(0xFF00F0FF).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                                        child: Text('⭐ ${app['aiMatchScore']}% Match', style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
+
+                                    const SizedBox(height: 10),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _showReviewApplicantSheet(app),
+                                        icon: const Icon(Icons.description, size: 16, color: Color(0xFF00F0FF)),
+                                        label: const Text('View & Review Resume', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 12, fontWeight: FontWeight.bold)),
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(color: Color(0xFF00F0FF)),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                        ),
+                                      ),
+                                    ),
                                     Row(
                                       children: [
                                         Expanded(

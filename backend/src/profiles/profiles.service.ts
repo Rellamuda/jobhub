@@ -24,17 +24,21 @@ export class ProfilesService {
     });
   }
 
-  async updateAutoApply(userId: string, enabled: boolean, keywords?: string[]) {
+  async updateAutoApply(userId: string, enabled: boolean, keywords?: string[], autonomousMode?: string) {
     const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
     if (!profile) {
       throw new NotFoundException('Job seeker profile not found');
     }
+    const updateData: any = {
+      autoApplyEnabled: enabled,
+      ...(keywords !== undefined ? { autoApplyKeywords: keywords } : {}),
+    };
+    if (autonomousMode) {
+      updateData.autonomousMode = autonomousMode.toUpperCase() === 'FULL' ? 'FULL' : 'PARTIAL';
+    }
     return this.prisma.jobSeekerProfile.update({
       where: { userId },
-      data: {
-        autoApplyEnabled: enabled,
-        ...(keywords !== undefined ? { autoApplyKeywords: keywords } : {}),
-      },
+      data: updateData,
     });
   }
 

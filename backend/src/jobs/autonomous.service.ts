@@ -57,6 +57,37 @@ export class AutonomousService {
     };
   }
 
+  private async getOrCreateResume(profile: any): Promise<string | null> {
+    const latestResume = await this.prisma.resume.findFirst({
+      where: { jobSeekerId: profile.id },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (latestResume) return latestResume.id;
+
+    try {
+      const newResume = await this.prisma.resume.create({
+        data: {
+          jobSeekerId: profile.id,
+          title: `${profile.firstName} ${profile.lastName} - Resume`,
+          summary: profile.summary || profile.bio || `Professional ${profile.desiredJobTitle || profile.profession || 'Specialist'}`,
+          skills: profile.skills || [],
+          experience: profile.experience || [],
+          education: profile.education || [],
+          personalInfo: {
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            email: profile.user?.email,
+            phone: profile.phone,
+            city: profile.residenceCity,
+          },
+        },
+      });
+      return newResume.id;
+    } catch {
+      return null;
+    }
+  }
+
   // Seeker taps "Approve & Submit" for an autonomous match
   async approveApplication(userId: string, jobId: string) {
     const eligibility = await this.checkEligibility(userId);
@@ -66,6 +97,7 @@ export class AutonomousService {
 
     const profile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
+      include: { user: true },
     });
     if (!profile) throw new NotFoundException('Profile not found');
 
@@ -82,16 +114,19 @@ export class AutonomousService {
       return { success: true, message: 'You have already applied to this job.', application: existing };
     }
 
-    // Submit autonomous application
+    const resumeId = await this.getOrCreateResume(profile);
+
+    // Submit autonomous application with resume attached
     const application = await this.prisma.application.create({
       data: {
         jobId: job.id,
         jobSeekerId: profile.id,
+        ...(resumeId ? { resumeId } : {}),
         coverLetter: 'Automatically submitted by JobHub AI Autonomous Agent (approved by candidate).',
         status: 'APPLIED',
         aiMatchScore: 92,
       },
-      include: { job: true },
+      include: { job: true, resume: true },
     });
 
     // Mark approval notification as read and send confirmation notification
@@ -105,7 +140,7 @@ export class AutonomousService {
         userId,
         jobId: job.id,
         matchProbability: 92,
-        message: `🎉 Autonomous Application Submitted: Applied for "${job.title}" at "${job.employer.companyName}".`,
+        message: `🎉 Autonomous Application Submitted: Applied for "${job.title}" at "${job.employer?.companyName || 'Employer'}".`,
       },
     });
 
@@ -215,17 +250,41 @@ export class AutonomousService {
       take: 5,
     });
 
+    const isFullAutonomous = profile.autonomousMode === 'FULL';
     const created: any[] = [];
+
     for (const job of matchingJobs) {
-      const notif = await this.prisma.notification.create({
-        data: {
-          userId: profile.userId,
-          jobId: job.id,
-          matchProbability: 92,
-          message: `🎯 Autonomous Match: Permission to Apply on Your Behalf for "${job.title}" at "${job.employer.companyName}". Tap to Approve.`,
-        },
-      });
-      created.push(notif);
+      if (isFullAutonomous) {
+        // FULL AUTONOMOUS MODE: Submit application immediately without prior notification / consent request
+        try {
+          const resumeId = await this.getOrCreateResume(profile);
+          const app = await this.prisma.application.create({
+            data: {
+              jobId: job.id,
+              jobSeekerId: profile.id,
+              ...(resumeId ? { resumeId } : {}),
+              coverLetter: 'Automatically submitted by JobHub AI Autonomous Agent (Full Autonomous Mode).',
+              status: 'APPLIED',
+              aiMatchScore: 94,
+            },
+            include: { job: true, resume: true },
+          });
+          created.push(app);
+        } catch (err) {
+          this.logger.error(`Failed to auto-apply in full mode for job ${job.id}:`, err);
+        }
+      } else {
+        // PARTIAL AUTONOMOUS MODE: Notify job seeker to seek consent before application is triggered
+        const notif = await this.prisma.notification.create({
+          data: {
+            userId: profile.userId,
+            jobId: job.id,
+            matchProbability: 92,
+            message: `🎯 Autonomous Match: Permission to Apply on Your Behalf for "${job.title}" at "${job.employer?.companyName || 'Employer'}". Tap to Approve.`,
+          },
+        });
+        created.push(notif);
+      }
     }
 
     return created;
@@ -282,15 +341,36 @@ export class AutonomousService {
       });
       if (existingNotif) continue;
 
-      // Create Permission Request Notification
-      await this.prisma.notification.create({
-        data: {
-          userId: profile.userId,
-          jobId: job.id,
-          matchProbability: 92,
-          message: `🎯 Autonomous Match: Permission to Apply on Your Behalf for "${job.title}". Tap to Approve.`,
-        },
-      });
+      const isFullAutonomous = profile.autonomousMode === 'FULL';
+      if (isFullAutonomous) {
+        // FULL AUTONOMOUS MODE: Apply immediately without sending a consent request beforehand
+        try {
+          const resumeId = await this.getOrCreateResume(profile);
+          await this.prisma.application.create({
+            data: {
+              jobId: job.id,
+              jobSeekerId: profile.id,
+              ...(resumeId ? { resumeId } : {}),
+              coverLetter: 'Automatically submitted by JobHub AI Autonomous Agent (Full Autonomous Mode).',
+              status: 'APPLIED',
+              aiMatchScore: 94,
+            },
+            include: { job: true, resume: true },
+          });
+        } catch (err) {
+          this.logger.error(`Failed to auto-apply in full mode for new job ${job.id}:`, err);
+        }
+      } else {
+        // PARTIAL AUTONOMOUS MODE: Seek consent before application is triggered
+        await this.prisma.notification.create({
+          data: {
+            userId: profile.userId,
+            jobId: job.id,
+            matchProbability: 92,
+            message: `🎯 Autonomous Match: Permission to Apply on Your Behalf for "${job.title}". Tap to Approve.`,
+          },
+        });
+      }
     }
   }
 
@@ -314,7 +394,8 @@ export class AutonomousService {
     const eligibility = await this.checkEligibility(userId);
 
     return {
-      autoApplyEnabled: true,
+      autoApplyEnabled: profile.autoApplyEnabled ?? true,
+      autonomousMode: profile.autonomousMode || 'PARTIAL',
       eligibility,
       totalAutoApplied: profile.applications.length,
       applications: profile.applications,

@@ -25,6 +25,7 @@ export default function SeekerDashboard() {
 
   // Autonomous Agent state
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
+  const [autonomousMode, setAutonomousMode] = useState<'FULL' | 'PARTIAL'>('PARTIAL');
   const [autoApplyKeywords, setAutoApplyKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [autoAppliedCount, setAutoAppliedCount] = useState(0);
@@ -54,6 +55,7 @@ export default function SeekerDashboard() {
           const p = await profRes.json();
           setProfile(p);
           setAutoApplyEnabled(!!p.autoApplyEnabled);
+          setAutonomousMode(p.autonomousMode === 'FULL' ? 'FULL' : 'PARTIAL');
           setAutoApplyKeywords(Array.isArray(p.autoApplyKeywords) ? p.autoApplyKeywords : (p.skills ? p.skills.slice(0, 5) : []));
         }
 
@@ -101,6 +103,7 @@ export default function SeekerDashboard() {
       if (res.ok) {
         const status = await res.json();
         setAutoApplyEnabled(status.autoApplyEnabled);
+        if (status.autonomousMode) setAutonomousMode(status.autonomousMode === 'FULL' ? 'FULL' : 'PARTIAL');
         if (Array.isArray(status.autoApplyKeywords)) setAutoApplyKeywords(status.autoApplyKeywords);
         setAutoAppliedCount(status.totalAutoApplied ?? 0);
       }
@@ -113,10 +116,40 @@ export default function SeekerDashboard() {
     setAutoApplyEnabled(newEnabled);
     try {
       setSavingSettings(true);
+      await fetch('/api/profiles/job-seeker/auto-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+          autoApplyEnabled: newEnabled, 
+          enabled: newEnabled, 
+          keywords: autoApplyKeywords, 
+          autonomousMode 
+        })
+      });
       await fetch('/api/jobs/autonomous/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ enabled: newEnabled, keywords: autoApplyKeywords })
+        body: JSON.stringify({ enabled: newEnabled, keywords: autoApplyKeywords, autonomousMode })
+      }).catch(() => {});
+    } catch (err) { console.error(err); }
+    finally { setSavingSettings(false); }
+  };
+
+  const handleSetAutonomousMode = async (mode: 'FULL' | 'PARTIAL') => {
+    setAutonomousMode(mode);
+    const token = localStorage.getItem('token');
+    try {
+      setSavingSettings(true);
+      await fetch('/api/profiles/job-seeker/auto-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+          autoApplyEnabled, 
+          enabled: autoApplyEnabled, 
+          keywords: autoApplyKeywords, 
+          autonomousMode: mode, 
+          mode 
+        })
       });
     } catch (err) { console.error(err); }
     finally { setSavingSettings(false); }
@@ -608,11 +641,66 @@ export default function SeekerDashboard() {
 
                 <hr style={{ margin: '1.5rem 0', borderColor: 'rgba(255,255,255,0.1)' }} />
 
-                {/* Target keywords manager */}
+                {/* Autonomous Application Mode Selection */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>Autonomous Application Mode</h3>
+                  <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                    Choose how you want the system to handle applications when high-match job opportunities are identified.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                    <div 
+                      onClick={() => handleSetAutonomousMode('FULL')}
+                      style={{
+                        padding: '1.2rem',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        border: autonomousMode === 'FULL' ? '2px solid #00ff88' : '1px solid rgba(255,255,255,0.1)',
+                        background: autonomousMode === 'FULL' ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255,255,255,0.03)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: 'bold', fontSize: '1rem', color: autonomousMode === 'FULL' ? '#00ff88' : 'white' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{autonomousMode === 'FULL' ? '⚡' : '⚪'}</span>
+                        <span>Full Autonomous Application</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: autonomousMode === 'FULL' ? '#00ff88' : 'var(--text-secondary)', margin: '4px 0 0 2rem', fontWeight: 600 }}>
+                        (Without Notification / Direct Apply)
+                      </div>
+                      <p style={{ margin: '0.6rem 0 0 2rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
+                        The AI agent applies on your behalf immediately as soon as a qualified match is detected, with your resume and cover letter attached. No notification or approval prompt required.
+                      </p>
+                    </div>
+
+                    <div 
+                      onClick={() => handleSetAutonomousMode('PARTIAL')}
+                      style={{
+                        padding: '1.2rem',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        border: autonomousMode === 'PARTIAL' ? '2px solid #00f0ff' : '1px solid rgba(255,255,255,0.1)',
+                        background: autonomousMode === 'PARTIAL' ? 'rgba(0, 240, 255, 0.12)' : 'rgba(255,255,255,0.03)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: 'bold', fontSize: '1rem', color: autonomousMode === 'PARTIAL' ? '#00f0ff' : 'white' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{autonomousMode === 'PARTIAL' ? '🛡️' : '⚪'}</span>
+                        <span>Partial Autonomous Application</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: autonomousMode === 'PARTIAL' ? '#00f0ff' : 'var(--text-secondary)', margin: '4px 0 0 2rem', fontWeight: 600 }}>
+                        (Seek Consent & Permission First)
+                      </div>
+                      <p style={{ margin: '0.6rem 0 0 2rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
+                        JobHub AI notifies you first whenever a match is found. You review the match and tap to give consent before the application is triggered for you.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>Automatic AI Profile Matching</h3>
                   <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                    JobHub AI uses your profile skills, experience, and target roles to continuously scan for matching vacancies. When a qualified job matches your profile, the AI requests your permission with a 1-tap approval before submitting on your behalf.
+                    JobHub AI uses your profile skills, experience, and target roles to continuously scan for matching vacancies across employers worldwide.
                   </p>
                 </div>
 

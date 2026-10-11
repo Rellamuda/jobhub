@@ -16,9 +16,17 @@ export default function ProfilePage() {
 
   // Autonomous Application State
   const [autoApplyEnabled, setAutoApplyEnabled] = useState(false);
+  const [autonomousMode, setAutonomousMode] = useState<'FULL' | 'PARTIAL'>('PARTIAL');
   const [autoApplyKeywords, setAutoApplyKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [savingAutoApply, setSavingAutoApply] = useState(false);
+
+  // Employer AI Profile Builder State
+  const [aiCompanyLoading, setAiCompanyLoading] = useState(false);
+  const [aiCompanySaved, setAiCompanySaved] = useState(false);
+  const [companyBizType, setCompanyBizType] = useState('Company');
+  const [companyAdditionalNotes, setCompanyAdditionalNotes] = useState('');
+  const [generatedCompanyProfile, setGeneratedCompanyProfile] = useState<any>(null);
 
   // Employer Verification State
   const [empRegNumber, setEmpRegNumber] = useState('');
@@ -54,7 +62,9 @@ export default function ProfilePage() {
             if (p.registrationNumber) setEmpRegNumber(p.registrationNumber);
             if (p.website) setEmpWebsite(p.website);
             if (p.taxId) setEmpTaxId(p.taxId);
+            if (p.businessType) setCompanyBizType(p.businessType);
             setAutoApplyEnabled(!!p.autoApplyEnabled);
+            setAutonomousMode(p.autonomousMode === 'FULL' ? 'FULL' : 'PARTIAL');
             setAutoApplyKeywords(p.autoApplyKeywords || []);
           }
 
@@ -203,7 +213,9 @@ export default function ProfilePage() {
           autoApplyEnabled,
           autoApplyKeywords,
           enabled: autoApplyEnabled,
-          keywords: autoApplyKeywords
+          keywords: autoApplyKeywords,
+          autonomousMode,
+          mode: autonomousMode
         })
       });
 
@@ -216,7 +228,8 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           enabled: autoApplyEnabled,
-          keywords: autoApplyKeywords
+          keywords: autoApplyKeywords,
+          autonomousMode
         })
       }).catch(() => {});
 
@@ -230,6 +243,77 @@ export default function ProfilePage() {
       alert('Error saving preferences.');
     } finally {
       setSavingAutoApply(false);
+    }
+  };
+
+  const handleGenerateAICompanyProfile = async () => {
+    setAiCompanyLoading(true);
+    setAiCompanySaved(false);
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        companyName: profile?.companyName || 'My Organization',
+        industry: profile?.industry || 'Technology & Business Solutions',
+        businessType: companyBizType,
+        locationCity: profile?.locationCity || 'Remote',
+        locationCountry: profile?.locationCountry || 'Global',
+        companySize: profile?.companySize || '50-200',
+        website: empWebsite || profile?.website || '',
+        additionalInfo: companyAdditionalNotes
+      };
+      const res = await fetch('/api/ai/company-profile/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedCompanyProfile(data);
+      } else {
+        alert('Could not generate AI company profile right now.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting to AI profile service.');
+    } finally {
+      setAiCompanyLoading(false);
+    }
+  };
+
+  const handleSaveAICompanyProfile = async () => {
+    if (!generatedCompanyProfile) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/profiles/employer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          description: generatedCompanyProfile.description,
+          mission: generatedCompanyProfile.mission,
+          vision: generatedCompanyProfile.vision,
+          coreValues: generatedCompanyProfile.coreValues,
+          culture: generatedCompanyProfile.culture,
+          whyWorkWithUs: generatedCompanyProfile.whyWorkWithUs,
+          benefits: generatedCompanyProfile.benefits,
+          businessType: generatedCompanyProfile.businessType || companyBizType,
+          industry: generatedCompanyProfile.industry || profile?.industry,
+        })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProfile(updated);
+        setAiCompanySaved(true);
+        alert('✨ AI Company Profile saved to your dashboard successfully!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save AI profile.');
     }
   };
 
@@ -379,6 +463,93 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* Autonomous Job Application Settings */}
+            <div className="glass-panel" style={{ padding: '2rem', border: autoApplyEnabled ? '1px solid rgba(0, 255, 136, 0.3)' : '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    🤖 Autonomous Application Settings
+                  </h2>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    Control how the JobHub AI agent applies for high-match jobs on your behalf.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoApplyEnabled(!autoApplyEnabled)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    background: autoApplyEnabled ? 'linear-gradient(135deg, #00ff88 0%, #00aa55 100%)' : 'rgba(255,255,255,0.15)',
+                    color: autoApplyEnabled ? '#000' : 'white',
+                  }}
+                >
+                  {autoApplyEnabled ? '✅ Auto-Apply Active' : '⚪ Auto-Apply Paused'}
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: 'white', marginBottom: '0.6rem' }}>
+                  Application Execution Preference:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                  <div
+                    onClick={() => setAutonomousMode('FULL')}
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      border: autonomousMode === 'FULL' ? '2px solid #00ff88' : '1px solid rgba(255,255,255,0.1)',
+                      background: autonomousMode === 'FULL' ? 'rgba(0, 255, 136, 0.1)' : 'rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: autonomousMode === 'FULL' ? '#00ff88' : 'white', fontSize: '0.95rem' }}>
+                      <span>{autonomousMode === 'FULL' ? '⚡' : '⚪'}</span>
+                      <span>Full Autonomous Application</span>
+                    </div>
+                    <p style={{ margin: '0.4rem 0 0 1.6rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Directly submits applications without notification or prior consent requests as soon as high-match roles appear.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setAutonomousMode('PARTIAL')}
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      border: autonomousMode === 'PARTIAL' ? '2px solid #00f0ff' : '1px solid rgba(255,255,255,0.1)',
+                      background: autonomousMode === 'PARTIAL' ? 'rgba(0, 240, 255, 0.1)' : 'rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: autonomousMode === 'PARTIAL' ? '#00f0ff' : 'white', fontSize: '0.95rem' }}>
+                      <span>{autonomousMode === 'PARTIAL' ? '🛡️' : '⚪'}</span>
+                      <span>Partial Autonomous Application</span>
+                    </div>
+                    <p style={{ margin: '0.4rem 0 0 1.6rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Sends a notification to seek your consent first so you can review each role before the system submits your application.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveAutoApply}
+                  disabled={savingAutoApply}
+                  className="btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '0.9rem' }}
+                >
+                  {savingAutoApply ? 'Saving Preferences...' : 'Save Autonomous Preferences'}
+                </button>
+              </div>
+            </div>
+
 
 
             {/* Experience */}
@@ -496,9 +667,189 @@ export default function ProfilePage() {
               </button>
             </div>
 
+            {/* AI Company or Agency Profile Builder Card */}
+            <div className="glass-panel" style={{ padding: '2rem', border: '1px solid rgba(0, 240, 255, 0.35)', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(0, 240, 255, 0.05) 100%)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    ✨ AI Company & Agency Profile Builder
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '4px 0 0 0' }}>
+                    Generate an executive corporate or agency profile with mission, vision, culture, core values, and benefits using JobHub AI.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateAICompanyProfile}
+                  disabled={aiCompanyLoading}
+                  className="btn-primary"
+                  style={{
+                    padding: '10px 22px',
+                    fontWeight: 'bold',
+                    fontSize: '0.95rem',
+                    background: 'linear-gradient(135deg, #00f0ff 0%, #6366f1 100%)',
+                    color: '#000',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {aiCompanyLoading ? '🤖 Crafting AI Profile...' : '✨ Generate AI Profile'}
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.2rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'white', marginBottom: '0.3rem', fontWeight: 600 }}>Organization Type:</label>
+                  <select
+                    value={companyBizType}
+                    onChange={(e) => setCompanyBizType(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--glass-border)', color: 'white' }}
+                  >
+                    <option value="Company">Direct Employer / Corporate Company</option>
+                    <option value="Agency / Recruitment Agency">Recruitment Agency / Staffing Agency</option>
+                    <option value="Tech Startup">Tech Startup</option>
+                    <option value="Consultancy">Consultancy / Professional Advisory</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'white', marginBottom: '0.3rem', fontWeight: 600 }}>Key Strengths & Highlights (Optional):</label>
+                  <input
+                    type="text"
+                    value={companyAdditionalNotes}
+                    onChange={(e) => setCompanyAdditionalNotes(e.target.value)}
+                    placeholder="e.g. Remote-first culture, fintech leader, high retention"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white' }}
+                  />
+                </div>
+              </div>
+
+              {generatedCompanyProfile && (
+                <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(0, 240, 255, 0.25)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#00f0ff' }}>
+                      📋 Generated AI Profile Preview
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSaveAICompanyProfile}
+                      style={{
+                        padding: '8px 20px',
+                        borderRadius: '8px',
+                        background: '#00ff88',
+                        color: '#000',
+                        fontWeight: 'bold',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      💾 Save AI Profile to Dashboard
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
+                    <div>
+                      <strong style={{ color: 'var(--primary-color)' }}>Executive Description:</strong>
+                      <textarea
+                        value={generatedCompanyProfile.description}
+                        onChange={(e) => setGeneratedCompanyProfile({ ...generatedCompanyProfile, description: e.target.value })}
+                        rows={3}
+                        style={{ width: '100%', marginTop: '4px', padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <strong style={{ color: 'var(--primary-color)' }}>Mission Statement:</strong>
+                        <textarea
+                          value={generatedCompanyProfile.mission}
+                          onChange={(e) => setGeneratedCompanyProfile({ ...generatedCompanyProfile, mission: e.target.value })}
+                          rows={2}
+                          style={{ width: '100%', marginTop: '4px', padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                        />
+                      </div>
+                      <div>
+                        <strong style={{ color: 'var(--primary-color)' }}>Vision Statement:</strong>
+                        <textarea
+                          value={generatedCompanyProfile.vision}
+                          onChange={(e) => setGeneratedCompanyProfile({ ...generatedCompanyProfile, vision: e.target.value })}
+                          rows={2}
+                          style={{ width: '100%', marginTop: '4px', padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <strong style={{ color: 'var(--primary-color)' }}>Culture & Operating Principles:</strong>
+                      <textarea
+                        value={generatedCompanyProfile.culture}
+                        onChange={(e) => setGeneratedCompanyProfile({ ...generatedCompanyProfile, culture: e.target.value })}
+                        rows={2}
+                        style={{ width: '100%', marginTop: '4px', padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                      />
+                    </div>
+                    <div>
+                      <strong style={{ color: 'var(--primary-color)' }}>Why Work With Us:</strong>
+                      <textarea
+                        value={generatedCompanyProfile.whyWorkWithUs}
+                        onChange={(e) => setGeneratedCompanyProfile({ ...generatedCompanyProfile, whyWorkWithUs: e.target.value })}
+                        rows={2}
+                        style={{ width: '100%', marginTop: '4px', padding: '8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+                      />
+                    </div>
+                    {generatedCompanyProfile.benefits && Array.isArray(generatedCompanyProfile.benefits) && (
+                      <div>
+                        <strong style={{ color: 'var(--primary-color)' }}>Employee Perks & Benefits:</strong>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '6px' }}>
+                          {generatedCompanyProfile.benefits.map((b: string, i: number) => (
+                            <span key={i} style={{ background: 'rgba(0, 240, 255, 0.1)', color: '#00f0ff', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid rgba(0, 240, 255, 0.3)' }}>
+                              ✓ {b}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="glass-panel" style={{ padding: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>About the Company</h2>
               <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{profile.description || 'No description provided.'}</p>
+              {profile.mission && (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <strong style={{ color: '#00f0ff' }}>Mission:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>{profile.mission}</p>
+                </div>
+              )}
+              {profile.vision && (
+                <div style={{ marginTop: '1rem' }}>
+                  <strong style={{ color: '#00f0ff' }}>Vision:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>{profile.vision}</p>
+                </div>
+              )}
+              {profile.culture && (
+                <div style={{ marginTop: '1rem' }}>
+                  <strong style={{ color: '#00f0ff' }}>Workplace Culture:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>{profile.culture}</p>
+                </div>
+              )}
+              {profile.whyWorkWithUs && (
+                <div style={{ marginTop: '1rem' }}>
+                  <strong style={{ color: '#00f0ff' }}>Why Work With Us:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>{profile.whyWorkWithUs}</p>
+                </div>
+              )}
+              {profile.benefits && Array.isArray(profile.benefits) && profile.benefits.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <strong style={{ color: '#00f0ff' }}>Benefits & Perks:</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '6px' }}>
+                    {profile.benefits.map((b: any, idx: number) => (
+                      <span key={idx} style={{ background: 'rgba(0,255,136,0.1)', color: '#00ff88', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid rgba(0,255,136,0.3)' }}>
+                        ✓ {typeof b === 'string' ? b : b.title || JSON.stringify(b)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="glass-panel" style={{ padding: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Company Details</h2>

@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _updateAutoApplySettings({bool? enabled, List<String>? keywords}) async {
+  Future<void> _updateAutoApplySettings({bool? enabled, List<String>? keywords, String? mode}) async {
     setState(() => _isSavingAutoApply = true);
     try {
       final token = await ApiConfig.getToken();
@@ -165,6 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final newEnabled = enabled ?? (_profile?['autoApplyEnabled'] ?? false);
       final newKeywords = keywords ?? List<String>.from(_profile?['autoApplyKeywords'] ?? []);
+      final newMode = mode ?? (_profile?['autonomousMode'] ?? 'PARTIAL');
 
       final endpoint = _user?['role'] == 'JOB_SEEKER' ? '/profiles/job-seeker/auto-apply' : '/profiles/employer';
       final res = await http.post(
@@ -176,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: jsonEncode({
           'autoApplyEnabled': newEnabled,
           'autoApplyKeywords': newKeywords,
+          'autonomousMode': newMode,
           'enabled': newEnabled,
           'keywords': newKeywords,
         }),
@@ -185,6 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _profile?['autoApplyEnabled'] = newEnabled;
           _profile?['autoApplyKeywords'] = newKeywords;
+          _profile?['autonomousMode'] = newMode;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Autonomous settings saved!')));
@@ -239,6 +242,181 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       setState(() => _isAiLoading = false);
     }
+  }
+
+  Future<void> _showAiCompanyProfileDialog() async {
+    String orgType = 'COMPANY';
+    final notesController = TextEditingController();
+    bool isGenerating = false;
+    String? generatedDesc;
+    String? generatedMission;
+    String? generatedCulture;
+    String? generatedWhyWorkWithUs;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF120B1C),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                    ),
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: Color(0xFF00F0FF), size: 24),
+                        SizedBox(width: 8),
+                        Text('AI Company Profile Builder', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text('Generate high-impact executive description, mission, values, and workplace culture for your dashboard.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 16),
+
+                    // Organization Type Selector
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setModalState(() => orgType = 'COMPANY'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: orgType == 'COMPANY' ? const Color(0xFF00F0FF).withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: orgType == 'COMPANY' ? const Color(0xFF00F0FF) : Colors.white24),
+                              ),
+                              child: Center(
+                                child: Text('Corporate / Direct', style: TextStyle(color: orgType == 'COMPANY' ? const Color(0xFF00F0FF) : Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setModalState(() => orgType = 'AGENCY'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: orgType == 'AGENCY' ? const Color(0xFF6366F1).withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: orgType == 'AGENCY' ? const Color(0xFF6366F1) : Colors.white24),
+                              ),
+                              child: Center(
+                                child: Text('Staffing Agency', style: TextStyle(color: orgType == 'AGENCY' ? const Color(0xFF818CF8) : Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: notesController,
+                      style: const TextStyle(color: Colors.white),
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Key Highlights or Notes (Optional)',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        hintText: 'e.g. Fintech leader, flexible remote perks, fast hiring',
+                        hintStyle: TextStyle(color: Colors.white30, fontSize: 12),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (isGenerating)
+                      const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: Color(0xFF00F0FF))))
+                    else
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          setModalState(() => isGenerating = true);
+                          try {
+                            final token = await ApiConfig.getToken();
+                            final res = await http.post(
+                              Uri.parse('${ApiConfig.baseUrl}/ai/company-profile/generate'),
+                              headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+                              body: jsonEncode({
+                                'companyName': _profile?['companyName'] ?? 'Our Organization',
+                                'industry': _profile?['industry'] ?? 'Technology',
+                                'organizationType': orgType,
+                                'companySize': _profile?['companySize'],
+                                'location': '${_profile?['locationCity'] ?? ''} ${_profile?['locationCountry'] ?? ''}'.trim(),
+                                'notes': notesController.text,
+                                'autoSave': true,
+                              }),
+                            );
+                            if (res.statusCode == 200 || res.statusCode == 201) {
+                              final data = jsonDecode(res.body);
+                              final p = data['profile'] ?? {};
+                              setModalState(() {
+                                isGenerating = false;
+                                generatedDesc = p['description'];
+                                generatedMission = p['mission'];
+                                generatedCulture = p['culture'];
+                                generatedWhyWorkWithUs = p['whyWorkWithUs'];
+                              });
+                              _fetchData(); // Refresh main profile
+                            } else {
+                              setModalState(() => isGenerating = false);
+                            }
+                          } catch (e) {
+                            setModalState(() => isGenerating = false);
+                          }
+                        },
+                        icon: const Icon(Icons.bolt, color: Colors.black),
+                        label: const Text('✨ Generate & Save AI Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF), padding: const EdgeInsets.symmetric(vertical: 14)),
+                      ),
+
+                    if (generatedDesc != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3))),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('✅ AI Profile Saved to Dashboard!', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                            const SizedBox(height: 8),
+                            Text(generatedDesc!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            if (generatedMission != null) ...[
+                              const SizedBox(height: 6),
+                              Text('🎯 Mission: $generatedMission', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                            ],
+                            if (generatedCulture != null) ...[
+                              const SizedBox(height: 4),
+                              Text('🌟 Culture: $generatedCulture', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _showEmployerVerifyDialog() async {
@@ -723,6 +901,115 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _buildInfoRow('Work Setup', _profile?['workArrangement'] ?? 'Any'),
         _buildInfoRow('Salary', _profile?['expectedSalary'] ?? 'Negotiable'),
 
+        const SizedBox(height: 28),
+        _buildSectionTitle('⚡ Autonomous Application Mode'),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.4)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Enable Autonomous Apply', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  Switch(
+                    value: _profile?['autoApplyEnabled'] == true,
+                    activeColor: const Color(0xFF00F0FF),
+                    onChanged: (val) {
+                      _updateAutoApplySettings(enabled: val);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text('Select your preferred system trigger style:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(height: 12),
+              
+              // Full Autonomous Option Card
+              InkWell(
+                onTap: () {
+                  _updateAutoApplySettings(mode: 'FULL');
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (_profile?['autonomousMode'] == 'FULL') ? const Color(0xFF00F0FF).withOpacity(0.15) : Colors.white.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (_profile?['autonomousMode'] == 'FULL') ? const Color(0xFF00F0FF) : Colors.white24,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        (_profile?['autonomousMode'] == 'FULL') ? Icons.radio_button_checked : Icons.radio_button_off,
+                        color: (_profile?['autonomousMode'] == 'FULL') ? const Color(0xFF00F0FF) : Colors.white54,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Full Autonomous (Zero Notification)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                            SizedBox(height: 2),
+                            Text('System applies directly without prompting or sending prior consent notifications.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Partial Autonomous Option Card
+              InkWell(
+                onTap: () {
+                  _updateAutoApplySettings(mode: 'PARTIAL');
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (_profile?['autonomousMode'] != 'FULL') ? const Color(0xFF6366F1).withOpacity(0.15) : Colors.white.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (_profile?['autonomousMode'] != 'FULL') ? const Color(0xFF6366F1) : Colors.white24,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        (_profile?['autonomousMode'] != 'FULL') ? Icons.radio_button_checked : Icons.radio_button_off,
+                        color: (_profile?['autonomousMode'] != 'FULL') ? const Color(0xFF818CF8) : Colors.white54,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Partial Autonomous (Consent First)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                            SizedBox(height: 2),
+                            Text('System notifies you to seek consent before submitting the application on your behalf.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         if (experience.isNotEmpty) ...[
           const SizedBox(height: 24),
           _buildSectionTitle('Experience'),
@@ -871,13 +1158,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         const SizedBox(height: 16),
         ElevatedButton.icon(
+          onPressed: _showAiCompanyProfileDialog,
+          icon: const Icon(Icons.auto_awesome, color: Colors.black),
+          label: const Text('✨ Build AI Company/Agency Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF00F0FF),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const OnboardingScreen())).then((_) => _fetchData());
           },
-          icon: const Icon(Icons.edit, color: Colors.black),
-          label: const Text('Edit Company Profile', style: TextStyle(color: Colors.black)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00F0FF),
+          icon: const Icon(Icons.edit, color: Colors.white),
+          label: const Text('Edit Company Profile Details', style: TextStyle(color: Colors.white)),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Colors.white38),
             padding: const EdgeInsets.symmetric(vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),

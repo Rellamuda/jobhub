@@ -106,23 +106,25 @@ export class ProfilesController {
   }
 
   @Post('job-seeker/auto-apply')
-  async updateAutoApplyPost(@Request() req, @Body() body: { autoApplyEnabled?: boolean; autoApplyKeywords?: string[]; enabled?: boolean; keywords?: string[] }) {
+  async updateAutoApplyPost(@Request() req, @Body() body: { autoApplyEnabled?: boolean; autoApplyKeywords?: string[]; enabled?: boolean; keywords?: string[]; autonomousMode?: string; mode?: string }) {
     if (req.user.role !== 'JOB_SEEKER') {
       throw new ForbiddenException('Only JOB_SEEKERs can update auto-apply settings.');
     }
     const enabled = body.autoApplyEnabled ?? body.enabled ?? false;
     const keywords = body.autoApplyKeywords ?? body.keywords;
-    return this.profilesService.updateAutoApply(req.user.userId, enabled, keywords);
+    const mode = body.autonomousMode || body.mode;
+    return this.profilesService.updateAutoApply(req.user.userId, enabled, keywords, mode);
   }
 
   @Put('job-seeker/auto-apply')
-  async updateAutoApplyPut(@Request() req, @Body() body: { autoApplyEnabled?: boolean; autoApplyKeywords?: string[]; enabled?: boolean; keywords?: string[] }) {
+  async updateAutoApplyPut(@Request() req, @Body() body: { autoApplyEnabled?: boolean; autoApplyKeywords?: string[]; enabled?: boolean; keywords?: string[]; autonomousMode?: string; mode?: string }) {
     if (req.user.role !== 'JOB_SEEKER') {
       throw new ForbiddenException('Only JOB_SEEKERs can update auto-apply settings.');
     }
     const enabled = body.autoApplyEnabled ?? body.enabled ?? false;
     const keywords = body.autoApplyKeywords ?? body.keywords;
-    return this.profilesService.updateAutoApply(req.user.userId, enabled, keywords);
+    const mode = body.autonomousMode || body.mode;
+    return this.profilesService.updateAutoApply(req.user.userId, enabled, keywords, mode);
   }
 
   @Get('talent')

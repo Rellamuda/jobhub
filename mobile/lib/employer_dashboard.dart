@@ -6,6 +6,7 @@ import 'config/api_config.dart';
 
 import 'profile_screen.dart';
 import 'create_job_screen.dart';
+import 'employer_crm_screen.dart';
 import 'login_screen.dart';
 
 class EmployerDashboard extends StatefulWidget {
@@ -225,6 +226,24 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
                     )
                   ],
                 ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EmployerCrmScreen(jobId: item['id'], jobTitle: item['title'] ?? 'Job')),
+                      ).then((_) => _fetchData());
+                    },
+                    icon: const Icon(Icons.people, size: 16, color: Color(0xFF00F0FF)),
+                    label: const Text('Review Applicants & Resumes', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 13, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF00F0FF)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -277,8 +296,32 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
                       child: (seeker == null || seeker['profilePicture'] == null || seeker['profilePicture'].isEmpty) ? const Icon(Icons.person, color: Colors.white) : null,
                     ),
                     title: Text('${seeker?['firstName']} ${seeker?['lastName']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    subtitle: Text('Status: ${app['status']}', style: const TextStyle(color: Colors.white70)),
-                    trailing: IconButton(icon: const Icon(Icons.message, color: Color(0xFF00F0FF)), onPressed: () => _inviteCandidate(seeker['userId'])),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Status: ${app['status']}', style: const TextStyle(color: Colors.white70)),
+                        if (app['aiMatchScore'] != null)
+                          Text('⭐ ${app['aiMatchScore']}% Match', style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.description, color: Color(0xFF00F0FF)),
+                          tooltip: 'Review Resume & Application',
+                          onPressed: () {
+                            if (_selectedJobId != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => EmployerCrmScreen(jobId: _selectedJobId!, jobTitle: job['title'] ?? 'Job')),
+                              ).then((_) => _fetchData());
+                            }
+                          },
+                        ),
+                        IconButton(icon: const Icon(Icons.message, color: Colors.white70), onPressed: () => _inviteCandidate(seeker['userId'])),
+                      ],
+                    ),
                   ),
                 );
               },

@@ -10,6 +10,43 @@ export class ApplicationsService {
     private aiService: AiService,
   ) {}
 
+  private async ensureResumeForProfile(jobSeekerProfile: any, resumeId?: string): Promise<string | null> {
+    if (resumeId) {
+      const exists = await this.prisma.resume.findUnique({ where: { id: resumeId } });
+      if (exists) return exists.id;
+    }
+
+    const latestResume = await this.prisma.resume.findFirst({
+      where: { jobSeekerId: jobSeekerProfile.id },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (latestResume) return latestResume.id;
+
+    try {
+      const newResume = await this.prisma.resume.create({
+        data: {
+          jobSeekerId: jobSeekerProfile.id,
+          title: `${jobSeekerProfile.firstName} ${jobSeekerProfile.lastName} - Resume`,
+          summary: jobSeekerProfile.summary || jobSeekerProfile.bio || `Professional ${jobSeekerProfile.desiredJobTitle || jobSeekerProfile.profession || 'Specialist'}`,
+          skills: jobSeekerProfile.skills || [],
+          experience: jobSeekerProfile.experience || [],
+          education: jobSeekerProfile.education || [],
+          projects: jobSeekerProfile.projects || [],
+          certifications: jobSeekerProfile.certificates || jobSeekerProfile.professionalCertifications || [],
+          personalInfo: {
+            firstName: jobSeekerProfile.firstName,
+            lastName: jobSeekerProfile.lastName,
+            phone: jobSeekerProfile.phone,
+            city: jobSeekerProfile.residenceCity || jobSeekerProfile.residenceCountry,
+          },
+        },
+      });
+      return newResume.id;
+    } catch {
+      return null;
+    }
+  }
+
   async applyToJob(userId: string, jobId: string, coverLetter?: string, resumeId?: string) {
     const jobSeekerProfile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
@@ -30,17 +67,8 @@ export class ApplicationsService {
       throw new ConflictException('You have already applied to this job.');
     }
 
-    // Auto-attach active or latest resume if not explicitly passed
-    let attachedResumeId = resumeId;
-    if (!attachedResumeId) {
-      const latestResume = await this.prisma.resume.findFirst({
-        where: { jobSeekerId: jobSeekerProfile.id },
-        orderBy: { updatedAt: 'desc' },
-      });
-      if (latestResume) {
-        attachedResumeId = latestResume.id;
-      }
-    }
+    // Auto-attach active, latest, or synthesized resume so application always includes resume
+    const attachedResumeId = await this.ensureResumeForProfile(jobSeekerProfile, resumeId);
 
     // Default/AI cover letter if not provided
     let finalCoverLetter = coverLetter?.trim();
@@ -77,7 +105,7 @@ export class ApplicationsService {
     });
   }
 
-  async applyOneTap(userId: string, jobId: string, resumeId: string) {
+  async applyOneTap(userId: string, jobId: string, resumeId?: string) {
     const jobSeekerProfile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
     });
@@ -93,10 +121,13 @@ export class ApplicationsService {
 
     if (existingApp) throw new ConflictException('Already applied.');
 
-    // Fetch the resume text if resumeId is provided
+    // Ensure resume is attached
+    const attachedResumeId = await this.ensureResumeForProfile(jobSeekerProfile, resumeId);
+
+    // Fetch the resume text if attached
     let resumeText = '';
-    if (resumeId) {
-      const resume = await this.prisma.resume.findUnique({ where: { id: resumeId } });
+    if (attachedResumeId) {
+      const resume = await this.prisma.resume.findUnique({ where: { id: attachedResumeId } });
       if (resume) {
         resumeText = `${resume.summary || ''} ${JSON.stringify(resume.skills || [])} ${JSON.stringify(resume.experience || [])}`;
       }
@@ -124,12 +155,15 @@ export class ApplicationsService {
       data: {
         jobId,
         jobSeekerId: jobSeekerProfile.id,
-        resumeId,
+        ...(attachedResumeId ? { resumeId: attachedResumeId } : {}),
         portfolioData: jobSeekerProfile.portfolio ?? Prisma.JsonNull,
         certificatesData: jobSeekerProfile.certificates ?? Prisma.JsonNull,
         coverLetter: generatedCoverLetter,
         aiMatchScore: matchScore,
         status: ApplicationStatus.APPLIED,
+      },
+      include: {
+        resume: true,
       }
     });
   }
@@ -170,7 +204,7 @@ export class ApplicationsService {
       throw new ForbiddenException('You do not own this job posting.');
     }
 
-    return this.prisma.application.findMany({
+    const applications = await this.prisma.application.findMany({
       where: { jobId },
       include: {
         jobSeekerProfile: true,
@@ -181,6 +215,84 @@ export class ApplicationsService {
         { createdAt: 'desc' }
       ]
     });
+
+    return applications.map((app) => {
+      if (!app.resume && app.jobSeekerProfile) {
+        const p = app.jobSeekerProfile;
+        const synthResume = {
+          id: `profile-${p.id}`,
+          jobSeekerId: p.id,
+          title: `${p.firstName} ${p.lastName} - Resume`,
+          summary: p.summary || p.bio || `Professional ${p.desiredJobTitle || p.profession || 'Specialist'}`,
+          skills: p.skills || [],
+          experience: p.experience || [],
+          education: p.education || [],
+          projects: p.projects || [],
+          certifications: p.certificates || p.professionalCertifications || [],
+          personalInfo: {
+            firstName: p.firstName,
+            lastName: p.lastName,
+            phone: p.phone,
+            city: p.residenceCity || p.residenceCountry,
+          },
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        };
+        return { ...app, resume: synthResume };
+      }
+      return app;
+    });
+  }
+
+  async getApplicationById(userId: string, applicationId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        jobSeekerProfile: true,
+        resume: true,
+        job: {
+          include: { employer: true }
+        }
+      }
+    });
+
+    if (!application) throw new NotFoundException('Application not found');
+
+    const employer = await this.prisma.employer.findUnique({ where: { userId } });
+    const seeker = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
+
+    const isEmployerOwner = employer && application.job.employerId === employer.id;
+    const isSeekerOwner = seeker && application.jobSeekerId === seeker.id;
+
+    if (!isEmployerOwner && !isSeekerOwner) {
+      throw new ForbiddenException('You do not have permission to view this application.');
+    }
+
+    if (!application.resume && application.jobSeekerProfile) {
+      const p = application.jobSeekerProfile;
+      const synthResume = {
+        id: `profile-${p.id}`,
+        jobSeekerId: p.id,
+        title: `${p.firstName} ${p.lastName} - Resume`,
+        summary: p.summary || p.bio || `Professional ${p.desiredJobTitle || p.profession || 'Specialist'}`,
+        skills: p.skills || [],
+        experience: p.experience || [],
+        education: p.education || [],
+        projects: p.projects || [],
+        certifications: p.certificates || p.professionalCertifications || [],
+        personalInfo: {
+          firstName: p.firstName,
+          lastName: p.lastName,
+          phone: p.phone,
+          city: p.residenceCity || p.residenceCountry,
+        },
+        createdAt: application.createdAt,
+        updatedAt: application.updatedAt,
+      };
+      return { ...application, resume: synthResume };
+    }
+
+    return application;
   }
 
   async updateStatus(employerUserId: string, applicationId: string, status: ApplicationStatus) {

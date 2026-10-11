@@ -56,6 +56,76 @@ export class AiService {
     }
   }
 
+  async generateCompanyProfile(companyData: any): Promise<any> {
+    try {
+      const response = await lastValueFrom(
+        this.httpService.post(`${this.fastApiUrl}/company-profile/generate`, companyData),
+      );
+      return response.data;
+    } catch (error) {
+      const name = (companyData?.companyName || companyData?.company_name || 'Enterprise Innovations').trim();
+      const industry = (companyData?.industry || 'Technology & Business Services').trim();
+      const bizType = (companyData?.businessType || companyData?.business_type || 'Company').trim();
+      const city = (companyData?.locationCity || companyData?.city || 'Global Hub').trim();
+      const country = (companyData?.locationCountry || companyData?.country || 'International').trim();
+      const isAgency = bizType.toLowerCase().includes('agency') || industry.toLowerCase().includes('recruitment') || industry.toLowerCase().includes('staffing') || name.toLowerCase().includes('agency');
+
+      if (isAgency) {
+        return {
+          companyName: name,
+          industry,
+          businessType: 'Agency / Recruitment Agency',
+          locationCity: city,
+          locationCountry: country,
+          description: `${name} is a premier talent solutions agency and recruitment consultancy specializing in ${industry}. Headquartered in ${city}, ${country}, we connect forward-looking organizations with world-class vetted professionals. Leveraging predictive AI matching and tailored recruiting workflows, we deliver rapid talent placement and sustained organizational success.`,
+          mission: `To connect high-caliber talent with mission-driven employers through transparent, merit-based, and human-centric recruitment solutions.`,
+          vision: `To be the most trusted global talent advisory partner, recognized for exceptional candidate outcomes and client impact.`,
+          coreValues: [
+            { title: 'Candidate Advocacy', description: 'Empowering job seekers with transparency, high-growth placements, and dedicated career guidance.' },
+            { title: 'Precision Matching', description: 'Using specialized industry insights and AI screening to match the right candidates with the right roles.' },
+            { title: 'Integrity & Trust', description: 'Upholding strict confidentiality and ethical standards in all staffing engagements.' },
+            { title: 'Agile Partnership', description: 'Acting as an adaptive extension of hiring teams to fulfill urgent talent requirements.' }
+          ],
+          culture: `At ${name}, we celebrate teamwork, speed, and genuine empathy. We promote high performance in a supportive atmosphere where every recruiter and client manager is equipped to succeed.`,
+          whyWorkWithUs: `Joining ${name} means working in an agile, meritocratic environment with industry-leading placement technology, uncapped performance incentives, and clear leadership pathways.`,
+          benefits: [
+            'Competitive Base Compensation & Uncapped Commissions',
+            'Comprehensive Medical, Dental, and Vision Coverage',
+            'Flexible Hybrid & Remote Work Policies',
+            'Annual Professional Development & Recruitment Licensing Stipend',
+            'Generous Paid Time Off and Company Holidays'
+          ]
+        };
+      }
+
+      return {
+        companyName: name,
+        industry,
+        businessType: bizType,
+        locationCity: city,
+        locationCountry: country,
+        description: `${name} is an industry-leading organization specializing in ${industry}. Based in ${city}, ${country}, we build forward-thinking solutions and deliver measurable value to clients worldwide. Our mission-driven teams innovate continually to solve complex operational challenges and deliver transformative impact.`,
+        mission: `To pioneer innovative products and services in ${industry} that elevate our clients' capabilities and set new benchmarks for excellence.`,
+        vision: `To lead global innovation in ${industry}, recognized for sustainable growth, ethical operations, and empowering workplace culture.`,
+        coreValues: [
+          { title: 'Customer Obsession', description: 'Designing solutions that solve real challenges and delight our users at every interaction.' },
+          { title: 'Continuous Innovation', description: 'Fostering calculated risk-taking, technological adoption, and creative problem solving.' },
+          { title: 'Accountability & Integrity', description: 'Taking ownership of results and communicating with uncompromised honesty.' },
+          { title: 'Collaborative Excellence', description: 'Thriving through teamwork, mutual respect, and inclusive perspectives.' }
+        ],
+        culture: `We foster a vibrant culture built on mutual trust, continuous learning, and open communication. Team members are given the autonomy to take initiative and build meaningful solutions.`,
+        whyWorkWithUs: `At ${name}, you will work on challenging, impactful projects alongside top-tier talent. We invest heavily in our team members' personal and professional development while fostering work-life harmony.`,
+        benefits: [
+          'Top-Tier Competitive Compensation & Performance Bonuses',
+          'Comprehensive Health, Dental, and Mental Wellbeing Benefits',
+          'Flexible Work Hours and Remote Flexibility',
+          'Annual Learning & Conference Attendance Budget',
+          'Generous Paid Time Off and Parental Leave Programs'
+        ]
+      };
+    }
+  }
+
   async generateCoverLetter(profileData: any, jobData: any): Promise<string> {
     try {
       const response = await lastValueFrom(

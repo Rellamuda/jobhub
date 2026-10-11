@@ -82,6 +82,7 @@ model JobSeekerProfile {
   skills           String[]
   autoApplyEnabled Boolean  @default(false)
   autoApplyKeywords String[]
+  autonomousMode   String   @default("PARTIAL") // "FULL" (no consent notification needed) or "PARTIAL" (seek consent first)
   
   // Phase 1 Additions: Personal & Preferences
   phone              String?

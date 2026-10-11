@@ -56,6 +56,11 @@ export class ApplicationsController {
     return this.applicationsService.getJobApplications(req.user.userId, jobId);
   }
 
+  @Get(':id')
+  async getApplicationById(@Request() req, @Param('id') id: string) {
+    return this.applicationsService.getApplicationById(req.user.userId, id);
+  }
+
   @Patch(':id/status')
   async updateStatus(@Request() req, @Param('id') id: string, @Body() body: { status: ApplicationStatus }) {
     if (req.user.role !== 'EMPLOYER') {

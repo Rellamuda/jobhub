@@ -83,16 +83,14 @@ jobs:
           {
             echo "=== AFTER DEPLOY ==="
             echo "Docker Status:" && docker ps -a
-            echo "=== VERIFY WEB CODE ==="
-            echo "Register page v2 marker:" && (docker compose exec -T web cat /app/.next/server/app/register/page.js 2>/dev/null | grep -o "v2" | head -1 || echo "NOT FOUND")
-            echo "Login profile check:" && (docker compose exec -T web cat /app/.next/server/app/login/page.js 2>/dev/null | grep -o "profiles/job-seeker" | head -1 || echo "NOT FOUND")
-            echo "Jobs page guard:" && (docker compose exec -T web cat /app/.next/server/app/jobs/page.js 2>/dev/null | grep -o "profiles/job-seeker" | head -1 || echo "NOT FOUND")
-            echo "=== WEB SOURCE CHECK ==="
-            echo "Register source:" && (docker compose exec -T web grep -r "v2" /app/.next/ 2>/dev/null | head -3 || echo "NOT FOUND")
-            echo "Docker Compose Logs (web):" && docker compose logs web --tail 50
-            echo "Local Curl Test (port 3000):" && (curl -s http://localhost:3000/register | grep -o "v2" || echo "v2 NOT FOUND in HTML")
-            echo "Docker Compose Logs (backend):" && docker compose logs backend --tail 50
-            echo "Docker Compose Logs (ai-service):" && docker compose logs ai-service --tail 50
+            echo "Port Status (3000/3001):" && (sudo netstat -tulpn | grep -E "3000|3001" || true)
+            echo "UFW Firewall Status:" && (sudo ufw status || true)
+            echo "=== VERIFY WEB HTML BRANDING ==="
+            echo "Local Curl Test (port 3000):" && (curl -s http://localhost:3000/ | grep -o -i "Welcome to JobHub" || echo "NOT FOUND in HTML")
+            echo "Local Curl Test (port 3000 full title):" && (curl -s http://localhost:3000/ | grep -i "<title>" || echo "TITLE NOT FOUND")
+            echo "Docker Compose Logs (web):" && docker compose logs web --tail 30
+            echo "Docker Compose Logs (backend):" && docker compose logs backend --tail 30
+            echo "Docker Compose Logs (ai-service):" && docker compose logs ai-service --tail 20
           } > after_deploy.log
           cat after_deploy.log
-          curl -s -d @after_deploy.log https://ntfy.sh/jobhubai-debug-1783433696
+          curl -s -T after_deploy.log https://ntfy.sh/jobhubai-debug-1783433696

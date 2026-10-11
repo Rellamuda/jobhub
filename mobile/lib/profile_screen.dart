@@ -581,7 +581,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFF1E142B),
         title: const Text('⚠️ Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
         content: const Text(
-          'Are you sure you want to permanently delete your JobHub AI account?\n\nThis will permanently erase all your profile data, uploaded resumes, applications, messages, and saved jobs. This action CANNOT be undone.',
+          'Are you sure you want to permanently delete your JobHub account?\n\nThis will permanently erase all your profile data, uploaded resumes, applications, messages, and saved jobs. This action CANNOT be undone.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [

@@ -33,7 +33,7 @@ export default function DeleteAccountPage() {
       return;
     }
 
-    if (!confirm('Are you absolutely certain? This will PERMANENTLY erase your account, resume, job applications, messages, and profile information from JobHub AI.')) {
+    if (!confirm('Are you absolutely certain? This will PERMANENTLY erase your account, resume, job applications, messages, and profile information from JobHub.')) {
       return;
     }
 
@@ -51,7 +51,7 @@ export default function DeleteAccountPage() {
         localStorage.clear();
         setStatusMessage({
           type: 'success',
-          text: 'Your account and all associated data have been permanently deleted from JobHub AI.',
+          text: 'Your account and all associated data have been permanently deleted from JobHub.',
         });
         setTimeout(() => {
           window.location.href = '/';
@@ -238,7 +238,7 @@ export default function DeleteAccountPage() {
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
           <Link href="/" style={{ color: '#6366F1', textDecoration: 'none', fontWeight: 'bold' }}>
-            ← Return to JobHub AI Home
+            ← Return to JobHub Home
           </Link>
         </div>
       </div>

@@ -247,7 +247,7 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontSize: '1.75rem' }}>🛡️</span>
               <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>
-                JobHub AI <span style={{ background: 'linear-gradient(90deg, #6366F1, #00F0FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Admin Control Center</span>
+                JobHub <span style={{ background: 'linear-gradient(90deg, #6366F1, #00F0FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Admin Control Center</span>
               </h1>
             </div>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.25rem', fontSize: '0.95rem' }}>

@@ -24,7 +24,7 @@ class JobHubAIApp extends StatelessWidget {
       valueListenable: ThemeManager.themeModeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp(
-          title: 'JobHub AI',
+          title: 'JobHub',
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.dark,
           theme: ThemeData(
@@ -82,7 +82,7 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 const Spacer(),
                 Text(
-                  'Welcome to\nJobHub AI',
+                  'Welcome to\nJobHub',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 48,

@@ -41,12 +41,12 @@ export default function Header() {
       <Link href="/" className="flex items-center gap-3 no-underline" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
         <img 
           src="/logo.png" 
-          alt="JobHub AI Logo" 
+          alt="JobHub Logo" 
           width="36" 
           height="36" 
           style={{ width: '36px', height: '36px', maxWidth: '36px', maxHeight: '36px', objectFit: 'contain' }} 
         />
-        <span className="text-xl md:text-2xl font-black text-gradient" style={{ fontSize: '1.5rem', fontWeight: 900 }}>JobHub AI</span>
+        <span className="text-xl md:text-2xl font-black text-gradient" style={{ fontSize: '1.5rem', fontWeight: 900 }}>JobHub</span>
       </Link>
 
       {/* Center: Navigation Links when Logged In */}

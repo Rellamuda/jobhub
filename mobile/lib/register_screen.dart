@@ -87,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 const SizedBox(height: 20),
                 Text(
-                  'Join JobHub AI',
+                  'Join JobHub',
                   style: TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.w800,

@@ -15,14 +15,14 @@ export default function TermsOfServicePage() {
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>1. Agreement to Terms</h2>
             <p>
-              By accessing or using the JobHub AI website or mobile application, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the service.
+              By accessing or using the JobHub website or mobile application, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the service.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>2. Accounts and Responsibilities</h2>
             <p>
-              When you create an account with us, you must provide accurate, current, and complete information. You are responsible for safeguarding your password and account credentials. JobHub AI reserves the right to suspend or terminate accounts that provide fraudulent information or engage in abusive conduct.
+              When you create an account with us, you must provide accurate, current, and complete information. You are responsible for safeguarding your password and account credentials. JobHub reserves the right to suspend or terminate accounts that provide fraudulent information or engage in abusive conduct.
             </p>
           </section>
 
@@ -37,14 +37,14 @@ export default function TermsOfServicePage() {
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>4. Subscriptions &amp; Billing</h2>
             <p>
-              JobHub AI offers subscription tiers (Free, Silver, and Premium). Subscription fees are billed in accordance with the pricing presented at checkout and processed through regulated payment processors (Paystack, Flutterwave). All fees are non-refundable except where required by applicable consumer law.
+              JobHub offers subscription tiers (Free, Silver, and Premium). Subscription fees are billed in accordance with the pricing presented at checkout and processed through regulated payment processors (Paystack, Flutterwave). All fees are non-refundable except where required by applicable consumer law.
             </p>
           </section>
 
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>5. Limitation of Liability</h2>
             <p>
-              JobHub AI provides matching tools and AI career assistance &ldquo;as is&rdquo;. We do not guarantee employment for candidates or candidate availability for employers. In no event shall JobHub AI be liable for any indirect, incidental, or consequential damages arising from the use of our services.
+              JobHub provides matching tools and AI career assistance &ldquo;as is&rdquo;. We do not guarantee employment for candidates or candidate availability for employers. In no event shall JobHub be liable for any indirect, incidental, or consequential damages arising from the use of our services.
             </p>
           </section>
 
@@ -58,7 +58,7 @@ export default function TermsOfServicePage() {
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
           <Link href="/" style={{ color: '#6366F1', textDecoration: 'none', fontWeight: 'bold' }}>
-            ← Return to JobHub AI Home
+            ← Return to JobHub Home
           </Link>
         </div>
       </div>

@@ -292,7 +292,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Onboarding completed! Welcome to JobHub AI 🎉'),
+            content: Text('Onboarding completed! Welcome to JobHub 🎉'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),

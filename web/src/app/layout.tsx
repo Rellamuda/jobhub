@@ -5,7 +5,7 @@ import './globals.css';
 const outfit = Outfit({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'JobHub AI - The Future of Hiring',
+  title: 'JobHub - The Future of Hiring',
   description: 'A premium AI-powered platform connecting talent with opportunity.',
   icons: {
     icon: '/logo.png',

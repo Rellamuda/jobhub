@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>1. Introduction</h2>
             <p>
-              Welcome to <strong>JobHub AI</strong> (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;). We are committed to protecting your personal information and your right to privacy. This Privacy Policy governs your use of the JobHub AI website and mobile application (available on Google Play). It explains how we collect, use, disclose, and safeguard your data when you visit our platform or utilize our recruitment services.
+              Welcome to <strong>JobHub</strong> (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;). We are committed to protecting your personal information and your right to privacy. This Privacy Policy governs your use of the JobHub website and mobile application (available on Google Play). It explains how we collect, use, disclose, and safeguard your data when you visit our platform or utilize our recruitment services.
             </p>
           </section>
 
@@ -81,7 +81,7 @@ export default function PrivacyPolicyPage() {
               If you have any questions or concerns regarding this Privacy Policy or your data, please contact our Data Protection Officer:
             </p>
             <p style={{ marginTop: '0.5rem' }}>
-              <strong>JobHub AI Privacy Team</strong><br />
+              <strong>JobHub Privacy Team</strong><br />
               Email: <a href="mailto:support@jobhubai.com" style={{ color: '#00F0FF' }}>support@jobhubai.com</a><br />
               Website: <a href="/" style={{ color: '#00F0FF' }}>https://jobhub.ai</a>
             </p>
@@ -90,7 +90,7 @@ export default function PrivacyPolicyPage() {
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
           <Link href="/" style={{ color: '#6366F1', textDecoration: 'none', fontWeight: 'bold' }}>
-            ← Return to JobHub AI Home
+            ← Return to JobHub Home
           </Link>
         </div>
       </div>

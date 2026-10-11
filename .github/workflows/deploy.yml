@@ -65,6 +65,7 @@ jobs:
           df -h
           
           docker compose down
+          docker compose build --no-cache web
           docker compose build
           docker compose up -d --force-recreate
           

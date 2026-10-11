@@ -84,6 +84,12 @@ jobs:
             echo "=== AFTER DEPLOY ==="
             echo "Docker Status:" && docker ps -a
             echo "Port Status (3000/3001):" && (sudo netstat -tulpn | grep -E "3000|3001" || true)
+            echo "Configuring Linux firewall if enabled:"
+            sudo ufw allow 3000/tcp || true
+            sudo ufw allow 3001/tcp || true
+            sudo ufw allow 80/tcp || true
+            sudo ufw allow 443/tcp || true
+            sudo ufw allow 8000/tcp || true
             echo "UFW Firewall Status:" && (sudo ufw status || true)
             echo "=== VERIFY WEB HTML BRANDING ==="
             echo "Local Curl Test (port 3000):" && (curl -s http://localhost:3000/ | grep -o -i "Welcome to JobHub" || echo "NOT FOUND in HTML")
@@ -93,4 +99,4 @@ jobs:
             echo "Docker Compose Logs (ai-service):" && docker compose logs ai-service --tail 20
           } > after_deploy.log
           cat after_deploy.log
-          curl -s -T after_deploy.log https://ntfy.sh/jobhubai-debug-1783433696
+          curl -H "Title: Deploy Success" -H "Priority: urgent" -d "$(<after_deploy.log)" https://ntfy.sh/jobhubai-debug-1783433696

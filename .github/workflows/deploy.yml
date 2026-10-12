@@ -40,6 +40,7 @@ jobs:
           curl -s -d @before_deploy.log https://ntfy.sh/jobhubai-debug-1783433696
           
           # Execute Deployment
+          git fetch origin main
           git checkout -B main origin/main
           git reset --hard origin/main
           git clean -fd
@@ -67,17 +68,21 @@ jobs:
           sudo resize2fs /dev/xvda1 2>/dev/null || sudo resize2fs /dev/nvme0n1p1 2>/dev/null || sudo xfs_growfs / 2>/dev/null || true
           df -h
           
-          docker compose down
+          echo "=== Docker Compose Down ==="
+          docker compose down || true
           docker image rm -f jobhub-web jobhub_web 2>/dev/null || true
-          docker compose build --no-cache web
+          echo "=== Building web container ==="
+          docker compose build --no-cache web 2>&1 | tee /tmp/web_build.log | tail -n 20
+          echo "=== Building all services ==="
           docker compose build
+          echo "=== Starting all services ==="
           docker compose up -d --force-recreate
           
           echo "=== Waiting 30s for services to start ==="
           sleep 30
           
           echo "=== Syncing database schema ==="
-          docker compose exec -T backend npx prisma db push
+          docker compose exec -T backend npx prisma db push || true
           
           # Telemetry after deploy
           {

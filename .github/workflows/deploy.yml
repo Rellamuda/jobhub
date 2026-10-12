@@ -74,9 +74,9 @@ jobs:
           echo "=== Building web container ==="
           docker compose build --no-cache web 2>&1 | tee /tmp/web_build.log | tail -n 20
           echo "=== Building all services ==="
-          docker compose build
+          docker compose build 2>&1 | tee /tmp/compose_build.log | tail -n 20
           echo "=== Starting all services ==="
-          docker compose up -d --force-recreate
+          docker compose up -d --force-recreate 2>&1 | tee /tmp/compose_up.log
           
           echo "=== Waiting 30s for services to start ==="
           sleep 30
@@ -99,6 +99,8 @@ jobs:
             echo "=== VERIFY WEB HTML BRANDING ==="
             echo "Local Curl Test (port 3000):" && (curl -s http://localhost:3000/ | grep -o -i "Welcome to JobHub" || echo "NOT FOUND in HTML")
             echo "Local Curl Test (port 3000 full title):" && (curl -s http://localhost:3000/ | grep -i "<title>" || echo "TITLE NOT FOUND")
+            echo "=== COMPOSE UP OUTPUT ==="
+            cat /tmp/compose_up.log 2>/dev/null || echo "No up log"
             echo "Docker Compose Logs (web):" && docker compose logs web --tail 30
             echo "Docker Compose Logs (backend):" && docker compose logs backend --tail 30
             echo "Docker Compose Logs (ai-service):" && docker compose logs ai-service --tail 20

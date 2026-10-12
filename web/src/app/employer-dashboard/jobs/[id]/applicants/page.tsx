@@ -109,6 +109,7 @@ export default function ApplicantsPage() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {colApps.map(app => (
+                  <div key={app.id} style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
                         {app.jobSeekerProfile?.firstName} {app.jobSeekerProfile?.lastName}

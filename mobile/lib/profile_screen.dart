@@ -1339,7 +1339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: const Text('Privacy Policy', style: TextStyle(color: Colors.white)),
                       subtitle: const Text('Data collection & user rights', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       trailing: const Icon(Icons.open_in_new, color: Color(0xFF00F0FF), size: 18),
-                      onTap: () => _openWebUrl('http://56.228.30.202:3000/privacy'),
+                      onTap: () => _openWebUrl('${ApiConfig.webUrl}/privacy'),
                     ),
                     const Divider(color: Colors.white12),
                     ListTile(
@@ -1349,7 +1349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: const Text('Terms of Service', style: TextStyle(color: Colors.white)),
                       subtitle: const Text('Platform guidelines & terms', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       trailing: const Icon(Icons.open_in_new, color: Color(0xFF00F0FF), size: 18),
-                      onTap: () => _openWebUrl('http://56.228.30.202:3000/terms'),
+                      onTap: () => _openWebUrl('${ApiConfig.webUrl}/terms'),
                     ),
                     const Divider(color: Colors.white12),
                     ListTile(

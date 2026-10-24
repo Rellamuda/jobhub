@@ -1,8 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
-  // Configurable base URL; defaults to current EC2 deployment, easily overrideable for local dev
-  static String baseUrl = 'http://56.228.30.202:3001';
+  // Configured with domain URL, easily overrideable for local dev
+  static String baseUrl = 'https://jobhub-app.duckdns.org/api';
+  static String webUrl = 'https://jobhub-app.duckdns.org';
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();

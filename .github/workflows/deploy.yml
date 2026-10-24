@@ -51,6 +51,56 @@ jobs:
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           
+          # Sync DuckDNS IP on every deploy
+          curl -s "https://www.duckdns.org/update?domains=jobhub-app&token=31eb04ca-3350-43da-bd55-a55b80ef8a94&ip=" || true
+          
+          # Setup Nginx and SSL (Certbot) for jobhub-app.duckdns.org
+          echo "=== Configuring Nginx and SSL ==="
+          sudo apt-get update -y && sudo apt-get install -y nginx certbot python3-certbot-nginx
+          
+          # Write Nginx configuration for reverse proxy to Next.js (port 3000) and backend API (port 3001)
+          sudo tee /etc/nginx/sites-available/jobhub << 'EOF'
+server {
+    listen 80;
+    server_name jobhub-app.duckdns.org;
+
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+          sudo ln -sf /etc/nginx/sites-available/jobhub /etc/nginx/sites-enabled/
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx
+          
+          # Obtain SSL certificate non-interactively if not already installed
+          if [ ! -d "/etc/letsencrypt/live/jobhub-app.duckdns.org" ]; then
+            sudo certbot --nginx -d jobhub-app.duckdns.org --non-interactive --agree-tos -m erice@rellamuda.com --redirect || true
+          else
+            sudo certbot renew --quiet || true
+          fi
+          sudo systemctl reload nginx || true
+
           # Prevent Out of Memory (OOM) crashes during Docker build on small instances
           if ! sudo grep -q "swapfile" /etc/fstab; then
             echo "Creating swap file..."
@@ -96,7 +146,9 @@ jobs:
             sudo ufw allow 443/tcp || true
             sudo ufw allow 8000/tcp || true
             echo "UFW Firewall Status:" && (sudo ufw status || true)
-            echo "=== VERIFY WEB HTML BRANDING ==="
+            echo "=== VERIFY DOMAIN & HTTPS ==="
+            echo "Domain HTTP Test (port 80):" && (curl -s http://localhost/ | grep -o -i "Welcome to JobHub" || echo "NOT FOUND on port 80")
+            echo "Domain HTTPS Test (port 443):" && (curl -s -k https://localhost/ | grep -o -i "Welcome to JobHub" || echo "NOT FOUND on port 443")
             echo "Local Curl Test (port 3000):" && (curl -s http://localhost:3000/ | grep -o -i "Welcome to JobHub" || echo "NOT FOUND in HTML")
             echo "Local Curl Test (port 3000 full title):" && (curl -s http://localhost:3000/ | grep -i "<title>" || echo "TITLE NOT FOUND")
             echo "=== COMPOSE UP OUTPUT ==="

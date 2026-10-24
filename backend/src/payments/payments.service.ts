@@ -75,15 +75,15 @@ export class PaymentsService {
           tx_ref: reference,
           amount: amount,
           currency: 'USD',
-          redirect_url: callbackUrl || 'http://56.228.30.202:3000/pricing?status=success',
+          redirect_url: callbackUrl || process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/pricing?status=success` : 'https://jobhub-app.duckdns.org/pricing?status=success',
           customer: {
             email: email || 'user@jobhub.ai',
           },
           meta: { userId, plan },
           customizations: {
-            title: 'JobHub AI Subscription',
+            title: 'JobHub Subscription',
             description: `Upgrade to ${plan}`,
-            logo: 'http://56.228.30.202:3000/icon.svg',
+            logo: 'https://jobhub-app.duckdns.org/icon.svg',
           },
         },
         {
@@ -122,7 +122,7 @@ export class PaymentsService {
         currency: 'NGN',
         reference,
         metadata: { userId, plan, amountUsd: amount },
-        callback_url: callbackUrl || 'http://56.228.30.202:3000/pricing?status=success',
+        callback_url: callbackUrl || process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/pricing?status=success` : 'https://jobhub-app.duckdns.org/pricing?status=success',
       },
       {
         headers: {

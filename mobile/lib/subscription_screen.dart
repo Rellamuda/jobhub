@@ -104,7 +104,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'plan': tier,
           'email': _userEmail ?? 'user@jobhub.ai',
           'provider': 'AUTO',
-          'callbackUrl': 'http://56.228.30.202:3000/pricing?status=success',
+          'callbackUrl': '${ApiConfig.webUrl}/pricing?status=success',
         }),
       );
 

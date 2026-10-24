@@ -210,4 +210,68 @@ export class PaymentsService {
       throw new InternalServerErrorException('Verification failed');
     }
   }
+
+  async upgradeMobileUser(userId: string, tier: 'FREE' | 'SILVER' | 'PREMIUM', platform?: string) {
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: { subscriptionTier: tier },
+        select: { id: true, email: true, role: true, subscriptionTier: true },
+      });
+
+      await this.prisma.payment.create({
+        data: {
+          userId,
+          reference: `RC_${platform || 'MOBILE'}_${Date.now()}`,
+          amount: tier === 'PREMIUM' ? 24.99 : 9.99,
+          plan: tier,
+          status: 'SUCCESS',
+        },
+      });
+
+      return { success: true, user: updatedUser, message: `Mobile subscription tier updated to ${tier}` };
+    } catch (e: any) {
+      console.error('Error updating mobile subscription:', e);
+      throw new InternalServerErrorException('Failed to process mobile upgrade');
+    }
+  }
+
+  async handleRevenueCatWebhook(payload: any) {
+    try {
+      const event = payload?.event;
+      if (!event) return { status: 'ignored', reason: 'No event object' };
+
+      const appUserId = event.app_user_id;
+      const type = event.type; // e.g. INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION
+      const productId = (event.product_id || '').toLowerCase();
+
+      if (!appUserId) return { status: 'ignored', reason: 'No app_user_id' };
+
+      const user = await this.prisma.user.findUnique({ where: { id: appUserId } });
+      if (!user) return { status: 'ignored', reason: 'User not found in DB' };
+
+      let newTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'FREE';
+      if (type === 'INITIAL_PURCHASE' || type === 'RENEWAL' || type === 'UNCANCELLATION') {
+        if (productId.includes('premium')) {
+          newTier = 'PREMIUM';
+        } else if (productId.includes('silver')) {
+          newTier = 'SILVER';
+        } else {
+          newTier = 'SILVER';
+        }
+      } else if (type === 'CANCELLATION' || type === 'EXPIRATION') {
+        newTier = 'FREE';
+      }
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { subscriptionTier: newTier },
+      });
+
+      return { status: 'processed', userId: user.id, newTier, eventType: type };
+    } catch (e: any) {
+      console.error('RevenueCat webhook processing error:', e);
+      return { status: 'error', message: e.message };
+    }
+  }
 }

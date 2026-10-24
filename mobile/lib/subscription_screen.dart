@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'config/api_config.dart';
-import 'payment_webview_screen.dart';
+import 'services/revenuecat_service.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   final String? initialRole;
@@ -19,7 +20,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   int _selectedTab = 0; // 0: Job Seekers, 1: Employers
   String? _userRole;
   String? _userEmail;
+  String? _userId;
   String? _currentTier;
+  Offerings? _offerings;
 
   @override
   void initState() {
@@ -46,8 +49,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         }
       }
       await _fetchUserRole();
+      await _loadRevenueCatOfferings();
     } catch (e) {
-      debugPrint('Error initializing role: $e');
+      debugPrint('Error initializing subscription screen: $e');
+    }
+  }
+
+  Future<void> _loadRevenueCatOfferings() async {
+    try {
+      await RevenueCatService.init(userId: _userId);
+      final offerings = await RevenueCatService.getOfferings();
+      if (mounted) {
+        setState(() {
+          _offerings = offerings;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading RevenueCat offerings: $e');
     }
   }
 
@@ -63,6 +81,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         final user = jsonDecode(res.body);
         if (mounted) {
           setState(() {
+            _userId = user['id'];
             _userRole = user['role'] ?? _userRole;
             _userEmail = user['email'];
             _currentTier = (user['subscriptionTier'] ?? 'FREE').toString().toUpperCase();
@@ -79,7 +98,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
   }
 
-  Future<void> _processPaymentAndUpgrade(String tier, String role, int amount) async {
+  Future<void> _processNativePurchase(String tier, String role, int amount) async {
     setState(() => _isLoading = true);
     try {
       final token = await ApiConfig.getToken();
@@ -92,51 +111,62 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         return;
       }
 
-      // Initialize payment via smart automatic gateway selection
-      final res = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/payments/initialize'),
+      // Check for native RevenueCat offerings first
+      Package? targetPackage;
+      if (_offerings != null && _offerings!.current != null) {
+        final packages = _offerings!.current!.availablePackages;
+        final tierKey = tier.toLowerCase();
+        for (final p in packages) {
+          if (p.identifier.toLowerCase().contains(tierKey)) {
+            targetPackage = p;
+            break;
+          }
+        }
+        targetPackage ??= packages.isNotEmpty ? packages.first : null;
+      }
+
+      if (targetPackage != null) {
+        final success = await RevenueCatService.purchasePackage(targetPackage);
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF10B981),
+              content: Text('🎉 Successfully upgraded to $tier!'),
+            ),
+          );
+          _fetchUserRole();
+          return;
+        }
+      }
+
+      // Sync subscription intent with backend
+      final syncRes = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/payments/mobile-upgrade'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'amount': amount,
-          'plan': tier,
-          'email': _userEmail ?? 'user@jobhub.ai',
-          'provider': 'AUTO',
-          'callbackUrl': '${ApiConfig.webUrl}/pricing?status=success',
+          'tier': tier,
+          'platform': Theme.of(context).platform == TargetPlatform.iOS ? 'IOS' : 'ANDROID',
         }),
       );
 
-      final data = jsonDecode(res.body);
-      if ((res.statusCode == 200 || res.statusCode == 201) && data['authorization_url'] != null) {
-        final authUrl = data['authorization_url'] as String;
-        final reference = data['reference'] as String? ?? '';
-        final provider = data['provider'] as String? ?? 'PAYMENT';
-
-        if (!mounted) return;
-        final bool? upgraded = await Navigator.push<bool>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentWebViewScreen(
-              checkoutUrl: authUrl,
-              reference: reference,
-              provider: provider,
-              tier: tier,
-            ),
-          ),
-        );
-
-        if (upgraded == true && mounted) {
-          _fetchUserRole();
-        }
-      } else {
-        final errorMsg = data['message'] ?? 'Payment initialization failed. Please try again.';
+      if (syncRes.statusCode == 200 || syncRes.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              backgroundColor: Colors.redAccent,
-              content: Text(errorMsg.toString()),
+              backgroundColor: const Color(0xFF10B981),
+              content: Text('Upgraded to $tier tier successfully!'),
+            ),
+          );
+          _fetchUserRole();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Upgrade to $tier initiated. Processing in-app confirmation.'),
             ),
           );
         }
@@ -146,8 +176,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.redAccent,
-            content: Text('Error initiating payment: $e'),
+            content: Text('Upgrade error: $e'),
           ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    setState(() => _isLoading = true);
+    try {
+      final restored = await RevenueCatService.restorePurchases();
+      if (mounted) {
+        if (restored) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF10B981),
+              content: Text('Purchases restored successfully!'),
+            ),
+          );
+          _fetchUserRole();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No active subscriptions found to restore.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error restoring purchases: $e')),
         );
       }
     } finally {
@@ -158,187 +220,222 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF120B1C),
+      backgroundColor: const Color(0xFF0F0C20),
       appBar: AppBar(
-        title: Text(
-          _userRole == 'EMPLOYER' ? 'Employer Hiring Plans' : _userRole == 'JOB_SEEKER' ? 'Job Seeker Plans' : 'Plans & Pricing',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
+        title: const Text('Upgrade Plan', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF16122E),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _restorePurchases,
+            child: const Text('Restore', style: TextStyle(color: Color(0xFF00F0FF))),
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF00F0FF)))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  const Text(
-                    'Unlock Full AI Potential',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _userRole == 'EMPLOYER'
-                        ? 'Accelerate hiring with AI vacancy assistance, verified badge, and priority ranking.'
-                        : 'Supercharge your job hunt with unlimited AI resumes, cover letters, and auto-pilot applications.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Tab Selector: ONLY visible if role is unknown/guest (role strictly separated)
-                  if (_userRole == null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => setState(() => _selectedTab = 0),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: _selectedTab == 0 ? const Color(0xFF00F0FF) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Job Seekers',
-                                    style: TextStyle(
-                                      color: _selectedTab == 0 ? Colors.black : Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => setState(() => _selectedTab = 1),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: _selectedTab == 1 ? const Color(0xFF00F0FF) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Employers',
-                                    style: TextStyle(
-                                      color: _selectedTab == 1 ? Colors.black : Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // JOB SEEKER PLANS: Visible ONLY for Job Seekers
-                  if (_userRole == 'JOB_SEEKER' || (_userRole == null && _selectedTab == 0)) ...[
-                    _buildPlanCard(
-                      title: 'Free Tier',
-                      price: '\$0',
-                      subtitle: 'Starter package for exploring jobs',
-                      features: [
-                        '1 Resume & Cover Letter built',
-                        '1 Autonomous Application credit',
-                        '1-Click Apply enabled',
-                        'Only 3 Job matches after onboarding',
-                      ],
-                      isCurrent: _currentTier == null || _currentTier == 'FREE',
-                      accentColor: Colors.grey,
-                    ),
-                    const SizedBox(height: 20),
-
-                    _buildPlanCard(
-                      title: 'Silver Plan',
-                      price: '\$10',
-                      subtitle: 'Supercharge your job hunt on auto-pilot',
-                      features: [
-                        'Unlimited AI Resume Tailoring',
-                        'Unlimited AI Cover Letter building',
-                        'Autonomous Applications on auto-pilot',
-                        'Unlimited Job matches & instant alerts',
-                        'Priority application ranking with employers',
-                        'Career Health & Digital Credential Verification',
-                      ],
-                      isPopular: true,
-                      isCurrent: _currentTier == 'SILVER' || _currentTier == 'PREMIUM',
-                      accentColor: const Color(0xFF00F0FF),
-                      onUpgrade: () => _processPaymentAndUpgrade('SILVER', 'JOB_SEEKER', 10),
-                    ),
-                  ],
-
-                  // EMPLOYER PLANS: Visible ONLY for Employers
-                  if (_userRole == 'EMPLOYER' || (_userRole == null && _selectedTab == 1)) ...[
-                    _buildPlanCard(
-                      title: 'Free Tier',
-                      price: '\$0',
-                      subtitle: 'Post limited jobs and test hiring tools',
-                      features: [
-                        'Post up to 3 jobs',
-                        'Only 3 candidate matches per month',
-                        'Standard candidate messaging',
-                      ],
-                      isCurrent: _currentTier == null || _currentTier == 'FREE',
-                      accentColor: Colors.grey,
-                    ),
-                    const SizedBox(height: 20),
-
-                    _buildPlanCard(
-                      title: 'Premium',
-                      price: '\$50',
-                      subtitle: 'Scale active hiring with high-impact AI',
-                      features: [
-                        'Post up to 70 jobs per month',
-                        'Up to 50 instant qualified candidate matches',
-                        'AI Job vacancy build assist before posting',
-                        'Priority Applicant Ranking',
-                        'Verified Profile Badge option',
-                        '40 AI Match Scoring advance career coaching',
-                      ],
-                      isPopular: true,
-                      isCurrent: _currentTier == 'PREMIUM',
-                      accentColor: const Color(0xFF00F0FF),
-                      onUpgrade: () => _processPaymentAndUpgrade('PREMIUM', 'EMPLOYER', 50),
-                    ),
-                    const SizedBox(height: 20),
-
-                    _buildPlanCard(
-                      title: 'Silver / Enterprise',
-                      price: '\$100',
-                      subtitle: 'Full agency recruitment powerhouse',
-                      features: [
-                        'Unlimited AI Resume & Cover Letter building',
-                        'Unlimited AI Match Scoring',
-                        'Best Priority Ranking across platform',
-                        'Verified Profile Badge options',
-                        'Advanced Career Coaching Insight',
-                        'Unlimited Job Postings & Candidate Pipeline',
-                      ],
-                      isCurrent: _currentTier == 'SILVER',
-                      accentColor: const Color(0xFFC084FC),
-                      onUpgrade: () => _processPaymentAndUpgrade('SILVER', 'EMPLOYER', 100),
-                    ),
-                  ],
-                ],
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildTabSelector(),
+                const SizedBox(height: 20),
+                if (_selectedTab == 0) ..._buildJobSeekerPlans(),
+                if (_selectedTab == 1) ..._buildEmployerPlans(),
+                const SizedBox(height: 24),
+                _buildStoreComplianceNotice(),
+                const SizedBox(height: 30),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF00F0FF)),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1938),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 0 ? const Color(0xFF6366F1) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Job Seekers',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _selectedTab == 0 ? Colors.white : Colors.white60,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 1 ? const Color(0xFF00F0FF) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Employers',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _selectedTab == 1 ? Colors.black : Colors.white60,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildJobSeekerPlans() {
+    return [
+      _buildPlanCard(
+        title: 'Free Plan',
+        price: '\$0',
+        subtitle: 'Basic access to find jobs',
+        accentColor: Colors.white60,
+        isCurrent: _currentTier == 'FREE',
+        features: const [
+          '5 AI Resume Generates total',
+          'Standard manual job applications',
+          'Basic AI skill matching',
+          'Standard support',
+        ],
+        onUpgrade: null,
+      ),
+      const SizedBox(height: 16),
+      _buildPlanCard(
+        title: 'Silver Plan',
+        price: '\$9.99',
+        subtitle: 'For active applicants seeking faster placement',
+        accentColor: const Color(0xFF94A3B8),
+        isCurrent: _currentTier == 'SILVER',
+        badge: 'POPULAR',
+        features: const [
+          '30 AI Resume & Cover Letter generates',
+          'Partial Autonomous application consent queue',
+          'Priority candidate ranking to employers',
+          'Tailored ATS keyword suggestions',
+        ],
+        onUpgrade: () => _processNativePurchase('SILVER', 'JOB_SEEKER', 10),
+      ),
+      const SizedBox(height: 16),
+      _buildPlanCard(
+        title: 'Premium Plan',
+        price: '\$24.99',
+        subtitle: 'Ultimate career growth & full automation',
+        accentColor: const Color(0xFFF59E0B),
+        isCurrent: _currentTier == 'PREMIUM',
+        badge: 'BEST VALUE',
+        features: const [
+          'Unlimited AI Resumes & Cover Letters',
+          'Full Autonomous auto-application capability',
+          'Instant employer direct notifications',
+          'Priority 24/7 AI Career Mentor access',
+        ],
+        onUpgrade: () => _processNativePurchase('PREMIUM', 'JOB_SEEKER', 25),
+      ),
+    ];
+  }
+
+  List<Widget> _buildEmployerPlans() {
+    return [
+      _buildPlanCard(
+        title: 'Free Plan',
+        price: '\$0',
+        subtitle: 'For occasional hiring',
+        accentColor: Colors.white60,
+        isCurrent: _currentTier == 'FREE',
+        features: const [
+          'Post up to 2 active jobs',
+          'Basic candidate dashboard',
+          'Standard application view',
+        ],
+        onUpgrade: null,
+      ),
+      const SizedBox(height: 16),
+      _buildPlanCard(
+        title: 'Silver Plan',
+        price: '\$49.99',
+        subtitle: 'For growing businesses',
+        accentColor: const Color(0xFF94A3B8),
+        isCurrent: _currentTier == 'SILVER',
+        badge: 'POPULAR',
+        features: const [
+          'Post up to 10 active jobs',
+          'AI candidate match ranking & score',
+          'Full resume synthesis & review modal',
+          'Automated interview scheduling',
+        ],
+        onUpgrade: () => _processNativePurchase('SILVER', 'EMPLOYER', 50),
+      ),
+      const SizedBox(height: 16),
+      _buildPlanCard(
+        title: 'Enterprise Plan',
+        price: '\$149.99',
+        subtitle: 'For high-volume recruiters & agencies',
+        accentColor: const Color(0xFF00F0FF),
+        isCurrent: _currentTier == 'PREMIUM',
+        badge: 'ALL INCLUSIVE',
+        features: const [
+          'Unlimited active job postings',
+          'AI Company & Agency Profile generator',
+          'Full CRM recruiter pipeline & analytics',
+          'Autonomous talent matching recommendations',
+        ],
+        onUpgrade: () => _processNativePurchase('PREMIUM', 'EMPLOYER', 150),
+      ),
+    ];
+  }
+
+  Widget _buildStoreComplianceNotice() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: BorderSide(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.security, color: Color(0xFF10B981), size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Subscriptions are billed securely through your app store account. Cancel anytime from your device subscription settings.',
+              style: TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -346,37 +443,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required String title,
     required String price,
     required String subtitle,
+    required Color accentColor,
+    required bool isCurrent,
+    String? badge,
     required List<String> features,
-    bool isCurrent = false,
-    bool isPopular = false,
-    Color accentColor = const Color(0xFF00F0FF),
     VoidCallback? onUpgrade,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isPopular ? accentColor : Colors.white.withOpacity(0.1), width: isPopular ? 2 : 1),
-        boxShadow: isPopular ? [BoxShadow(color: accentColor.withOpacity(0.15), blurRadius: 20, spreadRadius: -2)] : null,
+        color: const Color(0xFF1A1435),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCurrent ? accentColor : accentColor.withOpacity(0.3),
+          width: isCurrent ? 2 : 1,
+        ),
       ),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isPopular) ...[
+          if (badge != null)
             Container(
+              margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: accentColor,
+                color: accentColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: accentColor.withOpacity(0.5)),
               ),
-              child: const Text(
-                'POPULAR',
-                style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w900),
+              child: Text(
+                badge,
+                style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 11),
               ),
             ),
-            const SizedBox(height: 12),
-          ],
           Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: accentColor)),
           const SizedBox(height: 6),
           Row(

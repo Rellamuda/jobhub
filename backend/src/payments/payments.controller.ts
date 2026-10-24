@@ -20,4 +20,15 @@ export class PaymentsController {
   ) {
     return this.paymentsService.verifyPayment(reference, provider, txId);
   }
+
+  @Post('mobile-upgrade')
+  @UseGuards(JwtAuthGuard)
+  async mobileUpgrade(@Request() req, @Body() body: { tier: 'FREE' | 'SILVER' | 'PREMIUM'; platform?: string }) {
+    return this.paymentsService.upgradeMobileUser(req.user.userId, body.tier, body.platform);
+  }
+
+  @Post('revenuecat-webhook')
+  async revenueCatWebhook(@Body() body: any) {
+    return this.paymentsService.handleRevenueCatWebhook(body);
+  }
 }

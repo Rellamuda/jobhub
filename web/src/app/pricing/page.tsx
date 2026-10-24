@@ -129,7 +129,7 @@ export default function PricingPage() {
       {(userRole === 'JOB_SEEKER' || (!userRole && activeTab === 'SEEKER')) && (
         <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
           {/* Free Tier */}
-          <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '380px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #71717a' }}>
+          <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #71717a' }}>
             <h2 style={{ fontSize: '1.8rem', margin: 0 }}>Free Tier</h2>
             <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$0 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Essential starter tools to begin your career journey.</p>
@@ -150,10 +150,33 @@ export default function PricingPage() {
           </div>
 
           {/* Silver Plan */}
-          <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '380px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #00F0FF', transform: 'scale(1.03)', boxShadow: '0 0 30px rgba(0, 240, 255, 0.2)' }}>
-            <div style={{ background: '#00F0FF', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>POPULAR FOR TALENT</div>
-            <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#00F0FF' }}>Silver Plan</h2>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$10 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+          <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #94A3B8' }}>
+            <div style={{ background: '#94A3B8', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>POPULAR FOR TALENT</div>
+            <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#e2e8f0' }}>Silver Plan</h2>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$13 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Unlimited AI power to match, tailor and autonomously apply.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'white', fontSize: '0.95rem' }}>
+              <li>✨ <strong>15 AI Resume</strong> tailoring & builder</li>
+              <li>✨ <strong>15 AI Cover Letter</strong> generation</li>
+              <li>✨ <strong>5 Autonomous Job Applications</strong> auto-pilot</li>
+              <li>✨ <strong>20 Job Matches</strong> & Instant Alerts</li>
+              <li>✨ Priority Application Delivery to Employers</li>
+              <li>✨ Career Health & Digital Credential Verification</li>
+            </ul>
+            <button 
+              onClick={() => handleProcessPayment('SILVER', 13)} 
+              disabled={loading || processingTier !== null} 
+              style={{ width: '100%', padding: '0.85rem', marginTop: '2rem', background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)', border: 'none', color: 'white', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' }}
+            >
+              {processingTier === 'SILVER' ? 'Redirecting to Checkout...' : 'Upgrade to Silver ($13/mo)'}
+            </button>
+          </div>
+
+          {/* Diamond Plan */}
+          <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #00F0FF', transform: 'scale(1.03)', boxShadow: '0 0 35px rgba(0, 240, 255, 0.25)' }}>
+            <div style={{ background: '#00F0FF', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>VIP BEST VALUE</div>
+            <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#00F0FF' }}>Diamond Plan</h2>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$20 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Unlimited AI power to match, tailor and autonomously apply.</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'white', fontSize: '0.95rem' }}>
               <li>✨ <strong>Unlimited AI Resume</strong> tailoring & builder</li>
@@ -164,12 +187,12 @@ export default function PricingPage() {
               <li>✨ Career Health & Digital Credential Verification</li>
             </ul>
             <button 
-              onClick={() => handleProcessPayment('SILVER', 10)} 
+              onClick={() => handleProcessPayment('DIAMOND', 20)} 
               disabled={loading || processingTier !== null} 
               className="btn-primary" 
               style={{ width: '100%', padding: '0.85rem', marginTop: '2rem', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' }}
             >
-              {processingTier === 'SILVER' ? 'Redirecting to Checkout...' : 'Upgrade to Silver ($10/mo)'}
+              {processingTier === 'DIAMOND' ? 'Redirecting to Checkout...' : 'Upgrade to Diamond ($20/mo)'}
             </button>
           </div>
         </div>

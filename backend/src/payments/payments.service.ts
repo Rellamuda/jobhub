@@ -190,7 +190,7 @@ export class PaymentsService {
         // Determine upgraded subscription tier
         let newTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'SILVER';
         const planUpper = (payment.plan || '').toUpperCase();
-        if (planUpper.includes('PREMIUM')) {
+        if (planUpper.includes('PREMIUM') || planUpper.includes('DIAMOND')) {
           newTier = 'PREMIUM';
         } else if (planUpper.includes('SILVER')) {
           newTier = 'SILVER';
@@ -223,7 +223,7 @@ export class PaymentsService {
         data: {
           userId,
           reference: `RC_${platform || 'MOBILE'}_${Date.now()}`,
-          amount: tier === 'PREMIUM' ? 24.99 : 9.99,
+          amount: tier === 'PREMIUM' ? 20.00 : 13.00,
           plan: tier,
           status: 'SUCCESS',
         },
@@ -252,7 +252,7 @@ export class PaymentsService {
 
       let newTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'FREE';
       if (type === 'INITIAL_PURCHASE' || type === 'RENEWAL' || type === 'UNCANCELLATION') {
-        if (productId.includes('premium')) {
+        if (productId.includes('diamond') || productId.includes('premium')) {
           newTier = 'PREMIUM';
         } else if (productId.includes('silver')) {
           newTier = 'SILVER';

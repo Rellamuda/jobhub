@@ -117,7 +117,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         final packages = _offerings!.current!.availablePackages;
         final tierKey = tier.toLowerCase();
         for (final p in packages) {
-          if (p.identifier.toLowerCase().contains(tierKey)) {
+          final id = p.identifier.toLowerCase();
+          if (id.contains(tierKey) ||
+              (tierKey == 'premium' && id.contains('diamond')) ||
+              (tierKey == 'diamond' && id.contains('premium'))) {
             targetPackage = p;
             break;
           }
@@ -125,13 +128,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         targetPackage ??= packages.isNotEmpty ? packages.first : null;
       }
 
+      final displayTierName = (tier == 'PREMIUM' || tier == 'DIAMOND') ? 'Diamond' : tier;
+
       if (targetPackage != null) {
         final success = await RevenueCatService.purchasePackage(targetPackage);
         if (success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: const Color(0xFF10B981),
-              content: Text('🎉 Successfully upgraded to $tier!'),
+              content: Text('🎉 Successfully upgraded to $displayTierName!'),
             ),
           );
           _fetchUserRole();
@@ -157,7 +162,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: const Color(0xFF10B981),
-              content: Text('Upgraded to $tier tier successfully!'),
+              content: Text('Upgraded to $displayTierName tier successfully!'),
             ),
           );
           _fetchUserRole();
@@ -166,7 +171,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Upgrade to $tier initiated. Processing in-app confirmation.'),
+              content: Text('Upgrade to $displayTierName initiated. Processing in-app confirmation.'),
             ),
           );
         }

@@ -211,11 +211,12 @@ export class PaymentsService {
     }
   }
 
-  async upgradeMobileUser(userId: string, tier: 'FREE' | 'SILVER' | 'PREMIUM', platform?: string) {
+  async upgradeMobileUser(userId: string, tier: 'FREE' | 'SILVER' | 'PREMIUM' | 'DIAMOND', platform?: string) {
     try {
+      const resolvedTier: 'FREE' | 'SILVER' | 'PREMIUM' = tier === 'DIAMOND' ? 'PREMIUM' : tier;
       const updatedUser = await this.prisma.user.update({
         where: { id: userId },
-        data: { subscriptionTier: tier },
+        data: { subscriptionTier: resolvedTier },
         select: { id: true, email: true, role: true, subscriptionTier: true },
       });
 
@@ -223,13 +224,13 @@ export class PaymentsService {
         data: {
           userId,
           reference: `RC_${platform || 'MOBILE'}_${Date.now()}`,
-          amount: tier === 'PREMIUM' ? 20.00 : 13.00,
-          plan: tier,
+          amount: resolvedTier === 'PREMIUM' ? 20.00 : 13.00,
+          plan: resolvedTier,
           status: 'SUCCESS',
         },
       });
 
-      return { success: true, user: updatedUser, message: `Mobile subscription tier updated to ${tier}` };
+      return { success: true, user: updatedUser, message: `Mobile subscription tier updated to ${resolvedTier}` };
     } catch (e: any) {
       console.error('Error updating mobile subscription:', e);
       throw new InternalServerErrorException('Failed to process mobile upgrade');

@@ -21,6 +21,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@db:5432/jobhub?schema=public}
       JWT_SECRET: ${JWT_SECRET:-dev_secret}
       AI_SERVICE_URL: http://ai-service:8000/ai
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      MAIL_FROM: ${MAIL_FROM:-JobHub <onboarding@resend.dev>}
     depends_on:
       - db
     volumes:

@@ -69,6 +69,7 @@ interface UserData {
 export default function AdminDashboard() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [aiStats, setAiStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -94,9 +95,10 @@ export default function AdminDashboard() {
     }
 
     try {
-      const [usersRes, statsRes] = await Promise.all([
+      const [usersRes, statsRes, aiRes] = await Promise.all([
         fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
         fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/ai/admin/monitoring', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
       ]);
 
       if (usersRes.status === 401 || statsRes.status === 401) {
@@ -113,6 +115,10 @@ export default function AdminDashboard() {
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
+      }
+      if (aiRes && aiRes.ok) {
+        const aiData = await aiRes.json();
+        setAiStats(aiData);
       }
     } catch (e: any) {
       console.error(e);
@@ -425,6 +431,52 @@ export default function AdminDashboard() {
               {stats?.suspendedUsers ?? users.filter(u => u.accountStatus === 'SUSPENDED').length}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.4)', marginTop: '0.25rem' }}>Restricted access</div>
+          </div>
+        </div>
+
+        {/* Production AI Monitoring & Gemini Quota Telemetry */}
+        <div style={{ backgroundColor: 'rgba(0, 240, 255, 0.03)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '16px', padding: '1.25rem 1.5rem', marginBottom: '2rem', backdropFilter: 'blur(10px)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.3rem' }}>⚡</span>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#00F0FF', fontWeight: 700 }}>AI Engine & Gemini Token Telemetry</h3>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+              Rate Limiting & Tier Quotas: <span style={{ color: '#10B981', fontWeight: 600 }}>Active (Free: 1 | Silver: 15 | Diamond: Unlimited)</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Total AI Generations</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginTop: '0.25rem' }}>{aiStats?.totalApiCalls ?? 0}</div>
+              <div style={{ fontSize: '0.75rem', color: '#00F0FF', marginTop: '0.2rem' }}>Gemini API Invocations</div>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Est. Tokens Consumed</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#38BDF8', marginTop: '0.25rem' }}>
+                {(aiStats?.totalTokensEstimated ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem' }}>Input + Generated output</div>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Est. Gemini API Cost</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10B981', marginTop: '0.25rem' }}>
+                ${(aiStats?.totalEstimatedCostUsd ?? 0).toFixed(4)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem' }}>Standard 1.5 Flash rates</div>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Calls by Tier</div>
+              <div style={{ fontSize: '0.85rem', color: 'white', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span>Free: <strong style={{ color: '#94A3B8' }}>{aiStats?.callsByTier?.FREE ?? 0}</strong></span>
+                <span>Silver: <strong style={{ color: '#00F0FF' }}>{aiStats?.callsByTier?.SILVER ?? 0}</strong></span>
+                <span>Diamond: <strong style={{ color: '#C084FC' }}>{aiStats?.callsByTier?.PREMIUM ?? 0}</strong></span>
+              </div>
+            </div>
           </div>
         </div>
 

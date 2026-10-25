@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException, ConflictException } 
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, ApplicationStatus } from '@prisma/client';
 import { AiService } from '../ai/ai.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     private prisma: PrismaService,
     private aiService: AiService,
+    private mailService: MailService,
   ) {}
 
   private async ensureResumeForProfile(jobSeekerProfile: any, resumeId?: string): Promise<string | null> {
@@ -327,27 +329,43 @@ export class ApplicationsService {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job || job.employerId !== employer.id) throw new ForbiddenException('You do not own this job.');
 
-    const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId: jobSeekerUserId } });
+    const profile = await this.prisma.jobSeekerProfile.findUnique({ 
+      where: { userId: jobSeekerUserId },
+      include: { user: true }
+    });
     if (!profile) throw new NotFoundException('Job seeker not found.');
 
     const existingApp = await this.prisma.application.findFirst({
       where: { jobId, jobSeekerId: profile.id }
     });
 
+    let appResult;
     if (existingApp) {
-      return this.prisma.application.update({
+      appResult = await this.prisma.application.update({
         where: { id: existingApp.id },
         data: { status: 'INVITED' }
       });
+    } else {
+      appResult = await this.prisma.application.create({
+        data: {
+          jobId,
+          jobSeekerId: profile.id,
+          status: 'INVITED'
+        }
+      });
     }
 
-    return this.prisma.application.create({
-      data: {
-        jobId,
-        jobSeekerId: profile.id,
-        status: 'INVITED'
-      }
-    });
+    if (profile.user?.email) {
+      this.mailService.sendInterviewInvitation({
+        to: profile.user.email,
+        candidateName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
+        companyName: employer.companyName,
+        jobTitle: job.title,
+        interviewDate: new Date(),
+      }).catch(err => console.error('Error sending invitation email:', err));
+    }
+
+    return appResult;
   }
 
   async seekerUpdateStatus(jobSeekerUserId: string, applicationId: string, status: ApplicationStatus) {
@@ -373,7 +391,10 @@ export class ApplicationsService {
   async scheduleInterview(employerUserId: string, applicationId: string, interviewDate: string, interviewLink?: string) {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
-      include: { job: true },
+      include: {
+        job: { include: { employer: true } },
+        jobSeekerProfile: { include: { user: true } },
+      },
     });
 
     if (!application) {
@@ -388,7 +409,7 @@ export class ApplicationsService {
       throw new ForbiddenException('You do not have permission to update this application.');
     }
 
-    return this.prisma.application.update({
+    const updated = await this.prisma.application.update({
       where: { id: applicationId },
       data: { 
         status: 'INVITED',
@@ -396,5 +417,22 @@ export class ApplicationsService {
         interviewLink
       },
     });
+
+    // Send interview email notification to the candidate
+    const candidateEmail = application.jobSeekerProfile?.user?.email;
+    if (candidateEmail) {
+      const candidateName = `${application.jobSeekerProfile.firstName || ''} ${application.jobSeekerProfile.lastName || ''}`.trim();
+      const companyName = application.job.employer?.companyName || 'Employer';
+      this.mailService.sendInterviewInvitation({
+        to: candidateEmail,
+        candidateName,
+        companyName,
+        jobTitle: application.job.title,
+        interviewDate,
+        interviewLink,
+      }).catch(err => console.error('Error sending interview email:', err));
+    }
+
+    return updated;
   }
 }

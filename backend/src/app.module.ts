@@ -17,6 +17,7 @@ import { MessagesModule } from './messages/messages.module';
 import { ResumesModule } from './resumes/resumes.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { AdminModule } from './admin/admin.module';
     }),
     PrismaModule, 
     UsersModule, 
-    AuthModule, ProfilesModule, JobsModule, ApplicationsModule, AiModule, UploadsModule, MessagesModule, ResumesModule, PaymentsModule, AdminModule
+    AuthModule, ProfilesModule, JobsModule, ApplicationsModule, AiModule, UploadsModule, MessagesModule, ResumesModule, PaymentsModule, AdminModule, MailModule
   ],
   controllers: [AppController],
   providers: [AppService],

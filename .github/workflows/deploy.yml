@@ -50,6 +50,8 @@ jobs:
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > ai_service/.env
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env
+          echo "MAIL_FROM=JobHub <onboarding@resend.dev>" >> .env
           
           # Sync DuckDNS IP on every deploy
           curl -s "https://www.duckdns.org/update?domains=jobhub-app&token=31eb04ca-3350-43da-bd55-a55b80ef8a94&ip=" || true

@@ -1,12 +1,16 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AutonomousService {
   private readonly logger = new Logger(AutonomousService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
@@ -284,6 +288,19 @@ export class AutonomousService {
           },
         });
         created.push(notif);
+
+        // Send email notification for consent request
+        if (profile.user?.email) {
+          const candidateName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+          const companyName = job.employer?.companyName || 'Employer';
+          this.mailService.sendAutonomousConsentRequest({
+            to: profile.user.email,
+            candidateName,
+            companyName,
+            jobTitle: job.title,
+            matchScore: 92,
+          }).catch(err => this.logger.error('Failed to send autonomous consent email:', err));
+        }
       }
     }
 

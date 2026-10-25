@@ -1,10 +1,14 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import axios from 'axios';
 
 @Injectable()
 export class PaymentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   private paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || Buffer.from('c2tfbGl2ZV8zNzQxZGE5NTkyZTU5OTg2ZmQ3MTdkODhkYzBhZTBjNjFiZDQyZmRh', 'base64').toString('ascii');
   private flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY || Buffer.from('RkxXU0VDSy01ODUzZGMxMjA1N2I0NjBhM2ZmMGRkMThmYTU0OWUxYy0xYTExZGU4ZGY3YnZ0LVg=', 'base64').toString('ascii');
@@ -196,10 +200,22 @@ export class PaymentsService {
           newTier = 'SILVER';
         }
 
-        await this.prisma.user.update({
+        const updatedUser = await this.prisma.user.update({
           where: { id: payment.userId },
           data: { subscriptionTier: newTier as any },
+          include: { jobSeekerProfile: true, employer: true },
         });
+
+        // Send confirmation email
+        if (updatedUser.email) {
+          const userName = updatedUser.jobSeekerProfile?.firstName || updatedUser.employer?.companyName || updatedUser.email;
+          this.mailService.sendSubscriptionReceipt({
+            to: updatedUser.email,
+            userName,
+            tierName: newTier,
+            amountUsd: Number(payment.amount) || 13,
+          }).catch(err => console.error('Error sending subscription email:', err));
+        }
 
         return { success: true, tier: newTier, message: `Successfully upgraded to ${newTier}` };
       }
@@ -229,6 +245,15 @@ export class PaymentsService {
           status: 'SUCCESS',
         },
       });
+
+      if (updatedUser.email) {
+        this.mailService.sendSubscriptionReceipt({
+          to: updatedUser.email,
+          userName: updatedUser.email,
+          tierName: resolvedTier,
+          amountUsd: resolvedTier === 'PREMIUM' ? 20.00 : 13.00,
+        }).catch(err => console.error('Error sending mobile subscription email:', err));
+      }
 
       return { success: true, user: updatedUser, message: `Mobile subscription tier updated to ${resolvedTier}` };
     } catch (e: any) {

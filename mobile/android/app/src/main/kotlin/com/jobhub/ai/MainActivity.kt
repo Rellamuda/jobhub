@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.jobhub.ai
 
 import io.flutter.embedding.android.FlutterActivity
 

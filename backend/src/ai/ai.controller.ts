@@ -1,35 +1,38 @@
-import { Controller, Post, Body, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiRateLimiterService } from './ai-rate-limiter.service';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
   constructor(
     private readonly aiService: AiService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly aiRateLimiter: AiRateLimiterService,
   ) {}
 
-  private async checkGenerationLimit(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new ForbiddenException('User not found');
-    
-    // Generation limit applies strictly to free job seekers generating cover letters/resumes
-    if (user.role === 'JOB_SEEKER' && user.subscriptionTier === 'FREE') {
-      if (user.freeGenerationsUsed >= 5) {
-        throw new ForbiddenException('Free generation limit reached. Please upgrade to Premium.');
-      }
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { freeGenerationsUsed: { increment: 1 } }
-      });
+  private async checkGenerationLimit(userId: string, endpoint = 'ai/generate', estimatedChars = 600) {
+    await this.aiRateLimiter.checkQuotaAndIncrement(userId, endpoint, estimatedChars);
+  }
+
+  @Get('quota')
+  async getQuota(@Request() req) {
+    return this.aiRateLimiter.getUserQuota(req.user.userId);
+  }
+
+  @Get('admin/monitoring')
+  async getAdminMonitoring(@Request() req) {
+    if (req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only Administrators can view AI telemetry.');
     }
+    return this.aiRateLimiter.getAdminMonitoring();
   }
 
   @Post('resume/generate')
   async generateResume(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'resume/generate', 1500);
     const result = await this.aiService.generateResume(profileData);
     
     const resumeText = typeof result === 'string' 
@@ -79,7 +82,7 @@ export class AiController {
     @Body('profile') profileData: any,
     @Body('job') jobData: any,
   ) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'cover-letter/generate', 1200);
     const cover_letter = await this.aiService.generateCoverLetter(
       profileData,
       jobData,
@@ -98,13 +101,13 @@ export class AiController {
 
   @Post('profile/score')
   async getProfileScore(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'profile/score', 800);
     return this.aiService.getProfileScore(profileData);
   }
 
   @Post('skills/gap')
   async getSkillGap(@Request() req, @Body('profile') profileData: any, @Body('job') jobData: any) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'skills/gap', 800);
     return this.aiService.getSkillGap(profileData, jobData);
   }
 
@@ -115,34 +118,30 @@ export class AiController {
 
   @Post('career/suggestions')
   async getCareerSuggestions(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'career/suggestions', 800);
     return this.aiService.getCareerSuggestions(profileData);
   }
 
   @Post('interview/questions')
   async getInterviewQuestions(@Request() req, @Body('job') jobData: any, @Body('profile') profileData: any) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'interview/questions', 1000);
     return this.aiService.getInterviewQuestions(jobData, profileData);
   }
 
   @Post('job-description/generate')
   async generateJobDescription(@Request() req, @Body() jobData: any) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'job-description/generate', 1000);
     return this.aiService.generateJobDescription(jobData);
   }
 
   @Post('fraud/detect')
   async detectFraud(@Request() req, @Body('content') content: string) {
-    if (req.user.role !== 'ADMIN') {
-      // In a real scenario, this might be internal or admin only. 
-      // For now, allow it or enforce admin. We will allow employers/admins to check.
-    }
     return this.aiService.detectFraud(content);
   }
 
   @Post('mentor/chat')
   async mentorChat(@Request() req, @Body('message') message: string) {
-    await this.checkGenerationLimit(req.user.userId);
+    await this.checkGenerationLimit(req.user.userId, 'mentor/chat', 600);
     return this.aiService.mentorChat(req.user.userId, message);
   }
 }

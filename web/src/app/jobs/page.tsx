@@ -358,10 +358,15 @@ export default function JobsFeedPage() {
               {/* Application Section with Attached Resume & Cover Letter */}
               {applyingJobId === job.id && (
                 <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(0, 240, 255, 0.2)' }}>
-                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: '#00f0ff' }}>Complete Job Application</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#00f0ff' }}>Apply to {job.title}</h3>
+                    <span style={{ fontSize: '0.8rem', color: '#34d399', background: 'rgba(52, 211, 153, 0.15)', padding: '3px 10px', borderRadius: '12px', border: '1px solid rgba(52, 211, 153, 0.3)' }}>
+                      ✅ Resume Attached by Default
+                    </span>
+                  </div>
                   
-                  {/* Resume Selection */}
-                  <div style={{ marginBottom: '1.2rem' }}>
+                  {/* Resume Section */}
+                  <div style={{ marginBottom: '1.2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <label style={{ display: 'block', fontSize: '0.9rem', color: 'white', marginBottom: '0.4rem', fontWeight: 600 }}>
                       📄 Attached Resume:
                     </label>
@@ -378,40 +383,53 @@ export default function JobsFeedPage() {
                         ))}
                       </select>
                     ) : (
-                      <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', color: '#a1a1aa', fontSize: '0.85rem' }}>
-                        Default: Your complete verified onboarding credentials will be attached as your active resume.{' '}
-                        <Link href="/dashboard/resumes/builder" style={{ color: '#00f0ff', textDecoration: 'underline' }}>Build Custom Resume</Link>
+                      <div style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>
+                        Your verified profile credentials and experience will be submitted as your official candidate resume.
                       </div>
                     )}
+                    <p style={{ margin: '8px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      The employer will review your full resume qualifications before inviting you for an interview.
+                    </p>
                   </div>
 
-                  {/* Cover Letter */}
+                  {/* Cover Letter Section (Optional unless requested) */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'white', marginBottom: '0.4rem', fontWeight: 600 }}>
-                      ✉️ Cover Letter (Optional or AI-Generated):
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <label style={{ fontSize: '0.9rem', color: 'white', fontWeight: 600 }}>
+                        ✉️ Cover Letter <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(Optional - Only submit if specifically requested by employer)</span>:
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={() => handleGenerateCoverLetter(job)}
+                        disabled={generatingCoverLetter || (subscriptionTier === 'FREE' && freeGenerationsUsed >= 1)}
+                        style={{ background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff', padding: '3px 10px', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
+                      >
+                        {generatingCoverLetter ? 'Generating...' : '✨ Generate AI Cover Letter'}
+                      </button>
+                    </div>
                     {subscriptionTier === 'FREE' && freeGenerationsUsed >= 1 && (
                       <div style={{ color: '#ff8c00', marginBottom: '0.5rem', fontSize: '0.85rem' }}>⚠️ Free generation limit reached. You can type manually or upgrade for unlimited AI generations.</div>
                     )}
                     <textarea 
                       value={coverLetter}
                       onChange={(e) => setCoverLetter(e.target.value)}
-                      rows={4}
-                      placeholder="Write your cover letter or click 'Generate AI Cover Letter' below..."
-                      style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '1rem', outline: 'none', resize: 'vertical' }}
+                      rows={3}
+                      placeholder="Optional: leave blank to apply with resume only, or add a cover letter if requested..."
+                      style={{ width: '100%', padding: '0.8rem', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
                     />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button 
+                      type="button"
                       className="btn-primary" 
-                      onClick={() => handleGenerateCoverLetter(job)}
-                      disabled={generatingCoverLetter || (subscriptionTier === 'FREE' && freeGenerationsUsed >= 1)}
-                      style={{ background: 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)', padding: '8px 16px', fontSize: '0.9rem' }}
+                      onClick={() => setApplyingJobId(null)}
+                      style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '10px 18px', fontSize: '0.9rem' }}
                     >
-                      {generatingCoverLetter ? 'Generating...' : '✨ Generate AI Cover Letter'}
+                      Cancel
                     </button>
                     <button 
+                      type="button"
                       className="btn-primary" 
                       onClick={() => handleApply(job.id)}
                       style={{ padding: '10px 24px', fontWeight: 'bold' }}

@@ -92,6 +92,33 @@ export class AutonomousService {
     }
   }
 
+  private async sendAcknowledgement(profile: any, job: any, hasResume: boolean, matchScore: number = 92) {
+    const companyName = job.employer?.companyName || 'Employer';
+    try {
+      await this.prisma.notification.create({
+        data: {
+          userId: profile.userId,
+          jobId: job.id,
+          matchProbability: matchScore,
+          message: `📬 Application Acknowledged: Your application for "${job.title}" at "${companyName}" has been received. Your resume has been submitted to the employer for review, and feedback will be sent to you as soon as they review it.`,
+        },
+      });
+    } catch (err) {
+      this.logger.error('Error creating acknowledgement notification:', err);
+    }
+
+    if (profile.user?.email) {
+      const candidateName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      this.mailService.sendApplicationAcknowledgement({
+        to: profile.user.email,
+        candidateName,
+        companyName,
+        jobTitle: job.title,
+        hasResume,
+      }).catch(err => this.logger.error('Failed to send autonomous application acknowledgement email:', err));
+    }
+  }
+
   // Seeker taps "Approve & Submit" for an autonomous match
   async approveApplication(userId: string, jobId: string) {
     const eligibility = await this.checkEligibility(userId);
@@ -139,14 +166,8 @@ export class AutonomousService {
       data: { isRead: true },
     });
 
-    await this.prisma.notification.create({
-      data: {
-        userId,
-        jobId: job.id,
-        matchProbability: 92,
-        message: `🎉 Autonomous Application Submitted: Applied for "${job.title}" at "${job.employer?.companyName || 'Employer'}".`,
-      },
-    });
+    // Send immediate autonomous acknowledgement notification & email
+    await this.sendAcknowledgement(profile, job, !!resumeId, 92);
 
     return {
       success: true,
@@ -274,6 +295,9 @@ export class AutonomousService {
             include: { job: true, resume: true },
           });
           created.push(app);
+
+          // Immediate autonomous acknowledgement
+          await this.sendAcknowledgement(profile, job, !!resumeId, 94);
         } catch (err) {
           this.logger.error(`Failed to auto-apply in full mode for job ${job.id}:`, err);
         }
@@ -374,6 +398,9 @@ export class AutonomousService {
             },
             include: { job: true, resume: true },
           });
+
+          // Immediate autonomous acknowledgement
+          await this.sendAcknowledgement(profile, job, !!resumeId, 94);
         } catch (err) {
           this.logger.error(`Failed to auto-apply in full mode for new job ${job.id}:`, err);
         }

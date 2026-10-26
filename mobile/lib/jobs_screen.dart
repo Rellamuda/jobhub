@@ -574,12 +574,37 @@ class _JobsScreenState extends State<JobsScreen> {
                             ),
                             if (isApplying) ...[
                               const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF00F0FF).withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.description, color: Color(0xFF00F0FF), size: 20),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Attached Resume (Default)', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                                          SizedBox(height: 2),
+                                          Text('Your verified resume will be automatically sent for the employer to view and review.', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               TextField(
                                 controller: _coverLetterController,
                                 style: const TextStyle(color: Colors.white),
                                 maxLines: 3,
                                 decoration: InputDecoration(
-                                  hintText: 'Write a brief cover letter (optional)...',
+                                  hintText: 'Add an optional cover letter (if requested)...',
                                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                                   filled: true,
                                   fillColor: Colors.white.withOpacity(0.05),

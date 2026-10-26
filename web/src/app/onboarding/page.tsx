@@ -50,6 +50,27 @@ export const clientIndustriesOptions = [
   "Others"
 ];
 
+export const generalIndustryOptions = [
+  "Technology, Software & AI",
+  "Financial Services, Banking & Fintech",
+  "Healthcare, Medicine & Pharmaceuticals",
+  "E-Commerce, Retail & FMCG",
+  "Construction, Civil Engineering & Real Estate",
+  "Manufacturing, Production & Industrial",
+  "Education, EdTech & Academic Research",
+  "Transportation, Logistics & Supply Chain",
+  "Oil, Gas, Mining & Renewable Energy",
+  "Telecommunications & Networking",
+  "Hospitality, Catering, Travel & Tourism",
+  "Media, Entertainment, Advertising & Design",
+  "Legal, HR & Corporate Professional Services",
+  "Agriculture, Farming & Agribusiness",
+  "Automotive & Aviation",
+  "Government, Public Administration & Defense",
+  "Non-Profit, NGO & International Development",
+  "Others"
+];
+
 export const primaryIndustryOptions = [
   "Staffing & Employment Agencies",
   "Human Resources Consulting",
@@ -152,7 +173,8 @@ export default function OnboardingPage() {
   const [isOpenToRemote, setIsOpenToRemote] = useState(true);
   
   const [desiredJobTitle, setDesiredJobTitle] = useState('');
-  const [preferredIndustry, setPreferredIndustry] = useState('');
+  const [preferredIndustryOption, setPreferredIndustryOption] = useState(generalIndustryOptions[0]);
+  const [preferredIndustryCustom, setPreferredIndustryCustom] = useState('');
   const [employmentType, setEmploymentType] = useState('Full-time');
   const [workArrangement, setWorkArrangement] = useState('Hybrid');
   const [expectedSalary, setExpectedSalary] = useState('');
@@ -174,7 +196,8 @@ export default function OnboardingPage() {
   // Employer Form State
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
-  const [industry, setIndustry] = useState('');
+  const [employerIndustryOption, setEmployerIndustryOption] = useState(generalIndustryOptions[0]);
+  const [employerIndustryCustom, setEmployerIndustryCustom] = useState('');
   const [companySize, setCompanySize] = useState(teamSizeOptions[0]);
   const [foundedYear, setFoundedYear] = useState('2020');
   const [businessType, setBusinessType] = useState('DIRECT_EMPLOYER');
@@ -304,8 +327,8 @@ export default function OnboardingPage() {
               return false;
             }
           } else {
-            if (!industry.trim()) {
-              setValidationError('Please enter your Industry / Sector.');
+            if (employerIndustryOption === 'Others' && !employerIndustryCustom.trim()) {
+              setValidationError('Please specify your Industry / Sector.');
               return false;
             }
           }
@@ -421,7 +444,13 @@ export default function OnboardingPage() {
               setWillingToRelocate(prof.willingToRelocate || false);
               setIsOpenToRemote(prof.remotePreference === 'REMOTE_ONLY' || prof.workArrangement === 'Remote');
               setDesiredJobTitle(prof.desiredJobTitle || '');
-              setPreferredIndustry(prof.preferredIndustry || '');
+              const prefInd = prof.preferredIndustry || '';
+              if (generalIndustryOptions.includes(prefInd)) {
+                setPreferredIndustryOption(prefInd);
+              } else if (prefInd) {
+                setPreferredIndustryOption('Others');
+                setPreferredIndustryCustom(prefInd);
+              }
               setEmploymentType(prof.employmentType || 'Full-time');
               setWorkArrangement(prof.workArrangement || 'Hybrid');
               
@@ -466,7 +495,13 @@ export default function OnboardingPage() {
             } else {
               setCompanyName(prof.companyName || '');
               setDescription(prof.description || '');
-              setIndustry(prof.industry || '');
+              const empInd = prof.industry || '';
+              if (generalIndustryOptions.includes(empInd)) {
+                setEmployerIndustryOption(empInd);
+              } else if (empInd) {
+                setEmployerIndustryOption('Others');
+                setEmployerIndustryCustom(empInd);
+              }
               setBusinessType(prof.businessType || 'DIRECT_EMPLOYER');
               setEmployerWebsite(prof.website || '');
               setCompanySize(prof.companySize || teamSizeOptions[0]);
@@ -539,6 +574,8 @@ export default function OnboardingPage() {
         ? `${salaryCurrency} ${salaryAmount.trim()} / ${salaryFrequency.toLowerCase()}` 
         : expectedSalary;
 
+      const finalPreferredIndustry = preferredIndustryOption === 'Others' ? preferredIndustryCustom.trim() : preferredIndustryOption;
+
       payload = {
         firstName, 
         lastName, 
@@ -560,7 +597,7 @@ export default function OnboardingPage() {
         willingToRelocate,
         remotePreference: isOpenToRemote ? 'REMOTE_ONLY' : 'FLEXIBLE',
         desiredJobTitle, 
-        preferredIndustry, 
+        preferredIndustry: finalPreferredIndustry, 
         employmentType, 
         workArrangement: isOpenToRemote ? 'Remote' : workArrangement, 
         expectedSalary: finalSalary, 
@@ -580,9 +617,10 @@ export default function OnboardingPage() {
       endpoint = '/profiles/employer';
       const finalAgencyFocus = agencyFocusOption === 'Others' ? agencyFocusCustom : agencyFocusOption;
       const finalClientIndustries = clientIndustriesOption === 'Others' ? clientIndustriesCustom : clientIndustriesOption;
+      const finalEmployerIndustry = employerIndustryOption === 'Others' ? employerIndustryCustom.trim() : employerIndustryOption;
       const finalIndustry = businessType === 'RECRUITING_AGENCY' 
         ? (agencyPrimaryIndustryOption === 'Others' ? agencyPrimaryIndustryCustom : agencyPrimaryIndustryOption)
-        : industry;
+        : finalEmployerIndustry;
 
       const formattedDescription = businessType === 'RECRUITING_AGENCY'
         ? `[Recruiting Agency | Focus: ${finalAgencyFocus || 'Full-cycle'} | Clients: ${finalClientIndustries || 'Various'} | Remote Friendly: ${employerRemoteFriendly ? 'Yes' : 'No'}] ${description}`
@@ -957,12 +995,25 @@ export default function OnboardingPage() {
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>
               Preferred Industry / Domain
             </label>
-            <input 
-              placeholder="e.g. Renewable Energy, Construction, Technology, Logistics" 
-              value={preferredIndustry} 
-              onChange={e => setPreferredIndustry(e.target.value)} 
-              className="input-field" 
-            />
+            <select
+              value={preferredIndustryOption}
+              onChange={e => setPreferredIndustryOption(e.target.value)}
+              className="input-field"
+              style={{ marginBottom: preferredIndustryOption === 'Others' ? '0.5rem' : '1rem' }}
+            >
+              {generalIndustryOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            {preferredIndustryOption === 'Others' && (
+              <input 
+                placeholder="Specify your Preferred Industry / Domain" 
+                value={preferredIndustryCustom} 
+                onChange={e => setPreferredIndustryCustom(e.target.value)} 
+                className="input-field" 
+                style={{ marginBottom: '1rem' }}
+              />
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
               <div>
@@ -1280,12 +1331,25 @@ export default function OnboardingPage() {
                 <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
                   Primary Industry / Sector <span style={{ color: '#00F0FF' }}>*</span>
                 </label>
-                <input 
-                  placeholder="e.g. Technology & AI, Banking, Healthcare, Construction" 
-                  value={industry} 
-                  onChange={e => setIndustry(e.target.value)} 
-                  className="input-field" 
-                />
+                <select 
+                  value={employerIndustryOption} 
+                  onChange={e => setEmployerIndustryOption(e.target.value)} 
+                  className="input-field"
+                  style={{ marginBottom: employerIndustryOption === 'Others' ? '0.5rem' : '1rem' }}
+                >
+                  {generalIndustryOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {employerIndustryOption === 'Others' && (
+                  <input 
+                    placeholder="Specify your Primary Industry / Sector *" 
+                    value={employerIndustryCustom} 
+                    onChange={e => setEmployerIndustryCustom(e.target.value)} 
+                    className="input-field" 
+                    style={{ marginBottom: '1rem' }}
+                  />
+                )}
               </div>
             )}
 

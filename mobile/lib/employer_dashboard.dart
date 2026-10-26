@@ -286,40 +286,97 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
               itemBuilder: (context, index) {
                 final app = apps[index];
                 final seeker = app['jobSeekerProfile'];
+                final resume = app['resume'];
+                final resumeSummary = (resume != null ? resume['summary'] : null) ?? seeker?['summary'] ?? seeker?['bio'];
+
                 return Card(
                   color: Colors.white.withOpacity(0.05),
                   margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.white.withOpacity(0.1),
-                      backgroundImage: (seeker != null && seeker['profilePicture'] != null && seeker['profilePicture'].isNotEmpty) ? NetworkImage(seeker['profilePicture']) : null,
-                      child: (seeker == null || seeker['profilePicture'] == null || seeker['profilePicture'].isEmpty) ? const Icon(Icons.person, color: Colors.white) : null,
-                    ),
-                    title: Text('${seeker?['firstName']} ${seeker?['lastName']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    subtitle: Column(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.white.withOpacity(0.1))),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Status: ${app['status']}', style: const TextStyle(color: Colors.white70)),
-                        if (app['aiMatchScore'] != null)
-                          Text('⭐ ${app['aiMatchScore']}% Match', style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.description, color: Color(0xFF00F0FF)),
-                          tooltip: 'Review Resume & Application',
-                          onPressed: () {
-                            if (_selectedJobId != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => EmployerCrmScreen(jobId: _selectedJobId!, jobTitle: job['title'] ?? 'Job')),
-                              ).then((_) => _fetchData());
-                            }
-                          },
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            backgroundImage: (seeker != null && seeker['profilePicture'] != null && seeker['profilePicture'].isNotEmpty) ? NetworkImage(seeker['profilePicture']) : null,
+                            child: (seeker == null || seeker['profilePicture'] == null || seeker['profilePicture'].isEmpty) ? const Icon(Icons.person, color: Colors.white) : null,
+                          ),
+                          title: Row(
+                            children: [
+                              Text('${seeker?['firstName'] ?? 'Applicant'} ${seeker?['lastName'] ?? ''}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              if (seeker?['verificationStatus'] == 'VERIFIED') ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.verified, color: Color(0xFF00F0FF), size: 16),
+                              ],
+                            ],
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Status: ${app['status']}', style: const TextStyle(color: Colors.white70)),
+                              if (app['aiMatchScore'] != null)
+                                Text('⭐ ${app['aiMatchScore']}% Match', style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.message, color: Colors.white70),
+                            tooltip: 'Message Seeker',
+                            onPressed: () {
+                              if (seeker?['userId'] != null) {
+                                _inviteCandidate(seeker['userId']);
+                              }
+                            },
+                          ),
                         ),
-                        IconButton(icon: const Icon(Icons.message, color: Colors.white70), onPressed: () => _inviteCandidate(seeker['userId'])),
+                        if (resumeSummary != null && resumeSummary.toString().isNotEmpty) ...[
+                          Container(
+                            margin: const EdgeInsets.only(top: 4, bottom: 8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00F0FF).withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.2)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('📄 ', style: TextStyle(fontSize: 12)),
+                                Expanded(
+                                  child: Text(
+                                    resumeSummary.toString(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (_selectedJobId != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => EmployerCrmScreen(jobId: _selectedJobId!, jobTitle: job['title'] ?? 'Job')),
+                                ).then((_) => _fetchData());
+                              }
+                            },
+                            icon: const Icon(Icons.description, size: 16, color: Colors.black),
+                            label: const Text('Review Full Resume & Decide', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00F0FF),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),

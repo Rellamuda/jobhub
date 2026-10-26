@@ -26,6 +26,15 @@ export interface SubscriptionEmailParams {
   amountUsd: number;
 }
 
+export interface ApplicationAcknowledgementParams {
+  to: string;
+  candidateName: string;
+  companyName: string;
+  jobTitle: string;
+  hasResume: boolean;
+  hasCoverLetter?: boolean;
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -209,6 +218,50 @@ export class MailService {
     return this.sendEmail({
       to: params.to,
       subject: `🎉 Your JobHub ${tierDisplay} is Active`,
+      html,
+    });
+  }
+
+  // 4. Autonomous Application Acknowledgement & Receipt Confirmation
+  async sendApplicationAcknowledgement(params: ApplicationAcknowledgementParams) {
+    const actionUrl = `${this.appUrl}/dashboard/applications`;
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub AI</h1>
+          <p style="margin: 8px 0 0 0; color: #38bdf8; font-size: 14px;">Application Acknowledgement & Receipt</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <h2 style="font-size: 20px; color: #ffffff; margin-top: 0;">Application Received, ${params.candidateName || 'Candidate'}!</h2>
+          <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px;">
+            Your application for the position of <strong style="color: #38bdf8;">${params.jobTitle}</strong> at <strong>${params.companyName}</strong> has been successfully received by the employer.
+          </p>
+
+          <div style="background-color: #1e293b; border-left: 4px solid #10B981; padding: 18px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #94a3b8;">APPLICATION STATUS</p>
+            <p style="margin: 0; font-size: 16px; font-weight: bold; color: #10B981;">✅ Received & Under Active Review</p>
+            <p style="margin: 10px 0 0 0; font-size: 14px; color: #cbd5e1; line-height: 1.5;">
+              Your resume has been forwarded directly to the hiring team at ${params.companyName}. The employer will review your qualifications and feedback will be sent to you as soon as an evaluation is made.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${actionUrl}" style="background: linear-gradient(135deg, #00F0FF 0%, #0080FF 100%); color: #000000; padding: 14px 32px; border-radius: 12px; font-weight: bold; text-decoration: none; display: inline-block; font-size: 15px;">
+              Track Application Status
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 12px; margin-bottom: 0; text-align: center;">
+            Thank you for applying through JobHub AI Operating System.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: params.to,
+      subject: `📬 Application Received: ${params.jobTitle} at ${params.companyName}`,
       html,
     });
   }

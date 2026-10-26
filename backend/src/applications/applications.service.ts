@@ -49,16 +49,55 @@ export class ApplicationsService {
     }
   }
 
+  private async sendApplicationAcknowledgement(
+    userId: string,
+    candidateEmail: string | undefined,
+    candidateName: string,
+    job: any,
+    hasResume: boolean,
+    hasCoverLetter: boolean,
+    matchScore: number
+  ) {
+    const companyName = job.employer?.companyName || 'Employer';
+    try {
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          jobId: job.id,
+          matchProbability: Math.round(matchScore || 90),
+          message: `📬 Application Acknowledged: Your application for "${job.title}" at "${companyName}" has been received. Your resume has been submitted to the employer for review, and feedback will be sent to you as soon as they review it.`,
+        },
+      });
+    } catch (err) {
+      console.error('Error creating acknowledgement notification:', err);
+    }
+
+    if (candidateEmail) {
+      this.mailService.sendApplicationAcknowledgement({
+        to: candidateEmail,
+        candidateName,
+        companyName,
+        jobTitle: job.title,
+        hasResume,
+        hasCoverLetter,
+      }).catch(err => console.error('Error sending acknowledgement email:', err));
+    }
+  }
+
   async applyToJob(userId: string, jobId: string, coverLetter?: string, resumeId?: string) {
     const jobSeekerProfile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
+      include: { user: true },
     });
 
     if (!jobSeekerProfile) {
       throw new ForbiddenException('You must create a Job Seeker profile before applying.');
     }
 
-    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    const job = await this.prisma.job.findUnique({ 
+      where: { id: jobId },
+      include: { employer: true },
+    });
     if (!job) throw new NotFoundException('Job not found.');
 
     const existingApp = await this.prisma.application.findFirst({
@@ -92,7 +131,7 @@ export class ApplicationsService {
       console.error('Failed to calculate AI match score:', err);
     }
 
-    return this.prisma.application.create({
+    const application = await this.prisma.application.create({
       data: {
         job: { connect: { id: jobId } },
         jobSeekerProfile: { connect: { id: jobSeekerProfile.id } },
@@ -105,16 +144,34 @@ export class ApplicationsService {
         resume: true,
       }
     });
+
+    // Send immediate autonomous acknowledgement to job seeker
+    const candidateName = `${jobSeekerProfile.firstName || ''} ${jobSeekerProfile.lastName || ''}`.trim();
+    this.sendApplicationAcknowledgement(
+      userId,
+      jobSeekerProfile.user?.email,
+      candidateName,
+      job,
+      !!attachedResumeId,
+      !!finalCoverLetter,
+      matchScore
+    );
+
+    return application;
   }
 
   async applyOneTap(userId: string, jobId: string, resumeId?: string) {
     const jobSeekerProfile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
+      include: { user: true },
     });
 
     if (!jobSeekerProfile) throw new ForbiddenException('Profile not found.');
 
-    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    const job = await this.prisma.job.findUnique({ 
+      where: { id: jobId },
+      include: { employer: true },
+    });
     if (!job) throw new NotFoundException('Job not found.');
 
     const existingApp = await this.prisma.application.findFirst({
@@ -153,7 +210,7 @@ export class ApplicationsService {
       console.error('Failed to generate cover letter in one-tap:', err);
     }
 
-    return this.prisma.application.create({
+    const application = await this.prisma.application.create({
       data: {
         jobId,
         jobSeekerId: jobSeekerProfile.id,
@@ -168,6 +225,20 @@ export class ApplicationsService {
         resume: true,
       }
     });
+
+    // Send immediate autonomous acknowledgement to job seeker
+    const candidateName = `${jobSeekerProfile.firstName || ''} ${jobSeekerProfile.lastName || ''}`.trim();
+    this.sendApplicationAcknowledgement(
+      userId,
+      jobSeekerProfile.user?.email,
+      candidateName,
+      job,
+      !!attachedResumeId,
+      !!generatedCoverLetter,
+      matchScore
+    );
+
+    return application;
   }
 
   async getMyApplications(userId: string) {

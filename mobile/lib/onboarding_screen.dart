@@ -50,7 +50,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isOpenToRemote = true;
 
   final _desiredJobTitle = TextEditingController();
-  final _preferredIndustry = TextEditingController();
+  String _preferredIndustryOption = generalIndustryOptions[0];
+  final _preferredIndustryCustom = TextEditingController();
   String _employmentType = 'Full-time';
   String _workArrangement = 'Hybrid';
   final _expectedSalary = TextEditingController();
@@ -87,7 +88,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final _empWebsite = TextEditingController();
   final _description = TextEditingController();
-  final _industry = TextEditingController();
+  String _employerIndustryOption = generalIndustryOptions[0];
+  final _employerIndustryCustom = TextEditingController();
   String _companySizeOption = teamSizeOptions[0];
   String _foundedYearOption = '2020';
   bool _employerRemoteFriendly = true;
@@ -250,7 +252,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _isOpenToRemote = prof['remotePreference'] == 'REMOTE_ONLY' || prof['workArrangement'] == 'Remote';
 
                   _desiredJobTitle.text = prof['desiredJobTitle'] ?? '';
-                  _preferredIndustry.text = prof['preferredIndustry'] ?? '';
+                  final prefInd = prof['preferredIndustry'] ?? '';
+                  if (generalIndustryOptions.contains(prefInd)) {
+                    _preferredIndustryOption = prefInd;
+                  } else if (prefInd.isNotEmpty) {
+                    _preferredIndustryOption = 'Others';
+                    _preferredIndustryCustom.text = prefInd;
+                  }
                   _employmentType = prof['employmentType'] ?? 'Full-time';
                   _workArrangement = prof['workArrangement'] ?? 'Hybrid';
 
@@ -295,7 +303,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _companyName.text = prof['companyName'] ?? '';
                   _businessType = prof['businessType'] ?? 'DIRECT_EMPLOYER';
                   _description.text = prof['description'] ?? '';
-                  _industry.text = prof['industry'] ?? '';
+                  final empInd = prof['industry'] ?? '';
+                  if (generalIndustryOptions.contains(empInd)) {
+                    _employerIndustryOption = empInd;
+                  } else if (empInd.isNotEmpty) {
+                    _employerIndustryOption = 'Others';
+                    _employerIndustryCustom.text = empInd;
+                  }
                   _empWebsite.text = prof['website'] ?? '';
                   if (prof['companySize'] != null && teamSizeOptions.contains(prof['companySize'])) {
                     _companySizeOption = prof['companySize'];
@@ -687,7 +701,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'willingToRelocate': _willingToRelocate,
         'remotePreference': _isOpenToRemote ? 'REMOTE_ONLY' : 'FLEXIBLE',
         'desiredJobTitle': _desiredJobTitle.text.trim(),
-        'preferredIndustry': _preferredIndustry.text.trim(),
+        'preferredIndustry': _preferredIndustryOption == 'Others' ? _preferredIndustryCustom.text.trim() : _preferredIndustryOption,
         'employmentType': _employmentType,
         'workArrangement': _isOpenToRemote ? 'Remote' : _workArrangement,
         'expectedSalary': finalSalary,
@@ -709,9 +723,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       final finalAgencyFocus = _agencyFocusOption == 'Others' ? _agencyFocusCustom.text.trim() : _agencyFocusOption;
       final finalClientIndustries = _clientIndustriesOption == 'Others' ? _clientIndustriesCustom.text.trim() : _clientIndustriesOption;
+      final finalEmployerIndustry = _employerIndustryOption == 'Others' ? _employerIndustryCustom.text.trim() : _employerIndustryOption;
       final finalIndustry = _businessType == 'RECRUITING_AGENCY'
           ? (_agencyPrimaryIndustryOption == 'Others' ? _agencyPrimaryIndustryCustom.text.trim() : _agencyPrimaryIndustryOption)
-          : _industry.text.trim();
+          : finalEmployerIndustry;
 
       final formattedDesc = _businessType == 'RECRUITING_AGENCY'
           ? '[Recruiting Agency | Focus: $finalAgencyFocus | Clients: $finalClientIndustries | Remote Friendly: ${_employerRemoteFriendly ? 'Yes' : 'No'}] ${_description.text.trim()}'
@@ -875,8 +890,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return false;
             }
           } else {
-            if (_industry.text.trim().isEmpty) {
-              _showError('Industry is required');
+            if (_employerIndustryOption == 'Others' && _employerIndustryCustom.text.trim().isEmpty) {
+              _showError('Please specify your Industry / Sector');
               return false;
             }
           }
@@ -1390,7 +1405,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 20),
 
             _buildTextField(_desiredJobTitle, 'Desired Job Title *'),
-            _buildTextField(_preferredIndustry, 'Preferred Industry (Optional)'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Preferred Industry / Domain', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF1E162B),
+                        value: _preferredIndustryOption,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        items: generalIndustryOptions.map((opt) {
+                          return DropdownMenuItem(value: opt, child: Text(opt, overflow: TextOverflow.ellipsis));
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _preferredIndustryOption = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  if (_preferredIndustryOption == 'Others') ...[
+                    const SizedBox(height: 12),
+                    _buildTextField(_preferredIndustryCustom, 'Specify Preferred Industry / Domain'),
+                  ],
+                ],
+              ),
+            ),
 
             Row(
               children: [
@@ -2035,7 +2085,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ] else ...[
-              _buildTextField(_industry, 'Primary Industry / Sector *'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Primary Industry / Sector *', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1E162B),
+                          value: _employerIndustryOption,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          items: generalIndustryOptions.map((opt) {
+                            return DropdownMenuItem(value: opt, child: Text(opt, overflow: TextOverflow.ellipsis));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _employerIndustryOption = val);
+                          },
+                        ),
+                      ),
+                    ),
+                    if (_employerIndustryOption == 'Others') ...[
+                      const SizedBox(height: 12),
+                      _buildTextField(_employerIndustryCustom, 'Specify Primary Industry / Sector *'),
+                    ],
+                  ],
+                ),
+              ),
             ],
 
             // Team Size and Founded Year Dropdowns

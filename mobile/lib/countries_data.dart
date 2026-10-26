@@ -520,6 +520,27 @@ const List<String> agencyFocusOptions = [
   "Others"
 ];
 
+const List<String> generalIndustryOptions = [
+  "Technology, Software & AI",
+  "Financial Services, Banking & Fintech",
+  "Healthcare, Medicine & Pharmaceuticals",
+  "E-Commerce, Retail & FMCG",
+  "Construction, Civil Engineering & Real Estate",
+  "Manufacturing, Production & Industrial",
+  "Education, EdTech & Academic Research",
+  "Transportation, Logistics & Supply Chain",
+  "Oil, Gas, Mining & Renewable Energy",
+  "Telecommunications & Networking",
+  "Hospitality, Catering, Travel & Tourism",
+  "Media, Entertainment, Advertising & Design",
+  "Legal, HR & Corporate Professional Services",
+  "Agriculture, Farming & Agribusiness",
+  "Automotive & Aviation",
+  "Government, Public Administration & Defense",
+  "Non-Profit, NGO & International Development",
+  "Others"
+];
+
 const List<String> clientIndustriesOptions = [
   "Technology, AI & Software Startups",
   "Banking, FinTech & Financial Services",

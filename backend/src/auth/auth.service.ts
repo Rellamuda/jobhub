@@ -1,23 +1,66 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { isDisposableEmail } from './disposable-email.validator';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  // In-memory sliding window IP rate limiter for account registrations
+  private registrationBurstWindow = new Map<string, number[]>();
+  private readonly MAX_REGISTRATIONS_PER_HOUR = 5;
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
   ) {}
 
-  async register(data: Prisma.UserCreateInput) {
+  private checkRegistrationRateLimit(ip: string) {
+    if (!ip || ip === 'unknown' || ip === '127.0.0.1' || ip === '::1') return;
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+
+    let timestamps = this.registrationBurstWindow.get(ip) || [];
+    timestamps = timestamps.filter((t) => t > oneHourAgo);
+
+    if (timestamps.length >= this.MAX_REGISTRATIONS_PER_HOUR) {
+      this.logger.warn(`Registration IP limit exceeded for IP: ${ip} (${timestamps.length} in 1 hr)`);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          error: 'Too Many Requests',
+          message: 'Too many accounts have been created from this IP address. Please try again later or contact support.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    timestamps.push(now);
+    this.registrationBurstWindow.set(ip, timestamps);
+  }
+
+  async register(data: Prisma.UserCreateInput, clientIp?: string) {
+    if (clientIp) {
+      this.checkRegistrationRateLimit(clientIp);
+    }
+
     const cleanEmail = (data.email || '').trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       throw new BadRequestException('Please provide a valid email address.');
     }
+
+    // Anti-Spam: Block throwaway and burner email domains
+    if (isDisposableEmail(cleanEmail)) {
+      throw new BadRequestException(
+        'Disposable or temporary email addresses are not permitted. Please use a permanent email address (e.g., Gmail, Outlook, or corporate email).',
+      );
+    }
+
     if (!data.password || data.password.length < 6) {
       throw new BadRequestException('Password must be at least 6 characters long.');
     }

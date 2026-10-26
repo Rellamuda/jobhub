@@ -7,12 +7,14 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: any) {
+  async register(@Request() req, @Body() body: any) {
+    const rawIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
+    const clientIp = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : '';
     return this.authService.register({
       email: body.email,
       password: body.password,
       role: body.role
-    });
+    }, clientIp);
   }
 
   @HttpCode(HttpStatus.OK)

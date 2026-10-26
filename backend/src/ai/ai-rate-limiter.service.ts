@@ -62,15 +62,34 @@ export class AiRateLimiterService {
 
     timestamps.push(now);
     this.burstWindow.set(identifier, timestamps);
+  // Rolling IP-level free trial limiter: Map<ip, timestamp[]>
+  private freeTrialIpWindow = new Map<string, number[]>();
+  private readonly MAX_FREE_TIER_PER_IP_DAILY = 3;
+
+  checkFreeTrialIpAbuse(ip?: string) {
+    if (!ip || ip === 'unknown' || ip === '127.0.0.1' || ip === '::1') return;
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+    let timestamps = this.freeTrialIpWindow.get(ip) || [];
+    timestamps = timestamps.filter((t) => t > oneDayAgo);
+
+    if (timestamps.length >= this.MAX_FREE_TIER_PER_IP_DAILY) {
+      throw new ForbiddenException(
+        'The free AI trial limit has been reached for this network/device. Please upgrade to Silver or Diamond to continue generating with AI.',
+      );
+    }
+    timestamps.push(now);
+    this.freeTrialIpWindow.set(ip, timestamps);
   }
 
   /**
    * 2. Quota Check based on Subscription Tier
-   * Free Tier: 1 total credit
+   * Free Tier: 1 total credit (Max 3 per IP/device per day)
    * Silver Tier: 15 credits / month
    * Diamond/Premium: Unlimited
    */
-  async checkQuotaAndIncrement(userId: string, endpoint: string, estimatedInputChars = 500) {
+  async checkQuotaAndIncrement(userId: string, endpoint: string, estimatedInputChars = 500, clientIp?: string) {
     // Check burst rate
     this.checkBurstRate(userId);
 
@@ -91,6 +110,10 @@ export class AiRateLimiterService {
         throw new ForbiddenException(
           'Free AI generation credit reached (1/1). Upgrade to Silver ($13/mo) for 15 generations or Diamond ($20/mo) for unlimited AI access.',
         );
+      }
+      // Check multi-account IP farming abuse
+      if (clientIp) {
+        this.checkFreeTrialIpAbuse(clientIp);
       }
     } else if (tier === 'SILVER') {
       const limit = 15;

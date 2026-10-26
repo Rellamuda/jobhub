@@ -12,10 +12,53 @@ export class AiService {
     private readonly prisma: PrismaService,
   ) {}
 
+  /**
+   * Sanitizes string inputs to prevent prompt inflation / token-waste attacks
+   */
+  private sanitizeString(val: any, maxChars = 2500): string {
+    if (!val) return '';
+    const str = typeof val === 'string' ? val : JSON.stringify(val);
+    return str.length > maxChars ? str.substring(0, maxChars) + '...' : str;
+  }
+
+  private sanitizeProfile(profile: any): any {
+    if (!profile || typeof profile !== 'object') return {};
+    return {
+      ...profile,
+      summary: this.sanitizeString(profile.summary || profile.bio, 2500),
+      headline: this.sanitizeString(profile.headline, 200),
+      profession: this.sanitizeString(profile.profession, 150),
+      skills: Array.isArray(profile.skills)
+        ? profile.skills.slice(0, 30).map((s: any) => this.sanitizeString(s, 60))
+        : [],
+      experience: Array.isArray(profile.experience)
+        ? profile.experience.slice(0, 10).map((e: any) => ({
+            ...e,
+            responsibilities: this.sanitizeString(e.responsibilities || e.description, 1000),
+            role: this.sanitizeString(e.role || e.title, 150),
+            company: this.sanitizeString(e.company, 150),
+          }))
+        : [],
+      education: Array.isArray(profile.education) ? profile.education.slice(0, 6) : [],
+    };
+  }
+
+  private sanitizeJob(job: any): any {
+    if (!job || typeof job !== 'object') return {};
+    return {
+      ...job,
+      title: this.sanitizeString(job.title, 200),
+      description: this.sanitizeString(job.description, 3500),
+      requirements: this.sanitizeString(job.requirements, 2000),
+      companyName: this.sanitizeString(job.companyName || job.company, 200),
+    };
+  }
+
   async generateResume(profileData: any): Promise<any> {
+    const cleanProfile = this.sanitizeProfile(profileData);
     try {
       const response = await lastValueFrom(
-        this.httpService.post(`${this.fastApiUrl}/resume/generate`, profileData),
+        this.httpService.post(`${this.fastApiUrl}/resume/generate`, cleanProfile),
       );
       return response.data;
     } catch (error) {
@@ -127,11 +170,13 @@ export class AiService {
   }
 
   async generateCoverLetter(profileData: any, jobData: any): Promise<string> {
+    const cleanProfile = this.sanitizeProfile(profileData);
+    const cleanJob = this.sanitizeJob(jobData);
     try {
       const response = await lastValueFrom(
         this.httpService.post(`${this.fastApiUrl}/cover-letter/generate`, {
-          profile: profileData,
-          job: jobData,
+          profile: cleanProfile,
+          job: cleanJob,
         }),
       );
       return response.data.cover_letter;
@@ -146,11 +191,13 @@ export class AiService {
   }
 
   async calculateMatchScore(profileText: string, jobText: string): Promise<number> {
+    const cleanProfile = this.sanitizeString(profileText, 3500);
+    const cleanJob = this.sanitizeString(jobText, 3500);
     try {
       const response = await lastValueFrom(
         this.httpService.post(`${this.fastApiUrl}/match/score`, {
-          profile_text: profileText,
-          job_description_text: jobText,
+          profile_text: cleanProfile,
+          job_description_text: cleanJob,
         }),
       );
       if (response?.data?.match_score !== undefined) {

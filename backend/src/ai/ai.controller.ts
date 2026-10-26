@@ -13,8 +13,10 @@ export class AiController {
     private readonly aiRateLimiter: AiRateLimiterService,
   ) {}
 
-  private async checkGenerationLimit(userId: string, endpoint = 'ai/generate', estimatedChars = 600) {
-    await this.aiRateLimiter.checkQuotaAndIncrement(userId, endpoint, estimatedChars);
+  private async checkGenerationLimit(req: any, endpoint = 'ai/generate', estimatedChars = 600) {
+    const rawIp = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || '';
+    const clientIp = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : '';
+    await this.aiRateLimiter.checkQuotaAndIncrement(req.user.userId, endpoint, estimatedChars, clientIp);
   }
 
   @Get('quota')
@@ -32,7 +34,7 @@ export class AiController {
 
   @Post('resume/generate')
   async generateResume(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req.user.userId, 'resume/generate', 1500);
+    await this.checkGenerationLimit(req, 'resume/generate', 1500);
     const result = await this.aiService.generateResume(profileData);
     
     const resumeText = typeof result === 'string' 
@@ -82,7 +84,7 @@ export class AiController {
     @Body('profile') profileData: any,
     @Body('job') jobData: any,
   ) {
-    await this.checkGenerationLimit(req.user.userId, 'cover-letter/generate', 1200);
+    await this.checkGenerationLimit(req, 'cover-letter/generate', 1200);
     const cover_letter = await this.aiService.generateCoverLetter(
       profileData,
       jobData,
@@ -101,13 +103,13 @@ export class AiController {
 
   @Post('profile/score')
   async getProfileScore(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req.user.userId, 'profile/score', 800);
+    await this.checkGenerationLimit(req, 'profile/score', 800);
     return this.aiService.getProfileScore(profileData);
   }
 
   @Post('skills/gap')
   async getSkillGap(@Request() req, @Body('profile') profileData: any, @Body('job') jobData: any) {
-    await this.checkGenerationLimit(req.user.userId, 'skills/gap', 800);
+    await this.checkGenerationLimit(req, 'skills/gap', 800);
     return this.aiService.getSkillGap(profileData, jobData);
   }
 
@@ -118,19 +120,19 @@ export class AiController {
 
   @Post('career/suggestions')
   async getCareerSuggestions(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req.user.userId, 'career/suggestions', 800);
+    await this.checkGenerationLimit(req, 'career/suggestions', 800);
     return this.aiService.getCareerSuggestions(profileData);
   }
 
   @Post('interview/questions')
   async getInterviewQuestions(@Request() req, @Body('job') jobData: any, @Body('profile') profileData: any) {
-    await this.checkGenerationLimit(req.user.userId, 'interview/questions', 1000);
+    await this.checkGenerationLimit(req, 'interview/questions', 1000);
     return this.aiService.getInterviewQuestions(jobData, profileData);
   }
 
   @Post('job-description/generate')
   async generateJobDescription(@Request() req, @Body() jobData: any) {
-    await this.checkGenerationLimit(req.user.userId, 'job-description/generate', 1000);
+    await this.checkGenerationLimit(req, 'job-description/generate', 1000);
     return this.aiService.generateJobDescription(jobData);
   }
 
@@ -141,7 +143,7 @@ export class AiController {
 
   @Post('mentor/chat')
   async mentorChat(@Request() req, @Body('message') message: string) {
-    await this.checkGenerationLimit(req.user.userId, 'mentor/chat', 600);
+    await this.checkGenerationLimit(req, 'mentor/chat', 600);
     return this.aiService.mentorChat(req.user.userId, message);
   }
 }

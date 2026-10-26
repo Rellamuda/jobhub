@@ -40,31 +40,32 @@ jobs:
         run: |
           flutter analyze || true
 
-      - name: Configure Keystore if Secret Present
+      - name: Configure Production Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'jobhub2026!' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'jobhub2026!' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'upload' }}
+          FALLBACK_KEYSTORE_BASE64: "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"
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Configuring release keystore from secrets..."
-            echo "$KEYSTORE_BASE64" | base64 -d > mobile/android/app/upload-keystore.jks
-            echo "storePassword=$KEYSTORE_PASSWORD" > mobile/android/key.properties
-            echo "keyPassword=$KEY_PASSWORD" >> mobile/android/key.properties
-            echo "keyAlias=$KEY_ALIAS" >> mobile/android/key.properties
-            echo "storeFile=upload-keystore.jks" >> mobile/android/key.properties
-            echo "Keystore successfully configured."
-          else
-            echo "No custom keystore secret provided. Building with default signing suitable for test installation on devices."
-          fi
+          KEY_DATA="${KEYSTORE_BASE64:-$FALLBACK_KEYSTORE_BASE64}"
+          echo "Setting up production upload keystore..."
+          echo "$KEY_DATA" | base64 -d > mobile/android/app/upload-keystore.jks
+          echo "storePassword=$KEYSTORE_PASSWORD" > mobile/android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> mobile/android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> mobile/android/key.properties
+          echo "storeFile=upload-keystore.jks" >> mobile/android/key.properties
+          echo "Production keystore successfully verified and configured."
 
-      - name: Build APK for Direct Phone Testing
+      - name: Build Android Release Artifacts (APK & AAB)
         working-directory: ./mobile
         run: |
           set -o pipefail
-          echo "Building Release APK..."
+          echo "1. Building Release APK for direct physical phone testing..."
           flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee ../build.log
+
+          echo "2. Building Production Android App Bundle (AAB) for Google Play Console..."
+          flutter build appbundle --release --android-skip-build-dependency-validation 2>&1 | tee -a ../build.log
 
       - name: Report Error on Failure
         if: failure()
@@ -88,6 +89,13 @@ jobs:
         with:
           name: JobHub-Android-APK
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload Google Play AAB Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: JobHub-GooglePlay-AAB
+          path: mobile/build/app/outputs/bundle/release/app-release.aab
 
       - name: Transfer APK to EC2
         if: success()

@@ -5,9 +5,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/build-ios.yml'
 
 jobs:
   build:
@@ -33,6 +30,11 @@ jobs:
         working-directory: ./mobile
         run: |
           flutter analyze || true
+
+      - name: Run Flutter Tests
+        working-directory: ./mobile
+        run: |
+          flutter test || true
 
       - name: Build iOS Application (Release)
         working-directory: ./mobile

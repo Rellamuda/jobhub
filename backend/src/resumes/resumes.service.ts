@@ -4,6 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 const pdfParse = require('pdf-parse');
 import * as puppeteer from 'puppeteer';
+import { UploadsService } from '../uploads/uploads.service';
 
 @Injectable()
 export class ResumesService {
@@ -12,6 +13,7 @@ export class ResumesService {
   constructor(
     private prisma: PrismaService,
     private httpService: HttpService,
+    private uploadsService: UploadsService,
   ) {}
 
   async getResumes(userId: string) {
@@ -42,13 +44,28 @@ export class ResumesService {
       const data = await pdfParse(file.buffer);
       const rawText = data.text;
 
+      // Save the resume file persistently to Cloud Storage (S3/R2) or local disk
+      let resumeUrl: string | null = null;
+      try {
+        resumeUrl = await this.uploadsService.uploadFile(file, 'resumes');
+        await this.prisma.jobSeekerProfile.updateMany({
+          where: { userId },
+          data: { resumeUrl },
+        });
+      } catch (uploadErr) {
+        console.warn('Could not persist resume file buffer:', uploadErr);
+      }
+
       // Send to AI service for structured parsing
       // Assume AI service is running on localhost:8000
       const aiResponse = await firstValueFrom(
         this.httpService.post(`${this.fastApiUrl}/parse-resume`, { text: rawText })
       );
 
-      return aiResponse.data;
+      return {
+        ...aiResponse.data,
+        resumeUrl,
+      };
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException('Failed to parse resume');

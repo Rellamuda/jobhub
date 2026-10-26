@@ -1,4 +1,15 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Request, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  UseInterceptors,
+  UploadedFile,
+  UseGuards,
+  Request,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -12,6 +23,14 @@ export class UploadsController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Get('storage-status')
+  getStorageStatus() {
+    return {
+      cloudStorageEnabled: this.uploadsService.isUsingCloud(),
+      provider: this.uploadsService.isUsingCloud() ? 'AWS S3 / Cloudflare R2' : 'Local Disk Storage',
+    };
+  }
+
   @Post('profile-picture')
   @UseInterceptors(FileInterceptor('file'))
   async uploadProfilePicture(
@@ -23,7 +42,8 @@ export class UploadsController {
           new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
         ],
       }),
-    ) file: Express.Multer.File,
+    )
+    file: Express.Multer.File,
   ) {
     const url = await this.uploadsService.uploadFile(file, 'profiles');
 
@@ -34,7 +54,7 @@ export class UploadsController {
         update: { profilePicture: url },
         create: {
           userId: req.user.userId,
-          firstName: '', // Dummy defaults, should be updated by the actual profile save route
+          firstName: '',
           lastName: '',
           profilePicture: url,
           skills: [],
@@ -53,5 +73,67 @@ export class UploadsController {
     }
 
     return { url };
+  }
+
+  @Post('resume')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadResume(
+    @Request() req,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB max
+          new FileTypeValidator({ fileType: '.(pdf|doc|docx)' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const url = await this.uploadsService.uploadFile(file, 'resumes');
+
+    if (req.user.role === 'JOB_SEEKER') {
+      await this.prisma.jobSeekerProfile.upsert({
+        where: { userId: req.user.userId },
+        update: { resumeUrl: url },
+        create: {
+          userId: req.user.userId,
+          firstName: '',
+          lastName: '',
+          resumeUrl: url,
+          skills: [],
+        },
+      });
+    }
+
+    return {
+      url,
+      originalName: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype,
+    };
+  }
+
+  @Post('document')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocument(
+    @Request() req,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB max
+          new FileTypeValidator({ fileType: '.(pdf|png|jpeg|jpg)' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const url = await this.uploadsService.uploadFile(file, 'documents');
+
+    return {
+      url,
+      originalName: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype,
+    };
   }
 }

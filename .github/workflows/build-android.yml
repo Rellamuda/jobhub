@@ -66,13 +66,6 @@ jobs:
           echo "Building Release APK..."
           flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee ../build.log
 
-      - name: Build Google Play App Bundle (AAB)
-        working-directory: ./mobile
-        run: |
-          set -o pipefail
-          echo "Building Release AAB..."
-          flutter build appbundle --release --android-skip-build-dependency-validation 2>&1 | tee -a ../build.log || echo "AAB optional build step finished"
-
       - name: Report Error on Failure
         if: failure()
         run: |
@@ -95,14 +88,6 @@ jobs:
         with:
           name: JobHub-Android-APK
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Upload Google Play AAB Bundle
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: JobHub-GooglePlay-AAB
-          path: mobile/build/app/outputs/bundle/release/app-release.aab
-          if-no-files-found: ignore
 
       - name: Transfer APK to EC2
         if: success()

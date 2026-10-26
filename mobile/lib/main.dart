@@ -8,6 +8,7 @@ import 'config/theme_manager.dart';
 import 'config/api_config.dart';
 import 'employer_dashboard.dart';
 import 'seeker_dashboard.dart';
+import 'screens/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -198,7 +199,12 @@ class _AppStartupScreenState extends State<AppStartupScreen> {
           final data = jsonDecode(res.body);
           final role = data['role'] ?? 'JOB_SEEKER';
           if (!mounted) return;
-          if (role == 'EMPLOYER') {
+          if (role == 'ADMIN') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+            );
+          } else if (role == 'EMPLOYER') {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const EmployerDashboard()),

@@ -8,6 +8,7 @@ import 'register_screen.dart';
 import 'onboarding_screen.dart';
 import 'employer_dashboard.dart';
 import 'seeker_dashboard.dart';
+import 'screens/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Uri.parse('${ApiConfig.baseUrl}/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': _emailController.text,
+          'email': _emailController.text.trim().toLowerCase(),
           'password': _passwordController.text,
         }),
       );
@@ -45,8 +46,17 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('token', data['access_token']);
 
         if (mounted) {
-          // Actively check if user has a completed profile
           final role = data['user']?['role'] ?? 'JOB_SEEKER';
+          if (role == 'ADMIN') {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+              (route) => false,
+            );
+            return;
+          }
+
+          // Actively check if user has a completed profile
           final profileEndpoint = role == 'EMPLOYER' ? '/profiles/employer' : '/profiles/job-seeker';
           bool hasProfile = false;
           

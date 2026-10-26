@@ -50,12 +50,10 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Configuring release keystore from secrets..."
             echo "$KEYSTORE_BASE64" | base64 -d > mobile/android/app/upload-keystore.jks
-            cat <<EOF > mobile/android/key.properties
-            storePassword=$KEYSTORE_PASSWORD
-            keyPassword=$KEY_PASSWORD
-            keyAlias=$KEY_ALIAS
-            storeFile=upload-keystore.jks
-            EOF
+            echo "storePassword=$KEYSTORE_PASSWORD" > mobile/android/key.properties
+            echo "keyPassword=$KEY_PASSWORD" >> mobile/android/key.properties
+            echo "keyAlias=$KEY_ALIAS" >> mobile/android/key.properties
+            echo "storeFile=upload-keystore.jks" >> mobile/android/key.properties
             echo "Keystore successfully configured."
           else
             echo "No custom keystore secret provided. Building with default signing suitable for test installation on devices."

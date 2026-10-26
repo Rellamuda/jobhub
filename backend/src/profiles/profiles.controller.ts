@@ -246,14 +246,18 @@ export class ProfilesController {
           await tx.application.deleteMany({ where: { jobId: job.id } }).catch(() => {});
           await tx.job.delete({ where: { id: job.id } }).catch(() => {});
         }
+        await tx.talentPool.deleteMany({ where: { employerId: employer.id } }).catch(() => {});
         await tx.employer.delete({ where: { id: employer.id } }).catch(() => {});
       }
 
       const seeker = await tx.jobSeekerProfile.findUnique({ where: { userId } });
       if (seeker) {
         await tx.application.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
+        await tx.resume.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
         await tx.credential.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
+        await tx.candidateNote.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
         await tx.candidateTag.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
+        await tx.referral.deleteMany({ where: { candidateId: seeker.id } }).catch(() => {});
         await tx.jobSeekerProfile.delete({ where: { id: seeker.id } }).catch(() => {});
       }
 

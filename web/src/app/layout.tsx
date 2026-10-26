@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import { ThemeProvider } from '../components/ThemeProvider';
 
 export default function RootLayout({
@@ -24,10 +25,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }} suppressHydrationWarning>
-      <body className={`${outfit.className} bg-[#0A0A0A] text-white transition-colors duration-300`}>
+      <body className={`${outfit.className} bg-[#0A0A0A] text-white transition-colors duration-300 min-h-screen flex flex-col`}>
         <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
           <Header />
-          {children}
+          <div style={{ flex: 1 }}>{children}</div>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>

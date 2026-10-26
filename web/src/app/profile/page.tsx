@@ -952,6 +952,38 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Legal & Account Management (App Store / Google Play Compliance) */}
+        <div className="glass-panel" style={{ padding: '1.5rem', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px' }}>
+          <h3 style={{ margin: '0 0 0.6rem 0', color: '#f87171', fontSize: '1.1rem' }}>Account & Legal Settings</h3>
+          <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+            Manage your account security, review our terms & privacy policy, or permanently erase your data in accordance with privacy laws.
+          </p>
+          <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link href="/privacy" style={{ color: '#00f0ff', fontSize: '0.88rem', textDecoration: 'underline' }}>
+              Privacy Policy
+            </Link>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <Link href="/terms" style={{ color: '#00f0ff', fontSize: '0.88rem', textDecoration: 'underline' }}>
+              Terms of Service
+            </Link>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <Link href="/delete-account">
+              <button style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}>
+                ⚠️ Delete Account & Data
+              </button>
+            </Link>
+          </div>
+        </div>
+
       </div>
     </main>
   );

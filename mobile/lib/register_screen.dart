@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'config/api_config.dart';
 import 'login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -295,6 +296,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           color: Color(0xFF00F0FF),
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'By continuing, you agree to our ',
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                    ),
+                    GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse('${ApiConfig.webUrl}/terms');
+                        if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                      },
+                      child: const Text(
+                        'Terms of Service',
+                        style: TextStyle(color: Color(0xFF00F0FF), fontSize: 12, decoration: TextDecoration.underline),
+                      ),
+                    ),
+                    Text(
+                      ' and ',
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                    ),
+                    GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse('${ApiConfig.webUrl}/privacy');
+                        if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                      },
+                      child: const Text(
+                        'Privacy Policy',
+                        style: TextStyle(color: Color(0xFF00F0FF), fontSize: 12, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],

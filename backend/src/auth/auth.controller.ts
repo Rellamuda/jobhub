@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -27,5 +27,13 @@ export class AuthController {
     // Return user details including subscription tier
     const user = await this.authService.getUserDetails(req.user.userId);
     return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  async deleteMe(@Request() req) {
+    await this.authService.deleteAccount(req.user.userId);
+    return { success: true, message: 'Account and associated personal data deleted successfully.' };
   }
 }

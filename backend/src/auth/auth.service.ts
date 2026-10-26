@@ -141,4 +141,8 @@ export class AuthService {
       verificationStatus,
     };
   }
+
+  async deleteAccount(userId: string) {
+    return this.usersService.deleteAccount(userId);
+  }
 }

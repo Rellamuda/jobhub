@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -14,14 +14,26 @@ export class AuthService {
   ) {}
 
   async register(data: Prisma.UserCreateInput) {
-    const existingUser = await this.usersService.findByEmail(data.email);
+    const cleanEmail = (data.email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new BadRequestException('Please provide a valid email address.');
+    }
+    if (!data.password || data.password.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters long.');
+    }
+
+    const existingUser = await this.usersService.findByEmail(cleanEmail);
     if (existingUser) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException('This email is already registered. Please log in or use another email.');
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
+    const validRole = data.role === 'EMPLOYER' ? 'EMPLOYER' : 'JOB_SEEKER';
+
     const user = await this.usersService.create({
       ...data,
+      email: cleanEmail,
+      role: validRole,
       password: hashedPassword,
     });
 

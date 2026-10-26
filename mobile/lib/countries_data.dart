@@ -486,3 +486,66 @@ const Map<String, List<String>> countryStates = {
     "Migori", "Kisii", "Nyamira", "Nairobi"
   ]
 };
+
+const List<String> skilledTradesList = [
+  "Electrician / Electrical Technician",
+  "Plumber / Pipefitter",
+  "Carpenter & Joiner",
+  "Welder & Metal Fabricator",
+  "HVAC & Refrigeration Technician",
+  "Mason & Bricklayer",
+  "Automotive Mechanic / Diagnostic Tech",
+  "Chef, Cook & Commercial Baker",
+  "Professional Driver & Logistics Operator",
+  "Painter & Decorator",
+  "Tailor & Fashion Designer",
+  "Heavy Equipment & Crane Operator",
+  "Solar, Wind & Renewable Energy Tech",
+  "Roofer & Cladding Specialist",
+  "Tiler & Flooring Installer",
+  "Blacksmith & Ironworker",
+  "Other Skilled Trade / Artisan"
+];
+
+const List<String> agencyFocusOptions = [
+  "Executive Search & C-Suite",
+  "IT, Software & Artificial Intelligence",
+  "Healthcare, Nursing & Medical",
+  "Engineering & Construction",
+  "Finance, Accounting & Banking",
+  "Skilled Trades & Blue Collar Logistics",
+  "General Staffing & Temporary Placement",
+  "Hospitality, Retail & Tourism",
+  "Legal, HR & Corporate Compliance",
+  "Others"
+];
+
+const List<String> clientIndustriesOptions = [
+  "Technology, AI & Software Startups",
+  "Banking, FinTech & Financial Services",
+  "Healthcare, Pharmaceuticals & Biotech",
+  "Civil Engineering, Construction & Real Estate",
+  "Oil, Gas, Mining & Energy Infrastructure",
+  "Automotive, Manufacturing & Supply Chain",
+  "Retail, FMCG & E-Commerce",
+  "Government, Public Sector & NGOs",
+  "Others"
+];
+
+const List<String> primaryIndustryOptions = [
+  "Staffing & Employment Agencies",
+  "Human Resources Consulting",
+  "Executive Search & Placement Firm",
+  "Information Technology & Managed Services",
+  "Business Process Outsourcing (BPO)",
+  "Others"
+];
+
+const List<String> teamSizeOptions = [
+  "1-10 employees",
+  "11-50 employees",
+  "51-200 employees",
+  "201-500 employees",
+  "500+ employees"
+];
+

@@ -28,22 +28,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      final role = _isCandidate ? 'JOB_SEEKER' : 'EMPLOYER';
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': _emailController.text,
-          'password': _passwordController.text,
-          'role': _isCandidate ? 'JOB_SEEKER' : 'EMPLOYER',
+          'email': email,
+          'password': password,
+          'role': role,
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Color(0xFF10B981),
+            content: Text('Account created successfully! Please sign in.'),
+          ),
+        );
         Navigator.pop(context); // Go back to login screen
       } else {
+        String msg = 'Registration failed. Try a different email.';
+        try {
+          final data = jsonDecode(response.body);
+          if (data['message'] != null) {
+            msg = data['message'].toString();
+          }
+        } catch (_) {}
         setState(() {
-          _errorMessage = 'Registration failed. Try a different email.';
+          _errorMessage = msg;
         });
       }
     } catch (e) {

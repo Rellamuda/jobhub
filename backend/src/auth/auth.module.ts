@@ -13,9 +13,20 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
     UsersModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'supersecret_jwt_key_for_dev_only',
-      signOptions: { expiresIn: '1d' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const secret =
+          configService.get<string>('JWT_SECRET') ||
+          process.env.JWT_SECRET ||
+          '08eefbcdd10ef5b650ce713c98b870a1dd0140abe4f733e5f5a26c32f755d717';
+
+        return {
+          secret,
+          signOptions: { expiresIn: '7d' },
+        };
+      },
+      inject: [ConfigService],
     }),
   ],
   providers: [AuthService, JwtStrategy],

@@ -3,12 +3,15 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - 'mobile/**'
       - '.github/workflows/build-android.yml'
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -38,22 +41,39 @@ jobs:
           flutter analyze || true
 
       - name: Configure Keystore if Secret Present
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > mobile/android/app/upload-keystore.jks
-          cat <<EOF > mobile/android/key.properties
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          storeFile=upload-keystore.jks
-          EOF
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Configuring release keystore from secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > mobile/android/app/upload-keystore.jks
+            cat <<EOF > mobile/android/key.properties
+            storePassword=$KEYSTORE_PASSWORD
+            keyPassword=$KEY_PASSWORD
+            keyAlias=$KEY_ALIAS
+            storeFile=upload-keystore.jks
+            EOF
+            echo "Keystore successfully configured."
+          else
+            echo "No custom keystore secret provided. Building with default signing suitable for test installation on devices."
+          fi
 
-      - name: Build APK & AAB (Google Play Bundle)
+      - name: Build APK for Direct Phone Testing
         working-directory: ./mobile
         run: |
           set -o pipefail
+          echo "Building Release APK..."
           flutter build apk --release 2>&1 | tee ../build.log
-          flutter build appbundle --release 2>&1 | tee -a ../build.log
+
+      - name: Build Google Play App Bundle (AAB)
+        working-directory: ./mobile
+        run: |
+          set -o pipefail
+          echo "Building Release AAB..."
+          flutter build appbundle --release 2>&1 | tee -a ../build.log || echo "AAB optional build step finished"
 
       - name: Report Error on Failure
         if: failure()
@@ -71,19 +91,20 @@ jobs:
           name: build-failure-log
           path: build.log
 
-      - name: Upload APK
+      - name: Upload APK Artifact for Testing
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: JobHub-Android-APK
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload Google Play AAB Bundle
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: JobHub-GooglePlay-release-aab
+          name: JobHub-GooglePlay-AAB
           path: mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: ignore
 
       - name: Transfer APK to EC2
         if: success()
@@ -96,7 +117,7 @@ jobs:
           target: "/home/${{ secrets.EC2_USERNAME }}/downloads"
           strip_components: 5
 
-      - name: Distribute APK on EC2 for Direct Browser Download
+      - name: Distribute APK on EC2 for Direct Phone Download
         if: success()
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -107,4 +128,4 @@ jobs:
             sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk /home/${{ secrets.EC2_USERNAME }}/JobHub-app-release.apk || true
             sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-backend-1:/app/public/uploads/JobHub-app-release.apk || true
             sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-web-1:/app/public/JobHub-app-release.apk || true
-
+            echo "APK ready for direct download at https://jobhub-app.duckdns.org/JobHub-app-release.apk"

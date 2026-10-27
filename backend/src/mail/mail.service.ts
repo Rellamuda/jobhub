@@ -41,6 +41,11 @@ export interface WelcomeEmailParams {
   role: 'JOB_SEEKER' | 'EMPLOYER';
 }
 
+export interface RegistrationEmailParams {
+  to: string;
+  role: 'JOB_SEEKER' | 'EMPLOYER';
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -324,6 +329,59 @@ export class MailService {
     return this.sendEmail({
       to: params.to,
       subject: `🎉 Welcome to JobHub Global - Onboarding Confirmed!`,
+      html,
+    });
+  }
+
+  // 6. Registration Confirmation & Welcome Email
+  async sendRegistrationWelcomeEmail(params: RegistrationEmailParams) {
+    const isEmployer = params.role === 'EMPLOYER';
+    const loginUrl = `${this.appUrl}/login`;
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); padding: 36px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h1 style="margin: 0; font-size: 28px; color: #00F0FF; font-weight: 800; letter-spacing: -0.5px;">JobHub Global</h1>
+          <p style="margin: 8px 0 0 0; color: #a5b4fc; font-size: 14px;">The Autonomous Career & Hiring Engine</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <h2 style="font-size: 22px; color: #ffffff; margin-top: 0;">Welcome to JobHub Global! 🎉</h2>
+          <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px;">
+            Your account has been registered successfully with <strong>${params.to}</strong>.
+          </p>
+
+          <div style="background-color: #1e293b; border-left: 4px solid #00F0FF; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">ACCOUNT DETAILS</p>
+            <p style="margin: 0 0 6px 0; font-size: 15px; color: #ffffff;">Email: <strong style="color: #38bdf8;">${params.to}</strong></p>
+            <p style="margin: 0; font-size: 15px; color: #ffffff;">Account Type: <strong style="color: #00F0FF;">${isEmployer ? 'Employer / Hiring Partner' : 'Job Seeker'}</strong></p>
+            <p style="margin: 6px 0 0 0; font-size: 13px; color: #10B981;">Status: Registered & Active</p>
+          </div>
+
+          <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px;">
+            ${
+              isEmployer
+                ? 'Sign in to access your employer CRM, post vacancies, and access vetted candidate matches.'
+                : 'Sign in to complete your onboarding profile, set your job and location preferences, and start receiving AI job matches.'
+            }
+          </p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${loginUrl}" style="background: linear-gradient(135deg, #00F0FF 0%, #0080FF 100%); color: #000000; padding: 14px 32px; border-radius: 12px; font-weight: bold; text-decoration: none; display: inline-block; font-size: 15px; box-shadow: 0 4px 14px rgba(0,240,255,0.3);">
+              Sign In to JobHub Global
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin-top: 32px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+            If you did not create this account, please disregard this email.<br/>
+            © ${new Date().getFullYear()} JobHub Global. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: params.to,
+      subject: `🎉 Welcome to JobHub Global - Account Registered!`,
       html,
     });
   }

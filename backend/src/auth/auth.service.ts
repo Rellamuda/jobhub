@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isDisposableEmail } from './disposable-email.validator';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private mailService: MailService,
   ) {}
 
   private checkRegistrationRateLimit(ip: string) {
@@ -79,6 +81,16 @@ export class AuthService {
       role: validRole,
       password: hashedPassword,
     });
+
+    // Send instant registration confirmation email via verified Resend domain
+    this.mailService
+      .sendRegistrationWelcomeEmail({
+        to: user.email,
+        role: user.role as any,
+      })
+      .catch((err) => {
+        this.logger.error(`Failed to send registration confirmation email to ${user.email}`, err);
+      });
 
     const payload = { email: user.email, sub: user.id, role: user.role };
     return {

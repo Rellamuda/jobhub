@@ -1,10 +1,14 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class ProfilesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   async upsertJobSeekerProfile(userId: string, data: any) {
     const existing = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
@@ -14,14 +18,27 @@ export class ProfilesService {
         data,
       });
     }
-    return this.prisma.jobSeekerProfile.create({
+    const created = await this.prisma.jobSeekerProfile.create({
       data: {
         firstName: data.firstName || 'Job',
         lastName: data.lastName || 'Seeker',
         ...data,
         user: { connect: { id: userId } },
       },
+      include: { user: true },
     });
+
+    if (created.user?.email) {
+      this.mailService
+        .sendOnboardingWelcomeEmail({
+          to: created.user.email,
+          name: `${created.firstName || ''} ${created.lastName || ''}`.trim() || 'Job Seeker',
+          role: 'JOB_SEEKER',
+        })
+        .catch((err) => console.warn('Could not dispatch onboarding email:', err));
+    }
+
+    return created;
   }
 
   async updateAutoApply(userId: string, enabled: boolean, keywords?: string[], autonomousMode?: string) {
@@ -109,14 +126,32 @@ export class ProfilesService {
   }
 
   async upsertEmployerProfile(userId: string, data: Prisma.EmployerUpdateInput & Prisma.EmployerCreateWithoutUserInput) {
-    return this.prisma.employer.upsert({
-      where: { userId },
-      update: data,
-      create: {
+    const existing = await this.prisma.employer.findUnique({ where: { userId } });
+    if (existing) {
+      return this.prisma.employer.update({
+        where: { userId },
+        data,
+      });
+    }
+    const created = await this.prisma.employer.create({
+      data: {
         ...data,
         user: { connect: { id: userId } },
       },
+      include: { user: true },
     });
+
+    if (created.user?.email) {
+      this.mailService
+        .sendOnboardingWelcomeEmail({
+          to: created.user.email,
+          name: created.companyName || 'Hiring Partner',
+          role: 'EMPLOYER',
+        })
+        .catch((err) => console.warn('Could not dispatch onboarding email:', err));
+    }
+
+    return created;
   }
 
   async getEmployerProfile(userId: string) {

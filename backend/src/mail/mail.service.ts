@@ -35,6 +35,12 @@ export interface ApplicationAcknowledgementParams {
   hasCoverLetter?: boolean;
 }
 
+export interface WelcomeEmailParams {
+  to: string;
+  name: string;
+  role: 'JOB_SEEKER' | 'EMPLOYER';
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -70,7 +76,11 @@ export class MailService {
       return { success: true, id: response.data?.id };
     } catch (err: any) {
       const errDetail = err.response?.data || err.message;
-      this.logger.error(`Failed to send email to ${options.to}:`, errDetail);
+      if (err.response?.status === 403 && typeof errDetail?.message === 'string' && errDetail.message.includes('only send testing emails')) {
+        this.logger.warn(`⚠️ [Resend Sandbox Restriction] ${errDetail.message}. To send to all user emails, verify a custom domain at https://resend.com/domains.`);
+      } else {
+        this.logger.error(`Failed to send email to ${options.to}:`, errDetail);
+      }
       return { success: false, error: errDetail };
     }
   }
@@ -265,4 +275,57 @@ export class MailService {
       html,
     });
   }
+
+  // 5. Onboarding Welcome & Confirmation Email
+  async sendOnboardingWelcomeEmail(params: WelcomeEmailParams) {
+    const isEmployer = params.role === 'EMPLOYER';
+    const actionUrl = isEmployer ? `${this.appUrl}/employer-dashboard` : `${this.appUrl}/seeker-dashboard`;
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); padding: 36px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h1 style="margin: 0; font-size: 28px; color: #00F0FF; font-weight: 800; letter-spacing: -0.5px;">JobHub Global</h1>
+          <p style="margin: 8px 0 0 0; color: #a5b4fc; font-size: 14px;">The Autonomous Career & Hiring Engine</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <h2 style="font-size: 22px; color: #ffffff; margin-top: 0;">Welcome aboard, ${params.name || 'there'}! 🎉</h2>
+          <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px;">
+            Your profile setup on <strong>JobHub Global</strong> has been successfully confirmed.
+          </p>
+
+          <div style="background-color: #1e293b; border-left: 4px solid #00F0FF; padding: 20px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Account Status</p>
+            <p style="margin: 0 0 4px 0; font-size: 16px; font-weight: bold; color: #ffffff;">✅ Onboarding Completed</p>
+            <p style="margin: 0; font-size: 14px; color: #94a3b8;">Role: <strong style="color: #38bdf8;">${isEmployer ? 'Employer / Hiring Partner' : 'Job Seeker'}</strong></p>
+          </div>
+
+          <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px;">
+            ${
+              isEmployer
+                ? 'You can now post vacancies, explore vetted talent pools, and let our autonomous matching engine source candidates directly for your roles.'
+                : 'Our autonomous AI matching engine is now scanning vacancies worldwide matching your skills, preferred location, and salary goals.'
+            }
+          </p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${actionUrl}" style="background: linear-gradient(135deg, #00F0FF 0%, #0080FF 100%); color: #000000; padding: 14px 32px; border-radius: 12px; font-weight: bold; text-decoration: none; display: inline-block; font-size: 15px; box-shadow: 0 4px 14px rgba(0,240,255,0.3);">
+              Go to Your Dashboard
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: center; margin-top: 32px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+            Need to update your details anytime? You can change your residence, new degrees, or skills directly in your Profile Settings.<br/>
+            © ${new Date().getFullYear()} JobHub Global. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: params.to,
+      subject: `🎉 Welcome to JobHub Global - Onboarding Confirmed!`,
+      html,
+    });
+  }
 }
+

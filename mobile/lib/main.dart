@@ -25,7 +25,7 @@ class JobHubAIApp extends StatelessWidget {
       valueListenable: ThemeManager.themeModeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp(
-          title: 'JobHub',
+          title: 'JobHub Global',
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.dark,
           theme: ThemeData(

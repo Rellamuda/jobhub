@@ -16,7 +16,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>JobHub</string>
+	<string>JobHub Global</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,7 +24,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>JobHub</string>
+	<string>JobHub Global</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera to allow you to take and upload a profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -44,7 +44,7 @@ export interface WelcomeEmailParams {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private apiKey = process.env.RESEND_API_KEY || Buffer.from('cmVfN2VNcVdUREdfQm1XMzdBN052Szg5Vmd6QXUxTlRSdk52', 'base64').toString('ascii');
+  private apiKey = process.env.RESEND_API_KEY || Buffer.from('cmVfYWo0S29zTUpfMmlGSGJpSFBWWlVyZmtDNzd0RVRCNnV3', 'base64').toString('ascii');
   private fromEmail = process.env.MAIL_FROM || 'JobHub Global <noreply@skillskonnect.online>';
   private appUrl = process.env.FRONTEND_URL || 'https://jobhub-app.duckdns.org';
 

@@ -34,6 +34,147 @@ export default function ProfilePage() {
   const [empTaxId, setEmpTaxId] = useState('');
   const [empVerifying, setEmpVerifying] = useState(false);
 
+  // Edit Profile Modal States
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [activeEditTab, setActiveEditTab] = useState<'location' | 'preferences' | 'skills' | 'education' | 'bio'>('location');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [editCountry, setEditCountry] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editWillingToRelocate, setEditWillingToRelocate] = useState(false);
+  const [editOpenToRemote, setEditOpenToRemote] = useState(true);
+  const [editPreferredLocations, setEditPreferredLocations] = useState('');
+
+  const [editDesiredJobTitle, setEditDesiredJobTitle] = useState('');
+  const [editPreferredIndustry, setEditPreferredIndustry] = useState('Information Technology & Software');
+  const [editEmploymentType, setEditEmploymentType] = useState('Full-time');
+  const [editWorkArrangement, setEditWorkArrangement] = useState('Remote');
+  const [editSalaryAmount, setEditSalaryAmount] = useState('');
+  const [editSalaryCurrency, setEditSalaryCurrency] = useState('$');
+  const [editSalaryFrequency, setEditSalaryFrequency] = useState('Monthly');
+
+  const [editSkills, setEditSkills] = useState<string[]>([]);
+  const [newSkillInput, setNewSkillInput] = useState('');
+
+  const [editEducation, setEditEducation] = useState<Array<{ degree: string; institution: string; year: string }>>([]);
+  const [newDegree, setNewDegree] = useState('');
+  const [newInstitution, setNewInstitution] = useState('');
+  const [newGradYear, setNewGradYear] = useState('');
+
+  const [editHeadline, setEditHeadline] = useState('');
+  const [editSummary, setEditSummary] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editMaritalStatus, setEditMaritalStatus] = useState('Single');
+  const [editNationality, setEditNationality] = useState('');
+
+  const openEditModal = () => {
+    if (!profile) return;
+    setEditCountry(profile.residenceCountry || '');
+    setEditState(profile.residenceState || '');
+    setEditCity(profile.residenceCity || '');
+    setEditWillingToRelocate(profile.willingToRelocate === true);
+    setEditOpenToRemote(profile.remotePreference === 'REMOTE_ONLY' || profile.workArrangement === 'Remote');
+    setEditPreferredLocations(Array.isArray(profile.preferredLocations) ? profile.preferredLocations.join(', ') : (profile.preferredLocations || ''));
+
+    setEditDesiredJobTitle(profile.desiredJobTitle || '');
+    setEditPreferredIndustry(profile.preferredIndustry || 'Information Technology & Software');
+    setEditEmploymentType(profile.employmentType || 'Full-time');
+    setEditWorkArrangement(profile.workArrangement || 'Remote');
+
+    const rawSal = profile.expectedSalary || '';
+    if (rawSal) {
+      const parts = rawSal.split(' ');
+      if (['$', '₦', '£', '€', 'C$', 'R', 'KSh', 'GH₵', 'A$', 'AED', '₹', 'CHF'].includes(parts[0])) {
+        setEditSalaryCurrency(parts[0]);
+        if (parts.length > 1) setEditSalaryAmount(parts[1]);
+      } else {
+        setEditSalaryAmount(rawSal);
+      }
+      if (rawSal.toLowerCase().includes('hour')) setEditSalaryFrequency('Hourly');
+      else if (rawSal.toLowerCase().includes('year') || rawSal.toLowerCase().includes('annual')) setEditSalaryFrequency('Annually');
+      else if (rawSal.toLowerCase().includes('day')) setEditSalaryFrequency('Daily');
+      else setEditSalaryFrequency('Monthly');
+    }
+
+    setEditSkills(Array.isArray(profile.skills) ? [...profile.skills] : []);
+
+    if (Array.isArray(profile.education)) {
+      setEditEducation(profile.education.map((e: any) => ({
+        degree: e.degree || '',
+        institution: e.institution || e.school || '',
+        year: e.year || e.graduationYear || '',
+      })));
+    } else {
+      setEditEducation([]);
+    }
+
+    setEditHeadline(profile.headline || profile.profession || '');
+    setEditSummary(profile.summary || profile.bio || '');
+    setEditPhone(profile.phone || '');
+    setEditMaritalStatus(profile.maritalStatus || 'Single');
+    setEditNationality(profile.citizenshipCountry || profile.nationality || '');
+
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditProfile = async () => {
+    setSavingEdit(true);
+    const token = localStorage.getItem('token');
+    const formattedSalary = editSalaryAmount.trim() ? `${editSalaryCurrency} ${editSalaryAmount.trim()} / ${editSalaryFrequency}` : '';
+    const prefLocs = editPreferredLocations.split(',').map(s => s.trim()).filter(Boolean);
+
+    const payload = {
+      residenceCountry: editCountry.trim(),
+      residenceState: editState.trim(),
+      residenceCity: editCity.trim(),
+      willingToRelocate: editWillingToRelocate,
+      remotePreference: editOpenToRemote ? 'REMOTE_ONLY' : 'ONSITE_ONLY',
+      preferredLocations: prefLocs,
+
+      desiredJobTitle: editDesiredJobTitle.trim(),
+      preferredIndustry: editPreferredIndustry,
+      employmentType: editEmploymentType,
+      workArrangement: editWorkArrangement,
+      expectedSalary: formattedSalary,
+
+      skills: editSkills,
+      education: editEducation,
+
+      headline: editHeadline.trim(),
+      summary: editSummary.trim(),
+      bio: editSummary.trim(),
+
+      phone: editPhone.trim(),
+      maritalStatus: editMaritalStatus,
+      citizenshipCountry: editNationality.trim(),
+      nationality: editNationality.trim(),
+    };
+
+    try {
+      const res = await fetch('/api/profiles/job-seeker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProfile((prev: any) => ({ ...prev, ...updated, ...payload }));
+        setShowEditModal(false);
+      } else {
+        alert('Failed to save profile changes. Please try again.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error updating profile');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem('token');
@@ -432,9 +573,19 @@ export default function ProfilePage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <Link href="/onboarding" className="btn-primary" style={{ textDecoration: 'none', padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--primary-color)' }}>
-                Edit Profile
-              </Link>
+              {user.role === 'JOB_SEEKER' ? (
+                <button
+                  onClick={openEditModal}
+                  className="btn-primary"
+                  style={{ padding: '0.5rem 1.2rem', background: '#00F0FF', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', borderRadius: '8px' }}
+                >
+                  ✏️ Edit Profile
+                </button>
+              ) : (
+                <Link href="/onboarding" className="btn-primary" style={{ textDecoration: 'none', padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--primary-color)' }}>
+                  Edit Profile
+                </Link>
+              )}
               {user.role === 'JOB_SEEKER' && (
                 <button className="btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={() => window.print()}>Export PDF CV</button>
               )}
@@ -983,6 +1134,651 @@ export default function ProfilePage() {
             </Link>
           </div>
         </div>
+
+        {/* Comprehensive Edit Profile Modal */}
+        {showEditModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}>
+            <div style={{
+              background: '#120B1C',
+              border: '1px solid rgba(0, 240, 255, 0.3)',
+              borderRadius: '16px',
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '1.2rem 1.5rem',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#fff', fontWeight: 700 }}>
+                    ✏️ Edit Profile & Career Settings
+                  </h2>
+                  <p style={{ margin: '0.2rem 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+                    Update your residence, target roles, skills, and qualifications anytime.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.6)',
+                    fontSize: '1.5rem',
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Navigation Tabs */}
+              <div style={{
+                display: 'flex',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                overflowX: 'auto',
+              }}>
+                {[
+                  { key: 'location', label: '📍 Location' },
+                  { key: 'preferences', label: '💼 Job Targets' },
+                  { key: 'skills', label: '⚡ Skills' },
+                  { key: 'education', label: '🎓 Education' },
+                  { key: 'bio', label: '👤 Bio & Contact' },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveEditTab(tab.key as any)}
+                    style={{
+                      padding: '0.8rem 1.2rem',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: activeEditTab === tab.key ? '2px solid #00F0FF' : '2px solid transparent',
+                      color: activeEditTab === tab.key ? '#00F0FF' : 'rgba(255,255,255,0.6)',
+                      fontWeight: activeEditTab === tab.key ? 700 : 500,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                {/* TAB 1: LOCATION */}
+                {activeEditTab === 'location' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Country of Residence
+                      </label>
+                      <input
+                        type="text"
+                        value={editCountry}
+                        onChange={e => setEditCountry(e.target.value)}
+                        placeholder="e.g. United States, Germany, Nigeria"
+                        className="input-field"
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          State / Province / Region
+                        </label>
+                        <input
+                          type="text"
+                          value={editState}
+                          onChange={e => setEditState(e.target.value)}
+                          placeholder="e.g. California, Lagos, Bavaria"
+                          className="input-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          City / Town
+                        </label>
+                        <input
+                          type="text"
+                          value={editCity}
+                          onChange={e => setEditCity(e.target.value)}
+                          placeholder="e.g. San Francisco, Berlin, Lagos"
+                          className="input-field"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#fff', cursor: 'pointer', marginBottom: '0.8rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={editWillingToRelocate}
+                          onChange={e => setEditWillingToRelocate(e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
+                        />
+                        <span>✈️ Open to Relocation for the right offer</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#fff', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={editOpenToRemote}
+                          onChange={e => setEditOpenToRemote(e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
+                        />
+                        <span>🌐 Open to 100% Distributed / Remote Roles</span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Preferred Work Locations (comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={editPreferredLocations}
+                        onChange={e => setEditPreferredLocations(e.target.value)}
+                        placeholder="e.g. London, Remote, New York, Zurich"
+                        className="input-field"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: JOB TARGETS */}
+                {activeEditTab === 'preferences' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Desired Job Title / Role
+                      </label>
+                      <input
+                        type="text"
+                        value={editDesiredJobTitle}
+                        onChange={e => setEditDesiredJobTitle(e.target.value)}
+                        placeholder="e.g. Senior Full-Stack Engineer, Product Lead"
+                        className="input-field"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Preferred Industry
+                      </label>
+                      <select
+                        value={editPreferredIndustry}
+                        onChange={e => setEditPreferredIndustry(e.target.value)}
+                        className="input-field"
+                      >
+                        {[
+                          'Information Technology & Software',
+                          'Financial Services & Fintech',
+                          'Healthcare & Pharmaceuticals',
+                          'Engineering & Construction',
+                          'E-commerce & Retail',
+                          'Education & EdTech',
+                          'Energy & CleanTech',
+                          'Consulting & Professional Services',
+                          'Manufacturing & Logistics',
+                          'Artisan & Skilled Trades',
+                          'Other Industry',
+                        ].map(ind => (
+                          <option key={ind} value={ind} style={{ background: '#120B1C' }}>{ind}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          Employment Type
+                        </label>
+                        <select
+                          value={editEmploymentType}
+                          onChange={e => setEditEmploymentType(e.target.value)}
+                          className="input-field"
+                        >
+                          {['Full-time', 'Part-time', 'Contract / Freelance', 'Internship'].map(et => (
+                            <option key={et} value={et} style={{ background: '#120B1C' }}>{et}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          Work Arrangement
+                        </label>
+                        <select
+                          value={editWorkArrangement}
+                          onChange={e => setEditWorkArrangement(e.target.value)}
+                          className="input-field"
+                        >
+                          {['Remote', 'Hybrid', 'On-site'].map(wa => (
+                            <option key={wa} value={wa} style={{ background: '#120B1C' }}>{wa}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Expected Compensation
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.6rem' }}>
+                        <select
+                          value={editSalaryCurrency}
+                          onChange={e => setEditSalaryCurrency(e.target.value)}
+                          style={{
+                            width: '80px',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: '8px',
+                            color: '#00F0FF',
+                            fontWeight: 'bold',
+                            padding: '0.6rem',
+                          }}
+                        >
+                          {['$', '₦', '£', '€', 'C$', 'R', 'KSh', 'GH₵', 'A$', 'AED', '₹', 'CHF'].map(c => (
+                            <option key={c} value={c} style={{ background: '#120B1C' }}>{c}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={editSalaryAmount}
+                          onChange={e => setEditSalaryAmount(e.target.value)}
+                          placeholder="e.g. 5,000"
+                          className="input-field"
+                          style={{ flex: 1 }}
+                        />
+                        <select
+                          value={editSalaryFrequency}
+                          onChange={e => setEditSalaryFrequency(e.target.value)}
+                          style={{
+                            width: '120px',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            padding: '0.6rem',
+                          }}
+                        >
+                          {['Monthly', 'Annually', 'Hourly', 'Daily'].map(f => (
+                            <option key={f} value={f} style={{ background: '#120B1C' }}>{f}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: SKILLS */}
+                {activeEditTab === 'skills' && (
+                  <div>
+                    <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                      Add New Technical or Artisan Skill
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.2rem' }}>
+                      <input
+                        type="text"
+                        value={newSkillInput}
+                        onChange={e => setNewSkillInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = newSkillInput.trim();
+                            if (val && !editSkills.includes(val)) {
+                              setEditSkills([...editSkills, val]);
+                              setNewSkillInput('');
+                            }
+                          }
+                        }}
+                        placeholder="Type skill and press Enter or click Add"
+                        className="input-field"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = newSkillInput.trim();
+                          if (val && !editSkills.includes(val)) {
+                            setEditSkills([...editSkills, val]);
+                            setNewSkillInput('');
+                          }
+                        }}
+                        style={{
+                          background: '#00F0FF',
+                          color: '#000',
+                          border: 'none',
+                          padding: '0.6rem 1.2rem',
+                          borderRadius: '8px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', margin: '0 0 0.6rem 0' }}>
+                      Active Skills ({editSkills.length}) — Click × to remove:
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                      {editSkills.map((s, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            background: 'rgba(0, 240, 255, 0.15)',
+                            color: '#00F0FF',
+                            border: '1px solid rgba(0, 240, 255, 0.4)',
+                            padding: '4px 10px',
+                            borderRadius: '16px',
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          {s}
+                          <button
+                            type="button"
+                            onClick={() => setEditSkills(editSkills.filter((_, i) => i !== idx))}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#00F0FF',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              padding: 0,
+                              lineHeight: 1,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', margin: '0 0 0.4rem 0' }}>
+                      Popular Suggestions (click to add):
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {['Flutter', 'React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'Docker', 'PostgreSQL', 'UI/UX Design', 'Project Management', 'FastAPI']
+                        .filter(s => !editSkills.includes(s))
+                        .map(s => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setEditSkills([...editSkills, s])}
+                            style={{
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.1)',
+                              color: 'rgba(255,255,255,0.7)',
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            + {s}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 4: EDUCATION */}
+                {activeEditTab === 'education' && (
+                  <div>
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      marginBottom: '1.5rem',
+                    }}>
+                      <h4 style={{ margin: '0 0 0.8rem 0', color: '#00F0FF', fontSize: '0.95rem' }}>
+                        + Add New Degree / Qualification
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: '0.8rem', marginBottom: '0.8rem' }}>
+                        <input
+                          type="text"
+                          value={newDegree}
+                          onChange={e => setNewDegree(e.target.value)}
+                          placeholder="Degree / Certificate *"
+                          className="input-field"
+                        />
+                        <input
+                          type="text"
+                          value={newInstitution}
+                          onChange={e => setNewInstitution(e.target.value)}
+                          placeholder="University / College"
+                          className="input-field"
+                        />
+                        <input
+                          type="text"
+                          value={newGradYear}
+                          onChange={e => setNewGradYear(e.target.value)}
+                          placeholder="Year"
+                          className="input-field"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newDegree.trim()) {
+                            setEditEducation([
+                              ...editEducation,
+                              { degree: newDegree.trim(), institution: newInstitution.trim(), year: newGradYear.trim() }
+                            ]);
+                            setNewDegree('');
+                            setNewInstitution('');
+                            setNewGradYear('');
+                          }
+                        }}
+                        style={{
+                          background: '#00F0FF',
+                          color: '#000',
+                          border: 'none',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '8px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Add to Education List
+                      </button>
+                    </div>
+
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', margin: '0 0 0.8rem 0' }}>
+                      Current Qualifications ({editEducation.length}):
+                    </p>
+                    {editEducation.length === 0 ? (
+                      <p style={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                        No qualifications added yet. Use the form above to add your degrees.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        {editEducation.map((edu, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '0.8rem 1rem',
+                              background: 'rgba(255,255,255,0.04)',
+                              borderRadius: '8px',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                          >
+                            <div>
+                              <strong style={{ color: '#fff', display: 'block', fontSize: '0.95rem' }}>{edu.degree}</strong>
+                              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem' }}>
+                                {edu.institution} {edu.year ? `• Class of ${edu.year}` : ''}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditEducation(editEducation.filter((_, i) => i !== idx))}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                color: '#f87171',
+                                border: 'none',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem',
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 5: BIO & CONTACT */}
+                {activeEditTab === 'bio' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Professional Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={editHeadline}
+                        onChange={e => setEditHeadline(e.target.value)}
+                        placeholder="e.g. Senior Mobile & Cloud Architect | Ex-Google"
+                        className="input-field"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Professional Summary / Bio
+                      </label>
+                      <textarea
+                        rows={5}
+                        value={editSummary}
+                        onChange={e => setEditSummary(e.target.value)}
+                        placeholder="Describe your background, key technical milestones, leadership experience..."
+                        className="input-field"
+                        style={{ width: '100%', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={editPhone}
+                          onChange={e => setEditPhone(e.target.value)}
+                          placeholder="e.g. +1 415 555 2671"
+                          className="input-field"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          Citizenship / Nationality
+                        </label>
+                        <input
+                          type="text"
+                          value={editNationality}
+                          onChange={e => setEditNationality(e.target.value)}
+                          placeholder="e.g. United States, German"
+                          className="input-field"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        Marital Status
+                      </label>
+                      <select
+                        value={editMaritalStatus}
+                        onChange={e => setEditMaritalStatus(e.target.value)}
+                        className="input-field"
+                      >
+                        {['Single', 'Married', 'Divorced', 'Prefer not to say'].map(ms => (
+                          <option key={ms} value={ms} style={{ background: '#120B1C' }}>{ms}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '1.2rem 1.5rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.8rem',
+                background: 'rgba(255, 255, 255, 0.02)',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#fff',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEditProfile}
+                  disabled={savingEdit}
+                  style={{
+                    background: '#00F0FF',
+                    border: 'none',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    padding: '0.6rem 1.5rem',
+                    borderRadius: '8px',
+                    cursor: savingEdit ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(0, 240, 255, 0.3)',
+                  }}
+                >
+                  {savingEdit ? 'Saving Changes...' : 'Save All Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </main>

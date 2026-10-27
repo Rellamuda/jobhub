@@ -11,6 +11,7 @@ import 'login_screen.dart';
 import 'onboarding_screen.dart';
 import 'employer_crm_screen.dart';
 import 'subscription_screen.dart';
+import 'screens/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -726,7 +727,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const OnboardingScreen())).then((_) => _fetchData());
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProfileScreen(initialProfile: _profile),
+                    ),
+                  ).then((updated) {
+                    if (updated == true) _fetchData();
+                  });
                 },
                 icon: const Icon(Icons.edit, color: Colors.black),
                 label: const Text('Edit Profile', style: TextStyle(color: Colors.black)),

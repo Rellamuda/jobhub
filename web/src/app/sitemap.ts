@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://jobhub-app.duckdns.org';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://skillskonnect.online';
   const currentDate = new Date().toISOString();
 
   return [

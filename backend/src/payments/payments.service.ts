@@ -79,7 +79,7 @@ export class PaymentsService {
           tx_ref: reference,
           amount: amount,
           currency: 'USD',
-          redirect_url: callbackUrl || process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/pricing?status=success` : 'https://jobhub-app.duckdns.org/pricing?status=success',
+          redirect_url: callbackUrl || process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/pricing?status=success` : 'https://skillskonnect.online/pricing?status=success',
           customer: {
             email: email || 'user@jobhub.ai',
           },
@@ -87,7 +87,7 @@ export class PaymentsService {
           customizations: {
             title: 'JobHub Subscription',
             description: `Upgrade to ${plan}`,
-            logo: 'https://jobhub-app.duckdns.org/icon.svg',
+            logo: 'https://skillskonnect.online/icon.svg',
           },
         },
         {
@@ -126,7 +126,7 @@ export class PaymentsService {
         currency: 'NGN',
         reference,
         metadata: { userId, plan, amountUsd: amount },
-        callback_url: callbackUrl || process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/pricing?status=success` : 'https://jobhub-app.duckdns.org/pricing?status=success',
+        callback_url: callbackUrl || process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/pricing?status=success` : 'https://skillskonnect.online/pricing?status=success',
       },
       {
         headers: {

@@ -341,7 +341,7 @@ function ResumeBuilder() {
   const handleShareResume = async () => {
     const fName = resume.personalInfo?.firstName || 'Candidate';
     const lName = resume.personalInfo?.lastName || '';
-    const text = `${fName} ${lName} - ${resume.title}\n\nSummary:\n${resume.summary || ''}\n\nSkills: ${(resume.skills || []).join(', ')}\n\nGenerated via JobHub Global (https://jobhub-app.duckdns.org)`;
+    const text = `${fName} ${lName} - ${resume.title}\n\nSummary:\n${resume.summary || ''}\n\nSkills: ${(resume.skills || []).join(', ')}\n\nGenerated via JobHub Global (https://skillskonnect.online)`;
     if (navigator.share) {
       try {
         await navigator.share({ title: `${fName} ${lName} - Resume`, text });

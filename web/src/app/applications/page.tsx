@@ -224,7 +224,7 @@ export default function EmployerDashboard() {
       emp.whyWorkWithUs ? `\nWHY WORK WITH US:\n${emp.whyWorkWithUs}` : '',
       ``,
       `Active Job Postings: ${jobs.length}`,
-      `Generated via JobHub Global (https://jobhub-app.duckdns.org)`
+      `Generated via JobHub Global (https://skillskonnect.online)`
     ].filter(Boolean).join('\n');
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });

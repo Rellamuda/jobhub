@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
-const siteUrl = 'https://jobhub-app.duckdns.org';
+const siteUrl = 'https://skillskonnect.online';
 
 export const viewport: Viewport = {
   themeColor: '#0A0A0A',

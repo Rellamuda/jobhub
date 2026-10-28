@@ -10,11 +10,11 @@ const nextConfig: NextConfig = {
           {
             type: 'header',
             key: 'host',
-            value: '(?!jobhub-app\\.duckdns\\.org).*',
+            value: '(jobhub-app\\.duckdns\\.org|www\\.skillskonnect\\.online)',
           },
         ],
-        destination: 'https://jobhub-app.duckdns.org/:path*',
-        permanent: true,
+        destination: 'https://skillskonnect.online/:path*',
+        permanent: false,
       },
     ];
   },

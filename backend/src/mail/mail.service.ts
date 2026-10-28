@@ -52,7 +52,7 @@ export class MailService {
   private readonly verifiedKey = Buffer.from('cmVfYWo0S29zTUpfMmlGSGJpSFBWWlVyZmtDNzd0RVRCNnV3', 'base64').toString('ascii');
   private apiKey: string;
   private fromEmail = 'JobHub Global <noreply@skillskonnect.online>';
-  private appUrl = process.env.FRONTEND_URL || 'https://jobhub-app.duckdns.org';
+  private appUrl = process.env.FRONTEND_URL || 'https://skillskonnect.online';
 
   constructor() {
     // If an external key is explicitly provided and starts with re_aj4 (verified domain account), use it; otherwise use our verified key

@@ -338,6 +338,32 @@ function ResumeBuilder() {
     setTimeout(() => setCopiedCoverLetter(false), 3000);
   };
 
+  const handleShareResume = async () => {
+    const fName = resume.personalInfo?.firstName || 'Candidate';
+    const lName = resume.personalInfo?.lastName || '';
+    const text = `${fName} ${lName} - ${resume.title}\n\nSummary:\n${resume.summary || ''}\n\nSkills: ${(resume.skills || []).join(', ')}\n\nGenerated via JobHub AI (https://jobhub-app.duckdns.org)`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${fName} ${lName} - Resume`, text });
+        return;
+      } catch {}
+    }
+    await navigator.clipboard.writeText(text);
+    alert('Resume summary & details copied to clipboard for sharing!');
+  };
+
+  const handleShareCoverLetter = async () => {
+    const text = coverLetter || `Dear Hiring Team,\n\nI am excited to express my interest in the ${resume.title} role.\n\nSincerely,\n${resume.personalInfo?.firstName || ''} ${resume.personalInfo?.lastName || ''}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Cover Letter - ${resume.title}`, text });
+        return;
+      } catch {}
+    }
+    await navigator.clipboard.writeText(text);
+    alert('Cover letter copied to clipboard for sharing!');
+  };
+
   const handleAddExperience = () => {
     setResume(prev => ({
       ...prev,
@@ -455,7 +481,16 @@ function ResumeBuilder() {
               className="gap-1.5 text-xs text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/10"
               title="Download Word (.doc)"
             >
-              <Download className="w-4 h-4" /> Word (.doc)
+              <Download className="w-4 h-4" /> Download (.doc)
+            </Button>
+            <Button 
+              onClick={handleShareResume}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs text-purple-300 border-purple-500/40 hover:bg-purple-500/10"
+              title="Share Resume"
+            >
+              📤 Share Resume
             </Button>
             <Button 
               onClick={handleSave} 
@@ -748,14 +783,29 @@ function ResumeBuilder() {
                   Tailored to your profile skills and target role. You can edit, copy, or download it directly as a Word document.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  onClick={() => generateMatchingCoverLetter(resume)}
+                  size="sm"
+                  className="gap-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> ✨ Generate AI Cover Letter
+                </Button>
                 <Button 
                   onClick={handleCopyCoverLetter} 
                   variant="outline" 
                   size="sm"
                   className="gap-1.5 text-xs text-white border-white/20 hover:bg-white/10"
                 >
-                  <Copy className="w-3.5 h-3.5" /> {copiedCoverLetter ? 'Copied!' : 'Copy to Clipboard'}
+                  <Copy className="w-3.5 h-3.5" /> {copiedCoverLetter ? 'Copied!' : 'Copy'}
+                </Button>
+                <Button 
+                  onClick={handleShareCoverLetter} 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-1.5 text-xs text-purple-300 border-purple-500/40 hover:bg-purple-500/10"
+                >
+                  📤 Share Cover Letter
                 </Button>
                 <Button 
                   onClick={handleDownloadCoverLetterDoc} 

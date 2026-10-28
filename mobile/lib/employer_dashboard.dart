@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'config/api_config.dart';
 
 import 'profile_screen.dart';
 import 'create_job_screen.dart';
 import 'employer_crm_screen.dart';
 import 'login_screen.dart';
+import 'chat_screen.dart';
 
 class EmployerDashboard extends StatefulWidget {
   const EmployerDashboard({super.key});
@@ -20,6 +23,8 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
   int _currentIndex = 0;
   List<dynamic> _jobs = [];
   List<dynamic> _inbox = [];
+  List<dynamic> _notifications = [];
+  Map<String, dynamic> _employerProfile = {};
   bool _isLoading = true;
   String _companyName = '';
   String _profilePic = '';
@@ -43,15 +48,18 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
       final jobsRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/jobs/employer/me'), headers: {'Authorization': 'Bearer $token'});
       final inboxRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/messages/inbox'), headers: {'Authorization': 'Bearer $token'});
       final profRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/profiles/employer'), headers: {'Authorization': 'Bearer $token'});
+      final notifRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/profiles/notifications'), headers: {'Authorization': 'Bearer $token'});
 
       setState(() {
         if (jobsRes.statusCode == 200) {
           _jobs = jsonDecode(jobsRes.body);
-          if (_jobs.isNotEmpty) _selectedJobId = _jobs[0]['id'];
+          if (_jobs.isNotEmpty && _selectedJobId == null) _selectedJobId = _jobs[0]['id'];
         }
         if (inboxRes.statusCode == 200) _inbox = jsonDecode(inboxRes.body);
+        if (notifRes.statusCode == 200) _notifications = jsonDecode(notifRes.body);
         if (profRes.statusCode == 200) {
           final prof = jsonDecode(profRes.body);
+          _employerProfile = prof is Map<String, dynamic> ? prof : {};
           _companyName = prof['companyName'] ?? 'Employer';
           _profilePic = prof['profilePicture'] ?? '';
         }
@@ -64,6 +72,197 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
     } catch (e) {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _markAlertAsRead(dynamic notif) async {
+    if (notif == null || notif['id'] == null || notif['isRead'] == true) return;
+    setState(() {
+      notif['isRead'] = true;
+    });
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+      await http.patch(
+        Uri.parse('${ApiConfig.baseUrl}/profiles/notifications/${notif['id']}/read'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _dismissAlert(String notificationId) async {
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+      final res = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/profiles/notifications/$notificationId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode == 200 || res.statusCode == 204) {
+        _fetchData();
+      }
+    } catch (_) {}
+  }
+
+  void _showCompanyProfileDownloadModal() {
+    final name = _employerProfile['companyName'] ?? (_companyName.isNotEmpty ? _companyName : 'My Organization');
+    final industry = _employerProfile['industry'] ?? 'Corporate & Professional Services';
+    final bizType = _employerProfile['businessType'] ?? 'Employer / Agency';
+    final location = '${_employerProfile['locationCity'] ?? ''} ${_employerProfile['locationCountry'] ?? 'Global'}'.trim();
+    final website = _employerProfile['website'] ?? 'https://jobhub-app.duckdns.org';
+    final desc = _employerProfile['description'] ?? '$name is a premier $industry organization dedicated to excellence and top talent acquisition.';
+    final mission = _employerProfile['mission'] ?? 'To empower global talent and deliver industry-leading solutions in $industry.';
+    final vision = _employerProfile['vision'] ?? 'Being the most trusted and innovative employer and agency partner worldwide.';
+    final culture = _employerProfile['culture'] ?? 'Collaborative, merit-driven, inclusive, and high-growth culture.';
+    final whyWork = _employerProfile['whyWorkWithUs'] ?? 'Competitive compensation, clear career progression, and impactful work.';
+    final values = (_employerProfile['coreValues'] is List && (_employerProfile['coreValues'] as List).isNotEmpty)
+        ? (_employerProfile['coreValues'] as List).join(', ')
+        : 'Excellence, Integrity, Innovation, Diversity';
+    final benefits = (_employerProfile['benefits'] is List && (_employerProfile['benefits'] as List).isNotEmpty)
+        ? (_employerProfile['benefits'] as List).join(', ')
+        : 'Competitive Salary, Flexible Work Mode, Career Development, Health Coverage';
+
+    final formattedDoc = '''
+==================================================
+$name - OFFICIAL AI COMPANY / AGENCY PROFILE
+==================================================
+Organization Type: $bizType
+Industry: $industry
+Location: $location
+Website: $website
+
+EXECUTIVE OVERVIEW
+$desc
+
+MISSION STATEMENT
+$mission
+
+VISION
+$vision
+
+CORE VALUES
+$values
+
+COMPANY CULTURE & ENVIRONMENT
+$culture
+
+WHY WORK WITH US
+$whyWork
+
+EMPLOYEE BENEFITS & PERKS
+$benefits
+==================================================
+Generated by JobHub AI Global
+''';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E162B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.75,
+          maxChildSize: 0.92,
+          minChildSize: 0.5,
+          builder: (_, scrollCtrl) => Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '📥 AI Company / Agency Profile',
+                        style: TextStyle(color: Color(0xFF00F0FF), fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white54),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollCtrl,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: SelectableText(
+                        formattedDoc,
+                        style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: formattedDoc));
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Color(0xFF10B981),
+                              content: Text('AI Company Profile copied & ready to save/paste!'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.download, color: Colors.black, size: 18),
+                        label: const Text('Copy / Save Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00F0FF),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final uri = Uri.parse(
+                            'https://wa.me/?text=${Uri.encodeComponent(formattedDoc)}',
+                          );
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } else {
+                            Clipboard.setData(ClipboardData(text: formattedDoc));
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Copied profile to clipboard for sharing!')),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.share, color: Color(0xFF10B981), size: 18),
+                        label: const Text('Share Profile', style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF10B981)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _fetchMatches() async {
@@ -105,6 +304,7 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
           _invitedUserIds.add(userId);
         });
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invitation sent!')));
+        _fetchData();
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -113,6 +313,8 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadAlertsCount = _notifications.where((n) => n['isRead'] != true).length;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -125,47 +327,82 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
           elevation: 0,
           automaticallyImplyLeading: false,
           title: Text(
-            _currentIndex == 0 ? 'My Jobs' : _currentIndex == 1 ? 'Applications' : _currentIndex == 2 ? 'Matches' : _currentIndex == 3 ? 'Messages' : 'Profile',
+            _currentIndex == 0
+                ? 'My Jobs'
+                : _currentIndex == 1
+                    ? 'Applications'
+                    : _currentIndex == 2
+                        ? 'Matches'
+                        : _currentIndex == 3
+                            ? 'Messages'
+                            : _currentIndex == 4
+                                ? 'Alerts & Notifications'
+                                : 'Profile',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.download_for_offline, color: Color(0xFF10B981)),
+              tooltip: 'Download AI Company Profile',
+              onPressed: _showCompanyProfileDownloadModal,
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white70),
+              tooltip: 'Refresh',
+              onPressed: _fetchData,
+            ),
+          ],
         ),
-      floatingActionButton: _currentIndex == 0 ? FloatingActionButton.extended(
-        onPressed: () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateJobScreen()));
-          _fetchData();
-        },
-        backgroundColor: const Color(0xFF00F0FF),
-        icon: const Icon(Icons.add, color: Colors.black),
-        label: const Text('Post Job (AI)', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-      ) : null,
-      body: _isLoading ? const Center(child: CircularProgressIndicator()) : IndexedStack(
-        index: _currentIndex,
-        children: [
-          _buildJobsTab(),
-          _buildApplicationsTab(),
-          _buildMatchesTab(),
-          _buildInbox(),
-          const ProfileScreen(),
-        ],
+        floatingActionButton: _currentIndex == 0
+            ? FloatingActionButton.extended(
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateJobScreen()));
+                  _fetchData();
+                },
+                backgroundColor: const Color(0xFF00F0FF),
+                icon: const Icon(Icons.add, color: Colors.black),
+                label: const Text('Post Job (AI)', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              )
+            : null,
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : IndexedStack(
+                index: _currentIndex,
+                children: [
+                  _buildJobsTab(),
+                  _buildApplicationsTab(),
+                  _buildMatchesTab(),
+                  _buildInbox(),
+                  _buildNotificationsTab(),
+                  const ProfileScreen(),
+                ],
+              ),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: const Color(0xFF0A0A0A),
+          selectedItemColor: const Color(0xFF00F0FF),
+          unselectedItemColor: Colors.white54,
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Jobs'),
+            const BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Apps'),
+            const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Matches'),
+            const BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
+            BottomNavigationBarItem(
+              icon: Badge(
+                label: unreadAlertsCount > 0 ? Text('$unreadAlertsCount') : null,
+                isLabelVisible: unreadAlertsCount > 0,
+                child: const Icon(Icons.notifications),
+              ),
+              label: 'Alerts',
+            ),
+            const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF0A0A0A),
-        selectedItemColor: const Color(0xFF00F0FF),
-        unselectedItemColor: Colors.white54,
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Jobs'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Apps'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Matches'),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildJobsTab() {
     if (_jobs.isEmpty) {
@@ -323,11 +560,22 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
                             ],
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.message, color: Colors.white70),
+                            icon: const Icon(Icons.message, color: Color(0xFF00F0FF)),
                             tooltip: 'Message Seeker',
-                            onPressed: () {
+                            onPressed: () async {
                               if (seeker?['userId'] != null) {
-                                _inviteCandidate(seeker['userId']);
+                                final fullName = '${seeker?['firstName'] ?? 'Applicant'} ${seeker?['lastName'] ?? ''}'.trim();
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatScreen(
+                                      otherUserId: seeker['userId'].toString(),
+                                      otherUserName: fullName.isNotEmpty ? fullName : 'Applicant',
+                                      otherUserRole: 'Job Seeker',
+                                    ),
+                                  ),
+                                );
+                                _fetchData();
                               }
                             },
                           ),
@@ -484,17 +732,188 @@ class _EmployerDashboardState extends State<EmployerDashboard> {
   }
 
   Widget _buildInbox() {
-    if (_inbox.isEmpty) return const Center(child: Text('No messages', style: TextStyle(color: Colors.white)));
-    return ListView.builder(
+    if (_inbox.isEmpty) {
+      return const Center(
+        child: Text('No messages yet.', style: TextStyle(color: Colors.white70)),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
       itemCount: _inbox.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final item = _inbox[index];
-        final otherName = item['otherUser']?['jobSeekerProfile']?['firstName'] ?? 'Candidate';
-        return ListTile(
-          leading: const CircleAvatar(backgroundColor: Colors.white12, child: Icon(Icons.person, color: Colors.white)),
-          title: Text(otherName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          subtitle: Text(item['latestMessage']?['content'] ?? '', style: const TextStyle(color: Colors.white54), maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+        final otherUser = item['otherUser'] ?? {};
+        final otherUserId = otherUser['id']?.toString() ?? '';
+        final seekerProfile = otherUser['jobSeekerProfile'];
+        final otherName = seekerProfile != null
+            ? '${seekerProfile['firstName'] ?? ''} ${seekerProfile['lastName'] ?? ''}'.trim()
+            : (otherUser['email'] != null ? otherUser['email'].toString().split('@').first : 'Candidate');
+
+        return Card(
+          color: Colors.white.withOpacity(0.05),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            leading: const CircleAvatar(
+              backgroundColor: Colors.white12,
+              child: Icon(Icons.person, color: Color(0xFF00F0FF)),
+            ),
+            title: Text(
+              otherName.isNotEmpty ? otherName : 'Candidate',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              item['latestMessage']?['content'] ?? 'Tap to view conversation',
+              style: const TextStyle(color: Colors.white60),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Color(0xFF00F0FF)),
+            onTap: () async {
+              if (otherUserId.isEmpty) return;
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    otherUserId: otherUserId,
+                    otherUserName: otherName.isNotEmpty ? otherName : 'Candidate',
+                    otherUserRole: 'Job Seeker',
+                  ),
+                ),
+              );
+              _fetchData();
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationsTab() {
+    if (_notifications.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Text(
+            'No employer notifications at this time. When candidates apply, respond to interview invitations, or send messages, alerts will appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white60, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _notifications.length,
+      padding: const EdgeInsets.all(16),
+      itemBuilder: (context, index) {
+        final notif = _notifications[index];
+        final bool isRead = notif['isRead'] == true;
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _markAlertAsRead(notif),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isRead ? Colors.white.withOpacity(0.02) : Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isRead ? Colors.white12 : const Color(0xFF00F0FF).withOpacity(0.5),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '🔔 Employer Alert',
+                          style: TextStyle(
+                            color: isRead ? Colors.white54 : const Color(0xFF00F0FF),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isRead ? Colors.white10 : const Color(0xFF00F0FF).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            isRead ? 'Read' : 'New',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isRead ? Colors.white54 : const Color(0xFF00F0FF),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18, color: Colors.white54),
+                      onPressed: () => _dismissAlert(notif['id']),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  notif['message'] ?? 'You have a new recruitment notification.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: isRead ? FontWeight.normal : FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    if (notif['jobId'] != null)
+                      ElevatedButton(
+                        onPressed: () {
+                          _markAlertAsRead(notif);
+                          setState(() {
+                            _selectedJobId = notif['jobId'];
+                            _currentIndex = 1; // Switch to Applications tab
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00F0FF),
+                          foregroundColor: Colors.black,
+                        ),
+                        child: const Text('Review Applicants', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    OutlinedButton(
+                      onPressed: () {
+                        _markAlertAsRead(notif);
+                        setState(() => _currentIndex = 3); // Switch to Messages tab
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                      ),
+                      child: const Text('Open Messages'),
+                    ),
+                    if (!isRead)
+                      TextButton(
+                        onPressed: () => _markAlertAsRead(notif),
+                        child: const Text('Mark Read', style: TextStyle(color: Color(0xFF00F0FF))),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         );
       },
     );

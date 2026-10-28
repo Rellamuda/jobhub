@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request, ForbiddenException, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Patch, Delete, Body, UseGuards, Request, ForbiddenException, Param, Query } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Prisma } from '@prisma/client';
@@ -139,6 +139,16 @@ export class ProfilesController {
   @Get('notifications')
   async getNotifications(@Request() req) {
     return this.profilesService.getNotifications(req.user.userId);
+  }
+
+  @Patch('notifications/:id/read')
+  async markNotificationReadPatch(@Request() req, @Param('id') id: string) {
+    return this.profilesService.markNotificationRead(req.user.userId, id);
+  }
+
+  @Post('notifications/:id/read')
+  async markNotificationReadPost(@Request() req, @Param('id') id: string) {
+    return this.profilesService.markNotificationRead(req.user.userId, id);
   }
 
   @Delete('notifications/:id')

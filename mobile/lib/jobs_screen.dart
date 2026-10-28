@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'create_job_screen.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
@@ -55,6 +57,18 @@ class _JobsScreenState extends State<JobsScreen> {
   }
 
   Future<void> _apply(String jobId) async {
+    final targetJob = _jobs.firstWhere((j) => j['id'] == jobId, orElse: () => null);
+    if (targetJob != null && targetJob['requiresCoverLetter'] == true && _coverLetterController.text.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.orange,
+          content: Text('📄 This job requires a Cover Letter! Tap "AI Cover Letter" to generate one automatically.'),
+        ),
+      );
+      return;
+    }
+
     try {
       final token = await ApiConfig.getToken();
 
@@ -80,7 +94,10 @@ class _JobsScreenState extends State<JobsScreen> {
       if (!mounted) return;
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Application submitted successfully!')),
+          const SnackBar(
+            backgroundColor: Color(0xFF10B981),
+            content: Text('Application submitted successfully! 🎉'),
+          ),
         );
         setState(() {
           _applyingJobId = null;
@@ -107,31 +124,48 @@ class _JobsScreenState extends State<JobsScreen> {
     try {
       final token = await ApiConfig.getToken();
 
-      // 1. Fetch user profile
-      final profileResponse = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/profiles/job-seeker'),
-        headers: {'Authorization': 'Bearer $token'},
+      Map<String, dynamic> profileData = {};
+      try {
+        final profileResponse = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/profiles/job-seeker'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (profileResponse.statusCode == 200) {
+          profileData = jsonDecode(profileResponse.body);
+        }
+      } catch (_) {}
+
+      final generateResponse = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/ai/cover-letter/generate'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'jobId': job['id'],
+          'profile': profileData,
+          'job': job,
+        }),
       );
       
-      if (profileResponse.statusCode == 200) {
-        final profileData = jsonDecode(profileResponse.body);
-        
-        // 2. Generate cover letter
-        final generateResponse = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/ai/cover-letter/generate'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'profile': profileData,
-            'job': job,
-          }),
-        );
-        
-        if (generateResponse.statusCode == 200 || generateResponse.statusCode == 201) {
-          final data = jsonDecode(generateResponse.body);
-          setState(() {
-            _coverLetterController.text = data['cover_letter'];
-          });
+      if (generateResponse.statusCode == 200 || generateResponse.statusCode == 201) {
+        final data = jsonDecode(generateResponse.body);
+        setState(() {
+          _coverLetterController.text = (data['cover_letter'] ?? data['coverLetter'] ?? '').toString();
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF10B981),
+              content: Text('✨ AI Cover Letter generated! You can edit, copy/save, or share it below.'),
+            ),
+          );
         }
+      } else {
+        final company = job['employer']?['companyName'] ?? 'Hiring Team';
+        setState(() {
+          _coverLetterController.text = 'Dear $company Hiring Team,\n\nI am writing to express my strong interest in the ${job['title'] ?? 'open'} position. With my background and skills, I am confident I will make an immediate impact on your organization.\n\nThank you for your time and consideration.\n\nSincerely,\n${profileData['firstName'] ?? 'Applicant'} ${profileData['lastName'] ?? ''}';
+        });
       }
     } catch (e) {
       if (!mounted) return;
@@ -534,7 +568,43 @@ class _JobsScreenState extends State<JobsScreen> {
                                     ],
                                   ),
                                 ),
-                                _buildBadge(Icons.location_on, '${job['location'] ?? 'Anywhere'} ${(job['isRemote'] ?? false) ? '(Remote)' : ''}'),
+                                _buildBadge(Icons.location_on, '${job['location'] ?? 'Anywhere'}'),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00F0FF).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.35)),
+                                  ),
+                                  child: Text(
+                                    job['workMode'] == 'REMOTE' || job['isRemote'] == true
+                                        ? '🌐 Remote'
+                                        : (job['workMode'] == 'HYBRID' ? '🔄 Hybrid' : '🏢 Onsite'),
+                                    style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: job['requiresCoverLetter'] == true
+                                        ? const Color(0xFFF59E0B).withOpacity(0.15)
+                                        : const Color(0xFF10B981).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: job['requiresCoverLetter'] == true
+                                          ? const Color(0xFFF59E0B).withOpacity(0.45)
+                                          : const Color(0xFF10B981).withOpacity(0.45),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    job['requiresCoverLetter'] == true ? '📄 Cover Letter Required' : '⚡ Cover Letter Optional',
+                                    style: TextStyle(
+                                      color: job['requiresCoverLetter'] == true ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                                 _buildBadge(Icons.attach_money, job['salary'] ?? 'Competitive'),
                               ],
                             ),
@@ -602,23 +672,27 @@ class _JobsScreenState extends State<JobsScreen> {
                               TextField(
                                 controller: _coverLetterController,
                                 style: const TextStyle(color: Colors.white),
-                                maxLines: 3,
+                                maxLines: 5,
                                 decoration: InputDecoration(
-                                  hintText: 'Add an optional cover letter (if requested)...',
-                                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                                  hintText: job['requiresCoverLetter'] == true
+                                      ? '📄 Cover Letter is REQUIRED for this job. Tap "AI Cover Letter" below to generate one automatically!'
+                                      : 'Add an optional cover letter (or tap "AI Cover Letter" to generate one)...',
+                                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                                   filled: true,
                                   fillColor: Colors.white.withOpacity(0.05),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                alignment: WrapAlignment.spaceBetween,
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: _isGeneratingCoverLetter ? null : () => _generateCoverLetter(job),
-                                    icon: const Icon(Icons.auto_awesome, size: 18),
-                                    label: Text(_isGeneratingCoverLetter ? 'Generating...' : 'AI Cover Letter'),
+                                    icon: const Icon(Icons.auto_awesome, size: 16),
+                                    label: Text(_isGeneratingCoverLetter ? 'Generating...' : '✨ AI Cover Letter'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.indigoAccent,
                                       foregroundColor: Colors.white,
@@ -627,6 +701,47 @@ class _JobsScreenState extends State<JobsScreen> {
                                       ),
                                     ),
                                   ),
+                                  if (_coverLetterController.text.trim().isNotEmpty) ...[
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        Clipboard.setData(ClipboardData(text: _coverLetterController.text.trim()));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            backgroundColor: Color(0xFF10B981),
+                                            content: Text('📥 Cover letter copied & saved to clipboard!'),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.download, size: 16, color: Color(0xFF10B981)),
+                                      label: const Text('Save / Copy', style: TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: Color(0xFF10B981)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final text = _coverLetterController.text.trim();
+                                        final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        } else {
+                                          Clipboard.setData(ClipboardData(text: text));
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Cover letter copied for sharing!')),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      icon: const Icon(Icons.share, size: 16, color: Color(0xFF00F0FF)),
+                                      label: const Text('Share', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 12, fontWeight: FontWeight.bold)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: Color(0xFF00F0FF)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                  ],
                                   ElevatedButton(
                                     onPressed: () => _apply(job['id']),
                                     style: ElevatedButton.styleFrom(

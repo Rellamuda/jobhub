@@ -72,6 +72,21 @@ export class ApplicationsService {
       console.error('Error creating acknowledgement notification:', err);
     }
 
+    if (job.employer?.userId) {
+      try {
+        await this.prisma.notification.create({
+          data: {
+            userId: job.employer.userId,
+            jobId: job.id,
+            matchProbability: Math.round(matchScore || 90),
+            message: `📥 New Application: ${candidateName || 'A candidate'} applied for "${job.title}" (${Math.round(matchScore || 85)}% AI Match).`,
+          },
+        });
+      } catch (err) {
+        console.error('Error creating employer application notification:', err);
+      }
+    }
+
     if (candidateEmail) {
       this.mailService.sendApplicationAcknowledgement({
         to: candidateEmail,
@@ -372,7 +387,7 @@ export class ApplicationsService {
     // Verify employer owns the job
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
-      include: { job: true },
+      include: { job: { include: { employer: true } }, jobSeekerProfile: true },
     });
 
     if (!application) {
@@ -387,10 +402,28 @@ export class ApplicationsService {
       throw new ForbiddenException('You do not have permission to update this application.');
     }
 
-    return this.prisma.application.update({
+    const updated = await this.prisma.application.update({
       where: { id: applicationId },
       data: { status },
     });
+
+    if (application.jobSeekerProfile?.userId) {
+      try {
+        const companyName = employer?.companyName || 'The employer';
+        await this.prisma.notification.create({
+          data: {
+            userId: application.jobSeekerProfile.userId,
+            jobId: application.jobId,
+            matchProbability: Math.round(application.aiMatchScore || 90),
+            message: `🔔 Application Update: ${companyName} updated your application status for "${application.job.title}" to ${status}.`,
+          },
+        });
+      } catch (err) {
+        console.error('Error creating status update notification:', err);
+      }
+    }
+
+    return updated;
   }
 
   async inviteCandidate(employerUserId: string, jobId: string, jobSeekerUserId: string) {
@@ -426,10 +459,33 @@ export class ApplicationsService {
       });
     }
 
+    const candidateName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Candidate';
+
+    // Create an initial conversation message and notification for the candidate
+    try {
+      await this.prisma.message.create({
+        data: {
+          senderId: employerUserId,
+          receiverId: jobSeekerUserId,
+          content: `🎉 Hello ${candidateName}! You have been invited by ${employer.companyName} to interview for the "${job.title}" position. Please reply here or accept the invitation from your Applications dashboard.`,
+        },
+      });
+      await this.prisma.notification.create({
+        data: {
+          userId: jobSeekerUserId,
+          jobId: job.id,
+          matchProbability: 95,
+          message: `🎉 Interview Invitation: ${employer.companyName} invited you to interview for "${job.title}". Check your Applications or Messages to respond!`,
+        },
+      });
+    } catch (err) {
+      console.error('Error creating invitation message/notification:', err);
+    }
+
     if (profile.user?.email) {
       this.mailService.sendInterviewInvitation({
         to: profile.user.email,
-        candidateName: `${profile.firstName || ''} ${profile.lastName || ''}`.trim(),
+        candidateName,
         companyName: employer.companyName,
         jobTitle: job.title,
         interviewDate: new Date(),
@@ -443,7 +499,12 @@ export class ApplicationsService {
     const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId: jobSeekerUserId } });
     if (!profile) throw new NotFoundException('Profile not found');
 
-    const application = await this.prisma.application.findUnique({ where: { id: applicationId } });
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        job: { include: { employer: true } },
+      },
+    });
     if (!application || application.jobSeekerId !== profile.id) {
       throw new ForbiddenException('Not your application');
     }
@@ -453,10 +514,46 @@ export class ApplicationsService {
       throw new ForbiddenException('Invalid status update for job seeker');
     }
 
-    return this.prisma.application.update({
+    const updated = await this.prisma.application.update({
       where: { id: applicationId },
       data: { status }
     });
+
+    const employerUserId = application.job?.employer?.userId;
+    const candidateName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'A candidate';
+    const jobTitle = application.job?.title || 'your job opening';
+    const isAccepted = status === 'ACCEPTED_OFFER';
+
+    if (employerUserId) {
+      const responseText = isAccepted
+        ? `✅ Hello! I (${candidateName}) have ACCEPTED your interview invitation for "${jobTitle}". I look forward to speaking with you!`
+        : `Hello, thank you for inviting me (${candidateName}) to interview for "${jobTitle}". Unfortunately, I must respectfully decline the invitation at this time.`;
+
+      try {
+        await this.prisma.message.create({
+          data: {
+            senderId: jobSeekerUserId,
+            receiverId: employerUserId,
+            content: responseText,
+          },
+        });
+
+        await this.prisma.notification.create({
+          data: {
+            userId: employerUserId,
+            jobId: application.jobId,
+            matchProbability: Math.round(application.aiMatchScore || 95),
+            message: isAccepted
+              ? `✅ Invitation Accepted: ${candidateName} accepted your interview invitation for "${jobTitle}" and sent you a message!`
+              : `ℹ️ Invitation Declined: ${candidateName} declined the interview invitation for "${jobTitle}".`,
+          },
+        });
+      } catch (err) {
+        console.error('Error sending seeker response message/notification to employer:', err);
+      }
+    }
+
+    return updated;
   }
 
   async scheduleInterview(employerUserId: string, applicationId: string, interviewDate: string, interviewLink?: string) {
@@ -489,11 +586,37 @@ export class ApplicationsService {
       },
     });
 
+    const candidateUserId = application.jobSeekerProfile?.userId;
+    const candidateName = `${application.jobSeekerProfile?.firstName || ''} ${application.jobSeekerProfile?.lastName || ''}`.trim() || 'Candidate';
+    const companyName = application.job.employer?.companyName || 'Employer';
+    const formattedDate = new Date(interviewDate).toLocaleString();
+
+    if (candidateUserId) {
+      try {
+        await this.prisma.message.create({
+          data: {
+            senderId: employerUserId,
+            receiverId: candidateUserId,
+            content: `📅 Interview Scheduled by ${companyName} for "${application.job.title}" on ${formattedDate}.${interviewLink ? ` Meeting Link: ${interviewLink}` : ''} Please reply here or accept the invitation in your Applications tab.`,
+          },
+        });
+
+        await this.prisma.notification.create({
+          data: {
+            userId: candidateUserId,
+            jobId: application.jobId,
+            matchProbability: Math.round(application.aiMatchScore || 95),
+            message: `📅 Interview Scheduled: ${companyName} invited you to an interview for "${application.job.title}" on ${formattedDate}.`,
+          },
+        });
+      } catch (err) {
+        console.error('Error creating scheduleInterview message/notification:', err);
+      }
+    }
+
     // Send interview email notification to the candidate
     const candidateEmail = application.jobSeekerProfile?.user?.email;
     if (candidateEmail) {
-      const candidateName = `${application.jobSeekerProfile.firstName || ''} ${application.jobSeekerProfile.lastName || ''}`.trim();
-      const companyName = application.job.employer?.companyName || 'Employer';
       this.mailService.sendInterviewInvitation({
         to: candidateEmail,
         candidateName,

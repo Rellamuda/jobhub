@@ -102,6 +102,12 @@ export default function JobsFeedPage() {
   const handleApply = async (jobId: string) => {
     setError('');
     setSuccess('');
+
+    const targetJob = jobs.find(j => j.id === jobId);
+    if (targetJob?.requiresCoverLetter && !coverLetter.trim()) {
+      setError('This job vacancy requires a Cover Letter. Please click "✨ Generate AI Cover Letter" or write one below before applying.');
+      return;
+    }
     
     try {
       const token = localStorage.getItem('token');
@@ -319,7 +325,13 @@ export default function JobsFeedPage() {
                         </span>
                       )}
                     </span>
-                    <span>📍 {job.location || 'Anywhere'} {job.isRemote && '(Remote)'}</span>
+                    <span>📍 {job.location || 'Anywhere'}</span>
+                    <span style={{ background: 'rgba(0, 240, 255, 0.12)', color: '#00f0ff', padding: '2px 8px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600 }}>
+                      {job.workMode === 'HYBRID' ? '🔄 Hybrid' : (job.workMode === 'REMOTE' || job.isRemote) ? '🌍 Remote' : '🏢 Onsite'}
+                    </span>
+                    <span style={{ background: job.requiresCoverLetter ? 'rgba(245, 158, 11, 0.16)' : 'rgba(255,255,255,0.06)', color: job.requiresCoverLetter ? '#fbbf24' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 600 }}>
+                      {job.requiresCoverLetter ? '📄 Cover Letter Required' : '📄 Cover Letter Optional'}
+                    </span>
                     <span>💰 {job.salary || 'Competitive'}</span>
                   </div>
                 </div>
@@ -392,20 +404,63 @@ export default function JobsFeedPage() {
                     </p>
                   </div>
 
-                  {/* Cover Letter Section (Optional unless requested) */}
+                  {/* Cover Letter Section */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <label style={{ fontSize: '0.9rem', color: 'white', fontWeight: 600 }}>
-                        ✉️ Cover Letter <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(Optional - Only submit if specifically requested by employer)</span>:
+                        ✉️ Cover Letter{' '}
+                        {job.requiresCoverLetter ? (
+                          <span style={{ color: '#fbbf24', fontWeight: 700 }}>(* Required for this job vacancy)</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(Optional - Generate with AI if needed)</span>
+                        )}
+                        :
                       </label>
-                      <button 
-                        type="button"
-                        onClick={() => handleGenerateCoverLetter(job)}
-                        disabled={generatingCoverLetter || (subscriptionTier === 'FREE' && freeGenerationsUsed >= 3)}
-                        style={{ background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff', padding: '3px 10px', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
-                      >
-                        {generatingCoverLetter ? 'Generating...' : '✨ Generate AI Cover Letter'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button 
+                          type="button"
+                          onClick={() => handleGenerateCoverLetter(job)}
+                          disabled={generatingCoverLetter || (subscriptionTier === 'FREE' && freeGenerationsUsed >= 3)}
+                          style={{ background: 'rgba(0, 240, 255, 0.14)', border: '1px solid #00f0ff', color: '#00f0ff', padding: '5px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                          {generatingCoverLetter ? '⏳ Generating...' : '✨ Generate AI Cover Letter'}
+                        </button>
+                        {coverLetter.trim() && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const blob = new Blob([coverLetter], { type: 'text/plain;charset=utf-8' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `Cover_Letter_${job.title.replace(/\s+/g, '_')}.txt`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }}
+                              style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', padding: '5px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer' }}
+                            >
+                              📥 Download
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (navigator.share) {
+                                  try {
+                                    await navigator.share({ title: `Cover Letter - ${job.title}`, text: coverLetter });
+                                    return;
+                                  } catch {}
+                                }
+                                await navigator.clipboard.writeText(coverLetter);
+                                alert('Cover letter copied to clipboard for sharing!');
+                              }}
+                              style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid #a855f7', color: '#c084fc', padding: '5px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer' }}
+                            >
+                              📤 Share
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     {subscriptionTier === 'FREE' && freeGenerationsUsed >= 3 && (
                       <div style={{ color: '#ff8c00', marginBottom: '0.5rem', fontSize: '0.85rem' }}>⚠️ Free generation limit (3/3) reached. You can type manually or upgrade for unlimited AI generations.</div>
@@ -413,9 +468,9 @@ export default function JobsFeedPage() {
                     <textarea 
                       value={coverLetter}
                       onChange={(e) => setCoverLetter(e.target.value)}
-                      rows={3}
-                      placeholder="Optional: leave blank to apply with resume only, or add a cover letter if requested..."
-                      style={{ width: '100%', padding: '0.8rem', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+                      rows={4}
+                      placeholder={job.requiresCoverLetter ? "Cover Letter is required for this job. Click '✨ Generate AI Cover Letter' above or write yours here..." : "Optional: leave blank to apply with resume only, or click '✨ Generate AI Cover Letter'..."}
+                      style={{ width: '100%', padding: '0.8rem', borderRadius: '10px', border: job.requiresCoverLetter ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
                     />
                   </div>
 

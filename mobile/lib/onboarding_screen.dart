@@ -64,6 +64,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _preferredWorkCountry = '';
 
   // Lists for arrays
+  List<String> _skills = [];
+  final _skillInputCtrl = TextEditingController();
   List<Map<String, dynamic>> _education = [];
   List<Map<String, dynamic>> _experience = [];
   List<Map<String, dynamic>> _certificates = [];
@@ -293,6 +295,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   }
                   if (_preferredWorkCountry.isNotEmpty) {
                     _salaryCurrency = _getCurrencySymbol(_preferredWorkCountry);
+                  }
+                  if (prof['skills'] is List) {
+                    _skills = List<String>.from(prof['skills'].map((e) => e.toString()));
                   }
                   _education = List<Map<String, dynamic>>.from(prof['education'] ?? []);
                   _experience = List<Map<String, dynamic>>.from(prof['experience'] ?? []);
@@ -673,12 +678,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Map<String, dynamic> payload = {};
 
     if (_user!['role'] == 'JOB_SEEKER') {
-      final isSkilled = _seekerCategory == 'SKILLED_TRADE';
+      final isSkilled = _seekerCategory == 'SKILLED_TRADE' || _seekerCategory == 'BOTH';
       final resolvedTrade = _tradeSpecialization == 'Other Skilled Trade / Artisan' ? _customTrade.text.trim() : _tradeSpecialization;
-      final finalProfession = isSkilled ? resolvedTrade : _profession.text.trim();
+      final finalProfession = _seekerCategory == 'SKILLED_TRADE'
+          ? resolvedTrade
+          : (_seekerCategory == 'BOTH'
+              ? '${_profession.text.trim()} & $resolvedTrade'
+              : _profession.text.trim());
       final finalSalary = _salaryAmount.text.trim().isNotEmpty
           ? '$_salaryCurrency ${_salaryAmount.text.trim()} / ${_salaryFrequency.toLowerCase()}'
           : _expectedSalary.text.trim();
+
+      final Set<String> combinedSkills = {
+        ..._skills,
+        if (_profession.text.trim().isNotEmpty) _profession.text.trim(),
+        if (isSkilled && resolvedTrade.isNotEmpty) resolvedTrade,
+      };
 
       payload = {
         'firstName': _firstName.text.trim(),
@@ -699,11 +714,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'residenceCity': _residenceCity.text,
         'citizenshipCountry': _citizenshipCountry.text,
         'willingToRelocate': _willingToRelocate,
-        'remotePreference': _isOpenToRemote ? 'REMOTE_ONLY' : 'FLEXIBLE',
+        'remotePreference': _workArrangement == 'Remote'
+            ? 'REMOTE_ONLY'
+            : (_workArrangement == 'Onsite' || _workArrangement == 'On-site' ? 'ONSITE_ONLY' : 'FLEXIBLE'),
         'desiredJobTitle': _desiredJobTitle.text.trim(),
         'preferredIndustry': _preferredIndustryOption == 'Others' ? _preferredIndustryCustom.text.trim() : _preferredIndustryOption,
         'employmentType': _employmentType,
-        'workArrangement': _isOpenToRemote ? 'Remote' : _workArrangement,
+        'workArrangement': _workArrangement,
         'expectedSalary': finalSalary,
         'availability': _availability.text,
         'preferredLocations': _preferredWorkCountry,
@@ -718,7 +735,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'website': _website.text.trim(),
         },
         'profilePicture': _profilePicUrl ?? '',
-        'skills': [],
+        'skills': combinedSkills.toList(),
       };
     } else {
       final finalAgencyFocus = _agencyFocusOption == 'Others' ? _agencyFocusCustom.text.trim() : _agencyFocusOption;
@@ -822,12 +839,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             _showError('Professional / Trade Headline is required');
             return false;
           }
-          if (_seekerCategory == 'SKILLED_TRADE') {
+          if (_seekerCategory == 'SKILLED_TRADE' || _seekerCategory == 'BOTH') {
             if (_tradeSpecialization == 'Other Skilled Trade / Artisan' && _customTrade.text.trim().isEmpty) {
               _showError('Please specify your Trade / Craft specialization');
               return false;
             }
-          } else {
+          }
+          if (_seekerCategory == 'PROFESSIONAL' || _seekerCategory == 'BOTH') {
             if (_profession.text.trim().isEmpty) {
               _showError('Primary Profession is required');
               return false;
@@ -1078,10 +1096,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             const Text('Career Track & Expertise', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 6),
-            Text('Select whether your background is in corporate/professional work or specialized crafts & trades.', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+            Text('Select Corporate, Skilled Trade, or Both (e.g. a Business Administration graduate who is also a Plumber or Home Decorator).', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13)),
             const SizedBox(height: 16),
 
-            // Category Selector Cards
+            // 3-Way Category Selector Cards
             Row(
               children: [
                 Expanded(
@@ -1094,7 +1112,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: _seekerCategory == 'PROFESSIONAL' ? const Color(0xFF00F0FF).withOpacity(0.15) : Colors.white.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(12),
@@ -1103,33 +1121,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.business_center, color: _seekerCategory == 'PROFESSIONAL' ? const Color(0xFF00F0FF) : Colors.white70, size: 18),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Corporate',
-                                  style: TextStyle(
-                                    color: _seekerCategory == 'PROFESSIONAL' ? const Color(0xFF00F0FF) : Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          Icon(Icons.business_center, color: _seekerCategory == 'PROFESSIONAL' ? const Color(0xFF00F0FF) : Colors.white70, size: 18),
                           const SizedBox(height: 4),
                           Text(
-                            'Software, Finance, Medical, Office & Management',
-                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                            'Corporate',
+                            style: TextStyle(
+                              color: _seekerCategory == 'PROFESSIONAL' ? const Color(0xFF00F0FF) : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Office, Tech, Finance, Admin',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: InkWell(
                     onTap: () {
@@ -1140,7 +1152,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: _seekerCategory == 'SKILLED_TRADE' ? const Color(0xFF00F0FF).withOpacity(0.15) : Colors.white.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(12),
@@ -1149,26 +1161,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.build, color: _seekerCategory == 'SKILLED_TRADE' ? const Color(0xFF00F0FF) : Colors.white70, size: 18),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Skilled Trade',
-                                  style: TextStyle(
-                                    color: _seekerCategory == 'SKILLED_TRADE' ? const Color(0xFF00F0FF) : Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          Icon(Icons.build, color: _seekerCategory == 'SKILLED_TRADE' ? const Color(0xFF00F0FF) : Colors.white70, size: 18),
                           const SizedBox(height: 4),
                           Text(
-                            'Electricians, Plumbers, Welders, Mechanics & Chefs',
-                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                            'Skilled Trade',
+                            style: TextStyle(
+                              color: _seekerCategory == 'SKILLED_TRADE' ? const Color(0xFF00F0FF) : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Plumber, Decorator, Electrician',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _seekerCategory = 'BOTH';
+                        _isSkilledProfessional = true;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _seekerCategory == 'BOTH' ? const Color(0xFF00F0FF).withOpacity(0.15) : Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _seekerCategory == 'BOTH' ? const Color(0xFF00F0FF) : Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.layers, color: _seekerCategory == 'BOTH' ? const Color(0xFF00F0FF) : Colors.white70, size: 18),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Both (Hybrid)',
+                            style: TextStyle(
+                              color: _seekerCategory == 'BOTH' ? const Color(0xFF00F0FF) : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Degree + Skilled Craft/Trade',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
                           ),
                         ],
                       ),
@@ -1180,7 +1226,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 16),
 
             // Skilled Trade Specifics
-            if (_seekerCategory == 'SKILLED_TRADE') ...[
+            if (_seekerCategory == 'SKILLED_TRADE' || _seekerCategory == 'BOTH') ...[
               Container(
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
@@ -1192,7 +1238,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Trade / Craft Specialization *', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text('Primary Trade / Craft Specialization *', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       isExpanded: true,
@@ -1231,13 +1277,155 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             _buildTextField(
               _headline,
               _seekerCategory == 'SKILLED_TRADE'
-                  ? 'Trade Headline (e.g. Master Industrial Electrician | 10 Yrs) *'
-                  : 'Professional Headline (e.g. Senior Software Architect) *',
+                  ? 'Trade Headline (e.g. Master Plumber & Home Decorator) *'
+                  : 'Professional Headline (e.g. Business Admin Graduate & Certified Plumber) *',
             ),
 
-            if (_seekerCategory == 'PROFESSIONAL') ...[
-              _buildTextField(_profession, 'Primary Profession (e.g. Software Engineer, Doctor) *'),
+            if (_seekerCategory == 'PROFESSIONAL' || _seekerCategory == 'BOTH') ...[
+              _buildTextField(_profession, 'Primary Corporate Profession (e.g. Business Administration, Software Engineer) *'),
             ],
+
+            // Multiple Skills, Trades & Additional Professions Builder
+            Container(
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '🛠️ Multiple Skills, Trades & Additional Professions',
+                    style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Add all your skills, trades, and professions (e.g. Plumber + Home Decorator, or Business Administration + Plumber).',
+                    style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11.5),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _skillInputCtrl,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: 'Type skill/trade (e.g. Plumber, Home Decorator)...',
+                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 12),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.05),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          ),
+                          onSubmitted: (val) {
+                            final trimmed = val.trim();
+                            if (trimmed.isNotEmpty && !_skills.contains(trimmed)) {
+                              setState(() {
+                                _skills.add(trimmed);
+                                _skillInputCtrl.clear();
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          final trimmed = _skillInputCtrl.text.trim();
+                          if (trimmed.isNotEmpty && !_skills.contains(trimmed)) {
+                            setState(() {
+                              _skills.add(trimmed);
+                              _skillInputCtrl.clear();
+                            });
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00F0FF),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('+ Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Quick-add popular multi-skill chips
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      'Plumber',
+                      'Home Decorator',
+                      'Business Administration',
+                      'Electrician',
+                      'Interior Designer',
+                      'Project Management',
+                      'Customer Service',
+                      'Data Analysis',
+                      'HVAC Technician',
+                      'Carpenter & Joiner',
+                    ].map((suggestion) {
+                      final isSelected = _skills.contains(suggestion);
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (isSelected) {
+                              _skills.remove(suggestion);
+                            } else {
+                              _skills.add(suggestion);
+                            }
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFF00F0FF).withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isSelected ? const Color(0xFF00F0FF) : Colors.white24),
+                          ),
+                          child: Text(
+                            isSelected ? '✓ $suggestion' : '+ $suggestion',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isSelected ? const Color(0xFF00F0FF) : Colors.white70,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  if (_skills.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text('Selected Skills & Trades:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _skills.map((sk) {
+                        return Chip(
+                          backgroundColor: const Color(0xFF00F0FF).withOpacity(0.15),
+                          side: const BorderSide(color: Color(0xFF00F0FF)),
+                          label: Text(sk, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          deleteIcon: const Icon(Icons.close, size: 16, color: Color(0xFF00F0FF)),
+                          onDeleted: () {
+                            setState(() {
+                              _skills.remove(sk);
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
 
             _buildTextField(
               _summary,
@@ -1350,31 +1538,65 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             _buildTextField(_residenceCity, 'City / Town (Manual Entry) *'),
 
-            // Remote Job Preferences Provision
+            // Work Mode Preference (Remote, Onsite, Hybrid)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.03),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white10),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text(
+                    'Preferred Work Arrangement (Remote, Onsite, or Hybrid) *',
+                    style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
-                      Checkbox(
-                        value: _isOpenToRemote,
-                        activeColor: const Color(0xFF00F0FF),
-                        onChanged: (v) => setState(() => _isOpenToRemote = v ?? false),
-                      ),
-                      const Expanded(
-                        child: Text(
-                          '🌐 Open to Remote Work / Seeking Remote Roles',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      {'val': 'Remote', 'label': '🌐 Remote'},
+                      {'val': 'Onsite', 'label': '🏢 Onsite'},
+                      {'val': 'Hybrid', 'label': '🔄 Hybrid'},
+                    ].map((opt) {
+                      final selected = _workArrangement.toLowerCase().replaceAll('-', '') == opt['val']!.toLowerCase();
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _workArrangement = opt['val']!;
+                                _isOpenToRemote = opt['val'] == 'Remote' || opt['val'] == 'Hybrid';
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: selected ? const Color(0xFF00F0FF).withOpacity(0.18) : Colors.white.withOpacity(0.04),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: selected ? const Color(0xFF00F0FF) : Colors.white12,
+                                ),
+                              ),
+                              child: Text(
+                                opt['label']!,
+                                style: TextStyle(
+                                  color: selected ? const Color(0xFF00F0FF) : Colors.white70,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Checkbox(
@@ -1401,7 +1623,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             const Text('Job Preferences & Pay', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 6),
-            Text('Specify your target role, work country, and expected compensation.', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+            Text('Specify your target role, work mode (Remote, Onsite, Hybrid), and expected compensation.', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
             const SizedBox(height: 20),
 
             _buildTextField(_desiredJobTitle, 'Desired Job Title *'),
@@ -1473,22 +1695,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: DropdownButtonFormField<String>(
-                      value: _workArrangement,
+                      value: ['Remote', 'Onsite', 'Hybrid'].contains(_workArrangement) ? _workArrangement : 'Hybrid',
                       dropdownColor: const Color(0xFF16122E),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: 'Work Arrangement',
+                        labelText: 'Work Mode (Remote/Onsite/Hybrid)',
                         labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'Remote', child: Text('Remote')),
-                        DropdownMenuItem(value: 'Hybrid', child: Text('Hybrid')),
-                        DropdownMenuItem(value: 'On-site', child: Text('On-site')),
+                        DropdownMenuItem(value: 'Remote', child: Text('🌐 Remote')),
+                        DropdownMenuItem(value: 'Onsite', child: Text('🏢 Onsite')),
+                        DropdownMenuItem(value: 'Hybrid', child: Text('🔄 Hybrid')),
                       ],
-                      onChanged: (v) => setState(() => _workArrangement = v ?? 'Hybrid'),
+                      onChanged: (v) => setState(() {
+                        _workArrangement = v ?? 'Hybrid';
+                        _isOpenToRemote = _workArrangement == 'Remote' || _workArrangement == 'Hybrid';
+                      }),
                     ),
                   ),
                 ),

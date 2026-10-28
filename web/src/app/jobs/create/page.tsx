@@ -21,6 +21,8 @@ export default function CreateJobPage() {
   const [location, setLocation] = useState('');
   const [salary, setSalary] = useState('');
   const [isRemote, setIsRemote] = useState(false);
+  const [workMode, setWorkMode] = useState<'REMOTE' | 'ONSITE' | 'HYBRID'>('ONSITE');
+  const [requiresCoverLetter, setRequiresCoverLetter] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -49,7 +51,7 @@ export default function CreateJobPage() {
         body: JSON.stringify({
           title,
           location,
-          isRemote,
+          isRemote: workMode === 'REMOTE',
           salary
         }),
       });
@@ -87,9 +89,11 @@ export default function CreateJobPage() {
         body: JSON.stringify({
           title,
           description,
-          location,
+          location: location || (workMode === 'REMOTE' ? 'Remote' : 'Onsite'),
           salary,
-          isRemote
+          isRemote: workMode === 'REMOTE',
+          workMode,
+          requiresCoverLetter,
         }),
       });
 
@@ -362,15 +366,81 @@ Talent Acquisition Specialist,New York NY,$80k - $100k,No,Source and screen top 
               </div>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-              <input 
-                type="checkbox" 
-                checked={isRemote}
-                onChange={(e) => setIsRemote(e.target.checked)}
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-              />
-              <span style={{ color: 'white', fontSize: '1rem' }}>This is a remote position</span>
-            </label>
+            {/* Work Mode Selector (Remote, Onsite, Hybrid) */}
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <label style={{ display: 'block', marginBottom: '0.6rem', color: '#00f0ff', fontWeight: 600, fontSize: '0.95rem' }}>
+                Job Vacancy Work Mode (Remote, Onsite, or Hybrid) *
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
+                {([
+                  { id: 'REMOTE', label: '🌍 Remote Only' },
+                  { id: 'ONSITE', label: '🏢 Onsite Only' },
+                  { id: 'HYBRID', label: '🔄 Hybrid' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setWorkMode(opt.id);
+                      setIsRemote(opt.id === 'REMOTE');
+                    }}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: workMode === opt.id ? '2px solid #00f0ff' : '1px solid rgba(255,255,255,0.15)',
+                      background: workMode === opt.id ? 'rgba(0, 240, 255, 0.16)' : 'rgba(255,255,255,0.04)',
+                      color: workMode === opt.id ? '#00f0ff' : 'white',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cover Letter Requirement Selector */}
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ color: 'white', fontWeight: 600, fontSize: '0.95rem' }}>📄 Cover Letter Requirement</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Specify if applicants must submit a cover letter for this vacancy</div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setRequiresCoverLetter(true)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: requiresCoverLetter ? '2px solid #00f0ff' : '1px solid rgba(255,255,255,0.15)',
+                    background: requiresCoverLetter ? 'rgba(0,240,255,0.16)' : 'rgba(255,255,255,0.04)',
+                    color: requiresCoverLetter ? '#00f0ff' : 'white',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Required
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequiresCoverLetter(false)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: !requiresCoverLetter ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.15)',
+                    background: !requiresCoverLetter ? 'rgba(16,185,129,0.16)' : 'rgba(255,255,255,0.04)',
+                    color: !requiresCoverLetter ? '#34d399' : 'white',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Not Required (Optional)
+                </button>
+              </div>
+            </div>
 
             <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem', padding: '0.9rem' }}>
               {loading ? 'Posting Job...' : 'Post Job'}

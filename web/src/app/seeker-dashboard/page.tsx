@@ -308,8 +308,9 @@ export default function SeekerDashboard() {
         body: JSON.stringify({ status: accept ? 'ACCEPTED_OFFER' : 'DECLINED_OFFER' })
       });
       if (res.ok) {
-        alert(accept ? 'Invitation Accepted!' : 'Invitation Declined');
+        alert(accept ? 'Invitation Accepted! A confirmation message has been sent to the employer.' : 'Invitation Declined. The employer has been notified.');
         setApplications(apps => apps.map(app => app.id === appId ? { ...app, status: accept ? 'ACCEPTED_OFFER' : 'DECLINED_OFFER' } : app));
+        fetchInbox();
       }
     } catch (err) { console.error(err); }
   };
@@ -332,6 +333,7 @@ export default function SeekerDashboard() {
       }
 
       alert(resData.message || `Successfully applied with Autonomous AI!`);
+      await markAlertAsRead(notification.id);
       fetchNotifications();
       
       const appRes = await fetch('/api/applications/my-applications', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -344,7 +346,24 @@ export default function SeekerDashboard() {
     }
   };
 
+  const markAlertAsRead = async (notificationId: string) => {
+    const target = notifications.find(n => n.id === notificationId);
+    if (!target || target.isRead) return;
+    // Optimistically decrement counter immediately
+    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n));
+    const token = localStorage.getItem('token');
+    try {
+      await fetch(`/api/profiles/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const dismissAlert = async (notificationId: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(`/api/profiles/notifications/${notificationId}`, {
@@ -357,6 +376,7 @@ export default function SeekerDashboard() {
     } catch (err) { console.error(err); }
   };
 
+  const unreadAlertsCount = notifications.filter(n => !n.isRead).length;
   const regularApps = applications.filter(a => a.status !== 'INVITED' && a.status !== 'DECLINED_OFFER');
   const invitations = applications.filter(a => a.status === 'INVITED' || a.status === 'ACCEPTED_OFFER');
 
@@ -512,9 +532,9 @@ export default function SeekerDashboard() {
           style={{ background: 'none', border: 'none', color: activeTab === 'ALERTS' ? '#00f0ff' : 'var(--text-secondary)', fontSize: '1.1rem', cursor: 'pointer', fontWeight: activeTab === 'ALERTS' ? 'bold' : 'normal', position: 'relative', padding: '0 4px', whiteSpace: 'nowrap' }}
         >
           Match Alerts
-          {notifications.length > 0 && (
+          {unreadAlertsCount > 0 && (
             <span style={{ position: 'absolute', top: '-5px', right: '-15px', background: '#ff4d4d', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '50%' }}>
-              {notifications.length}
+              {unreadAlertsCount}
             </span>
           )}
         </button>
@@ -803,12 +823,36 @@ export default function SeekerDashboard() {
           {activeTab === 'ALERTS' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               {notifications.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No match alerts at this time.</p> : notifications.map(notif => (
-                <div key={notif.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderLeft: '4px solid #00f0ff' }}>
+                <div
+                  key={notif.id}
+                  onClick={() => markAlertAsRead(notif.id)}
+                  className="glass-panel"
+                  style={{
+                    padding: '1.5rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    cursor: 'pointer',
+                    borderLeft: notif.isRead ? '4px solid rgba(255,255,255,0.2)' : '4px solid #00f0ff',
+                    opacity: notif.isRead ? 0.78 : 1,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
                   <div style={{ flex: 1 }}>
-                    <h2 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-primary)' }}>{notif.message}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+                      {!notif.isRead && (
+                        <span style={{ background: '#ff4d4d', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: '999px' }}>
+                          NEW
+                        </span>
+                      )}
+                      <h2 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-primary)', fontWeight: notif.isRead ? 500 : 700 }}>{notif.message}</h2>
+                    </div>
                     {notif.matchProbability && (
                       <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0', fontSize: '0.9rem' }}>
                         Match Probability: <strong style={{ color: '#00f0ff' }}>{notif.matchProbability}%</strong>
+                        {!notif.isRead && <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#00f0ff' }}>(Click to mark as read)</span>}
                       </p>
                     )}
                   </div>
@@ -817,7 +861,9 @@ export default function SeekerDashboard() {
                       <button 
                         className="btn-primary" 
                         style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)', color: '#000', fontWeight: 'bold' }} 
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAlertAsRead(notif.id);
                           setConsentJobId(notif.jobId);
                           setConsentNotificationId(notif.id);
                           const titleMatch = notif.message.match(/for (.*) at/);
@@ -829,7 +875,10 @@ export default function SeekerDashboard() {
                       <button 
                         className="btn-outline" 
                         style={{ padding: '8px 16px', border: '1px solid rgba(255,255,255,0.2)' }}
-                        onClick={() => dismissAlert(notif.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissAlert(notif.id);
+                        }}
                       >
                         Dismiss
                       </button>
@@ -838,7 +887,10 @@ export default function SeekerDashboard() {
                     <button 
                       className="btn-outline" 
                       style={{ padding: '8px 16px', border: '1px solid rgba(255,255,255,0.2)' }}
-                      onClick={() => dismissAlert(notif.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dismissAlert(notif.id);
+                      }}
                     >
                       Dismiss
                     </button>

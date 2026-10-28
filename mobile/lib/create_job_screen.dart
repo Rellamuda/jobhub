@@ -19,6 +19,8 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
   final _locationController = TextEditingController();
   final _salaryController = TextEditingController();
   bool _isRemote = false;
+  String _workMode = 'ONSITE'; // 'REMOTE' | 'ONSITE' | 'HYBRID'
+  bool _requiresCoverLetter = false;
   bool _isLoading = false;
   bool _isGeneratingAi = false;
   String? _errorMessage;
@@ -71,7 +73,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
           'title': _titleController.text,
           'location': _locationController.text,
           'salary': _salaryController.text,
-          'isRemote': _isRemote,
+          'isRemote': _workMode == 'REMOTE',
         }),
       );
 
@@ -129,9 +131,13 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
         body: jsonEncode({
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
-          'location': _locationController.text.trim(),
+          'location': _locationController.text.trim().isEmpty
+              ? (_workMode == 'REMOTE' ? 'Remote' : 'Onsite')
+              : _locationController.text.trim(),
           'salary': _salaryController.text.trim(),
-          'isRemote': _isRemote,
+          'isRemote': _workMode == 'REMOTE',
+          'workMode': _workMode,
+          'requiresCoverLetter': _requiresCoverLetter,
         }),
       );
 
@@ -424,22 +430,121 @@ HR Talent Specialist,London UK,\$75k - \$90k,No,Manage end-to-end recruitment li
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          
-          CheckboxListTile(
-            title: const Text('This is a remote position', style: TextStyle(color: Colors.white)),
-            value: _isRemote,
-            onChanged: (val) {
-              setState(() {
-                _isRemote = val ?? false;
-              });
-            },
-            activeColor: const Color(0xFF6366F1),
-            checkColor: Colors.white,
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
+          const SizedBox(height: 18),
+          const Text(
+            'Job Vacancy Work Mode (Remote, Onsite, or Hybrid) *',
+            style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              {'mode': 'REMOTE', 'label': '🌐 Remote'},
+              {'mode': 'ONSITE', 'label': '🏢 Onsite'},
+              {'mode': 'HYBRID', 'label': '🔄 Hybrid'},
+            ].map((opt) {
+              final selected = _workMode == opt['mode'];
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _workMode = opt['mode']!;
+                        _isRemote = _workMode == 'REMOTE';
+                        if (_workMode == 'REMOTE' && _locationController.text.trim().isEmpty) {
+                          _locationController.text = 'Remote';
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected ? const Color(0xFF00F0FF).withOpacity(0.18) : Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected ? const Color(0xFF00F0FF) : Colors.white24,
+                        ),
+                      ),
+                      child: Text(
+                        opt['label']!,
+                        style: TextStyle(
+                          color: selected ? const Color(0xFF00F0FF) : Colors.white70,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Application Cover Letter Requirement *',
+            style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _requiresCoverLetter = false),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: !_requiresCoverLetter ? const Color(0xFF10B981).withOpacity(0.18) : Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: !_requiresCoverLetter ? const Color(0xFF10B981) : Colors.white24,
+                      ),
+                    ),
+                    child: Text(
+                      '⚡ Not Required (Optional)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: !_requiresCoverLetter ? const Color(0xFF10B981) : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _requiresCoverLetter = true),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _requiresCoverLetter ? const Color(0xFFF59E0B).withOpacity(0.18) : Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _requiresCoverLetter ? const Color(0xFFF59E0B) : Colors.white24,
+                      ),
+                    ),
+                    child: Text(
+                      '📄 Cover Letter Required',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _requiresCoverLetter ? const Color(0xFFF59E0B) : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
           
           ElevatedButton(
             onPressed: _isLoading ? null : _createJob,

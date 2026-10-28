@@ -10,7 +10,11 @@ import { Sparkles, UploadCloud } from 'lucide-react';
 export default function CreateJobPage() {
   const [prompt, setPrompt] = useState('We need a Flutter developer.');
   const [loading, setLoading] = useState(false);
-  const [jd, setJd] = useState<any>(null);
+  const [jd, setJd] = useState<any>({ title: '', description: '' });
+  const [location, setLocation] = useState('Remote');
+  const [salary, setSalary] = useState('$100k - $140k');
+  const [workMode, setWorkMode] = useState<'REMOTE' | 'ONSITE' | 'HYBRID'>('REMOTE');
+  const [requiresCoverLetter, setRequiresCoverLetter] = useState(false);
 
   const [publishing, setPublishing] = useState(false);
   const [success, setSuccess] = useState('');
@@ -50,7 +54,7 @@ export default function CreateJobPage() {
   };
 
   const publishJob = async () => {
-    if (!jd) return;
+    if (!jd?.title && !prompt) return;
     setPublishing(true);
     setError('');
     try {
@@ -62,11 +66,13 @@ export default function CreateJobPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          title: jd.title || prompt,
-          description: jd.description || '',
-          location: 'Remote',
-          salary: '$100k - $140k',
-          isRemote: true
+          title: jd?.title || prompt,
+          description: jd?.description || '',
+          location: location || (workMode === 'REMOTE' ? 'Remote' : 'Onsite'),
+          salary: salary || 'Competitive',
+          isRemote: workMode === 'REMOTE',
+          workMode,
+          requiresCoverLetter,
         })
       });
       if (res.ok) {
@@ -89,8 +95,8 @@ export default function CreateJobPage() {
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold">Create New Job</h1>
-          <p className="text-gray-500 mt-2">Use our AI to instantly generate a comprehensive job description or bulk import roles.</p>
+          <h1 className="text-4xl font-bold">Create New Job Vacancy</h1>
+          <p className="text-gray-500 mt-2">Use our AI to instantly generate a comprehensive job description, specify work arrangement, and set cover letter requirements.</p>
         </div>
         <Link 
           href="/jobs/create" 
@@ -135,8 +141,94 @@ export default function CreateJobPage() {
           <Input 
             value={jd?.title || ''} 
             onChange={e => setJd({ ...jd, title: e.target.value })} 
+            placeholder="e.g. Senior Flutter Engineer"
             className="mt-1 bg-gray-50 dark:bg-white/5" 
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="font-bold text-gray-700 dark:text-gray-200">Location</label>
+            <Input
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="e.g. Remote, London, Lagos, New York"
+              className="mt-1 bg-gray-50 dark:bg-white/5"
+            />
+          </div>
+          <div>
+            <label className="font-bold text-gray-700 dark:text-gray-200">Salary Range</label>
+            <Input
+              value={salary}
+              onChange={e => setSalary(e.target.value)}
+              placeholder="e.g. $100k - $140k"
+              className="mt-1 bg-gray-50 dark:bg-white/5"
+            />
+          </div>
+        </div>
+
+        {/* Work Mode (Remote, Onsite, Hybrid) */}
+        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+          <label className="font-bold text-gray-700 dark:text-gray-200 block">
+            Job Vacancy Work Mode (Remote, Onsite, or Hybrid) *
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              { id: 'REMOTE', label: '🌍 Remote Only' },
+              { id: 'ONSITE', label: '🏢 Onsite Only' },
+              { id: 'HYBRID', label: '🔄 Hybrid' },
+            ] as const).map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  setWorkMode(opt.id);
+                  if (opt.id === 'REMOTE' && !location) setLocation('Remote');
+                }}
+                className={`py-2.5 px-4 rounded-xl font-bold text-sm border transition ${
+                  workMode === opt.id
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                    : 'bg-white/5 border-white/15 text-gray-300 hover:bg-white/10'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cover Letter Requirement Toggle */}
+        <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-4">
+          <div>
+            <div className="font-bold text-gray-700 dark:text-gray-200">Require Cover Letter from Applicants?</div>
+            <p className="text-xs text-gray-400">
+              Specify whether candidates must submit a cover letter when applying for this job vacancy.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setRequiresCoverLetter(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${
+                requiresCoverLetter
+                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                  : 'bg-white/5 border-white/15 text-gray-400'
+              }`}
+            >
+              Yes, Required
+            </button>
+            <button
+              type="button"
+              onClick={() => setRequiresCoverLetter(false)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${
+                !requiresCoverLetter
+                  ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                  : 'bg-white/5 border-white/15 text-gray-400'
+              }`}
+            >
+              No (Optional)
+            </button>
+          </div>
         </div>
 
         <div>
@@ -149,7 +241,7 @@ export default function CreateJobPage() {
           />
         </div>
 
-        {jd && (
+        {jd && (jd.responsibilities || jd.qualifications) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader><CardTitle className="text-lg">Responsibilities</CardTitle></CardHeader>
@@ -180,7 +272,7 @@ export default function CreateJobPage() {
           onClick={publishJob} 
           className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white" 
           size="lg" 
-          disabled={!jd || publishing}
+          disabled={(!jd?.title && !prompt) || publishing}
         >
           {publishing ? 'Publishing...' : 'Publish Job Posting'}
         </Button>

@@ -829,23 +829,63 @@ export default function ProfilePage() {
                     Generate an executive corporate or agency profile with mission, vision, culture, core values, and benefits using JobHub AI.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateAICompanyProfile}
-                  disabled={aiCompanyLoading}
-                  className="btn-primary"
-                  style={{
-                    padding: '10px 22px',
-                    fontWeight: 'bold',
-                    fontSize: '0.95rem',
-                    background: 'linear-gradient(135deg, #00f0ff 0%, #6366f1 100%)',
-                    color: '#000',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {aiCompanyLoading ? '🤖 Crafting AI Profile...' : '✨ Generate AI Profile'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAICompanyProfile}
+                    disabled={aiCompanyLoading}
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 22px',
+                      fontWeight: 'bold',
+                      fontSize: '0.95rem',
+                      background: 'linear-gradient(135deg, #00f0ff 0%, #6366f1 100%)',
+                      color: '#000',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {aiCompanyLoading ? '🤖 Crafting AI Profile...' : '✨ Generate AI Profile'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const source = generatedCompanyProfile || profile || {};
+                      const name = profile?.companyName || 'Organization';
+                      const industry = source.industry || profile?.industry || 'General Industry';
+                      const bizType = source.businessType || companyBizType || 'Employer / Agency';
+                      const location = `${profile?.locationCity || ''} ${profile?.locationCountry || 'Global'}`.trim();
+                      const website = empWebsite || profile?.website || 'https://jobhub-ai.com';
+                      const desc = source.description || `${name} is a premier ${industry} organization dedicated to excellence and top talent acquisition.`;
+                      const mission = source.mission || `To empower global talent and deliver industry-leading solutions in ${industry}.`;
+                      const vision = source.vision || `Being the most trusted and innovative employer and agency partner worldwide.`;
+                      const culture = source.culture || `Collaborative, merit-driven, inclusive, and high-growth culture.`;
+                      const whyWork = source.whyWorkWithUs || `Competitive compensation, clear career progression, and impactful work.`;
+                      const values = Array.isArray(source.coreValues) && source.coreValues.length > 0 ? source.coreValues.join(', ') : 'Excellence, Integrity, Innovation, Diversity';
+                      const benefits = Array.isArray(source.benefits) && source.benefits.length > 0 ? source.benefits.join(', ') : 'Competitive Salary, Flexible Work Mode, Career Development, Health Coverage';
+                      const htmlDoc = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${name} - Official AI Company Profile</title><style>body { font-family: Arial, sans-serif; padding: 36px; line-height: 1.6; color: #111; } h1 { color: #1e1b4b; margin-bottom: 4px; } h2 { color: #4338ca; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-top: 22px; }</style></head><body><h1>${name}</h1><p><strong>Organization Type:</strong> ${bizType} | <strong>Industry:</strong> ${industry} | <strong>Location:</strong> ${location} | <strong>Website:</strong> ${website}</p><hr/><h2>Executive Summary &amp; Overview</h2><p>${desc.replace(/\n/g, '<br/>')}</p><h2>Mission Statement</h2><p>${mission}</p><h2>Vision</h2><p>${vision}</p><h2>Core Values</h2><p>${values}</p><h2>Company Culture &amp; Environment</h2><p>${culture}</p><h2>Why Work With Us</h2><p>${whyWork}</p><h2>Employee Benefits &amp; Perks</h2><p>${benefits}</p></body></html>`;
+                      const blob = new Blob(['\ufeff', htmlDoc], { type: 'application/msword' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${name.replace(/\s+/g, '_')}_AI_Company_Profile.doc`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📥 Download AI Profile (.doc)
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.2rem' }}>
@@ -876,7 +916,7 @@ export default function ProfilePage() {
 
               {generatedCompanyProfile && (
                 <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(0, 240, 255, 0.25)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                     <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#00f0ff' }}>
                       📋 Generated AI Profile Preview
                     </span>

@@ -204,6 +204,8 @@ model Job {
   location    String?
   salary      String?
   isRemote    Boolean  @default(false)
+  workMode            String   @default("ONSITE") // "REMOTE", "ONSITE", "HYBRID"
+  requiresCoverLetter Boolean  @default(false)
   
   // Phase 1 Additions: Job Details
   industry           String?

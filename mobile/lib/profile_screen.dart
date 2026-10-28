@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +13,7 @@ import 'onboarding_screen.dart';
 import 'employer_crm_screen.dart';
 import 'subscription_screen.dart';
 import 'screens/edit_profile_screen.dart';
+import 'screens/resumes/resumes_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -406,6 +408,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const SizedBox(height: 4),
                               Text('🌟 Culture: $generatedCulture', style: const TextStyle(color: Colors.white60, fontSize: 11)),
                             ],
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  _downloadOrShareCompanyProfile();
+                                },
+                                icon: const Icon(Icons.download, size: 16, color: Color(0xFF00F0FF)),
+                                label: const Text('Download / Share AI Company Profile', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 12, fontWeight: FontWeight.bold)),
+                                style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFF00F0FF))),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -417,6 +432,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         );
       },
+    );
+  }
+
+  void _downloadOrShareCompanyProfile() {
+    final companyName = _profile?['companyName'] ?? 'Employer Organization';
+    final industry = _profile?['industry'] ?? 'Industry';
+    final orgType = _profile?['organizationType'] ?? 'COMPANY';
+    final size = _profile?['companySize'] ?? 'N/A';
+    final loc = '${_profile?['locationCity'] ?? ''} ${_profile?['locationCountry'] ?? ''}'.trim();
+    final desc = _profile?['description'] ?? 'Verified Employer on JobHub AI Global Talent Ecosystem.';
+    final mission = _profile?['mission'] ?? '';
+    final culture = _profile?['culture'] ?? '';
+    final whyWorkWithUs = _profile?['whyWorkWithUs'] ?? '';
+    final website = _profile?['website'] ?? '';
+
+    final profileDoc = '''====================================================
+AI-BUILT COMPANY / AGENCY PROFILE
+====================================================
+Organization Name: $companyName
+Organization Type: $orgType
+Industry: $industry
+Company Size: $size
+Headquarters: ${loc.isNotEmpty ? loc : 'Global'}
+${website.toString().isNotEmpty ? 'Website: $website\n' : ''}
+EXECUTIVE OVERVIEW
+------------------
+$desc
+${mission.toString().isNotEmpty ? '\nOUR MISSION\n-----------\n$mission\n' : ''}${culture.toString().isNotEmpty ? '\nWORK CULTURE\n------------\n$culture\n' : ''}${whyWorkWithUs.toString().isNotEmpty ? '\nWHY WORK WITH US\n----------------\n$whyWorkWithUs\n' : ''}
+====================================================
+Generated via JobHub AI Global Talent Platform''';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E142B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Expanded(
+                  child: Text(
+                    '🏢 AI Company / Agency Profile',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 260),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: SingleChildScrollView(
+                child: Text(
+                  profileDoc,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.5, fontFamily: 'monospace'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: profileDoc));
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ AI Company Profile saved to clipboard!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Save / Copy Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00F0FF),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Clipboard.setData(ClipboardData(text: profileDoc));
+                      final uri = Uri.parse(
+                        'mailto:?subject=${Uri.encodeComponent('$companyName - Official Company Profile')}&body=${Uri.encodeComponent(profileDoc)}',
+                      );
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      }
+                    },
+                    icon: const Icon(Icons.share, size: 18, color: Colors.purpleAccent),
+                    label: const Text('Share Profile', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.purpleAccent),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -748,9 +887,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ResumesListScreen()),
+                  );
+                },
                 icon: const Icon(Icons.download, color: Colors.white),
-                label: const Text('CV', style: TextStyle(color: Colors.white)),
+                label: const Text('CV & Letters', style: TextStyle(color: Colors.white)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   side: const BorderSide(color: Colors.white),
@@ -1176,6 +1320,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
 
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _downloadOrShareCompanyProfile,
+          icon: const Icon(Icons.download, color: Color(0xFF00F0FF)),
+          label: const Text('📥 Download / Share AI Company Profile', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFF00F0FF)),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () {
@@ -1235,6 +1391,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _buildInfoRow('Email', _profile?['hrEmail'] ?? 'N/A'),
         _buildInfoRow('Phone', _profile?['hrPhone'] ?? 'N/A'),
       ],
+    );
+  }
+
+  Widget _buildSocialShareButton({
+    required String label,
+    required IconData icon,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: bgColor.withOpacity(0.35),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 17),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialShareCard() {
+    final shareUrl = ApiConfig.webUrl;
+    final shareText = '🚀 Join me on JobHub Global — The #1 AI-Powered Global Talent & Career Platform for Corporate & Skilled Trade Jobs! $shareUrl';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF6366F1).withOpacity(0.15),
+            const Color(0xFF00F0FF).withOpacity(0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.share, color: Color(0xFF00F0FF), size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '🚀 Share JobHub Global on Social Media',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Invite friends, colleagues, and employers across Facebook, WhatsApp, Instagram, TikTok, and YouTube.',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildSocialShareButton(
+                label: 'Facebook',
+                icon: Icons.facebook,
+                bgColor: const Color(0xFF1877F2),
+                onTap: () => _openWebUrl(
+                  'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareUrl)}&quote=${Uri.encodeComponent(shareText)}',
+                ),
+              ),
+              _buildSocialShareButton(
+                label: 'WhatsApp',
+                icon: Icons.chat,
+                bgColor: const Color(0xFF25D366),
+                onTap: () => _openWebUrl(
+                  'https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}',
+                ),
+              ),
+              _buildSocialShareButton(
+                label: 'Instagram',
+                icon: Icons.camera_alt,
+                bgColor: const Color(0xFFE1306C),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: shareText));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('📸 Share link copied! Opening Instagram...'),
+                      backgroundColor: Color(0xFFE1306C),
+                    ),
+                  );
+                  _openWebUrl('https://www.instagram.com/');
+                },
+              ),
+              _buildSocialShareButton(
+                label: 'TikTok',
+                icon: Icons.music_note,
+                bgColor: const Color(0xFF111111),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: shareText));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🎵 Share link copied! Opening TikTok...'),
+                      backgroundColor: Colors.black87,
+                    ),
+                  );
+                  _openWebUrl('https://www.tiktok.com/');
+                },
+              ),
+              _buildSocialShareButton(
+                label: 'YouTube',
+                icon: Icons.play_circle_fill,
+                bgColor: const Color(0xFFFF0000),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: shareText));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('▶️ Share link copied! Opening YouTube...'),
+                      backgroundColor: Color(0xFFFF0000),
+                    ),
+                  );
+                  _openWebUrl('https://www.youtube.com/');
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1313,7 +1615,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               if (_user!['role'] == 'JOB_SEEKER') _buildSeekerProfile() else _buildEmployerProfile(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
+              _buildSocialShareCard(),
+              const SizedBox(height: 24),
               // Legal & Google Play Compliance Section
               Container(
                 padding: const EdgeInsets.all(20),

@@ -154,10 +154,12 @@ export default function OnboardingPage() {
   const [nationality, setNationality] = useState('');
   const [maritalStatus, setMaritalStatus] = useState('');
   
-  // High-level Job Seeker Category (Corporate Professional vs Skilled Trade/Artisan)
-  const [seekerCategory, setSeekerCategory] = useState<'PROFESSIONAL' | 'SKILLED_TRADE'>('PROFESSIONAL');
+  // High-level Job Seeker Category (Corporate Professional vs Skilled Trade/Artisan vs Both)
+  const [seekerCategory, setSeekerCategory] = useState<'PROFESSIONAL' | 'SKILLED_TRADE' | 'BOTH'>('PROFESSIONAL');
   const [tradeSpecialization, setTradeSpecialization] = useState(skilledTradesList[0]);
   const [customTrade, setCustomTrade] = useState('');
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState('');
 
   const [headline, setHeadline] = useState('');
   const [profession, setProfession] = useState('');
@@ -196,6 +198,10 @@ export default function OnboardingPage() {
   // Employer Form State
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
+  const [employerMission, setEmployerMission] = useState('');
+  const [employerVision, setEmployerVision] = useState('');
+  const [employerCulture, setEmployerCulture] = useState('');
+  const [generatingAiCompany, setGeneratingAiCompany] = useState(false);
   const [employerIndustryOption, setEmployerIndustryOption] = useState(generalIndustryOptions[0]);
   const [employerIndustryCustom, setEmployerIndustryCustom] = useState('');
   const [companySize, setCompanySize] = useState(teamSizeOptions[0]);
@@ -259,14 +265,15 @@ export default function OnboardingPage() {
             setValidationError('Please enter your Professional / Trade Headline.');
             return false;
           }
-          if (seekerCategory === 'SKILLED_TRADE') {
+          if (seekerCategory === 'SKILLED_TRADE' || seekerCategory === 'BOTH') {
             if (tradeSpecialization === 'Other Skilled Trade / Artisan' && !customTrade.trim()) {
               setValidationError('Please specify your Skilled Trade / Artisan profession.');
               return false;
             }
-          } else {
+          }
+          if (seekerCategory === 'PROFESSIONAL' || seekerCategory === 'BOTH') {
             if (!profession.trim()) {
-              setValidationError('Please enter your Primary Profession.');
+              setValidationError('Please enter your Corporate / Academic Profession.');
               return false;
             }
           }
@@ -420,8 +427,21 @@ export default function OnboardingPage() {
               setMaritalStatus(prof.maritalStatus || '');
               setHeadline(prof.headline || '');
               setProfession(prof.profession || '');
+              if (Array.isArray(prof.skills)) {
+                setSkills(prof.skills);
+              }
               
-              if (prof.isSkilledProfessional) {
+              if (prof.isSkilledProfessional && prof.profession && prof.skilledProfession && prof.profession !== prof.skilledProfession) {
+                setSeekerCategory('BOTH');
+                setIsSkilledProfessional(true);
+                const profSkill = prof.skilledProfession;
+                if (skilledTradesList.includes(profSkill)) {
+                  setTradeSpecialization(profSkill);
+                } else if (profSkill) {
+                  setTradeSpecialization('Other Skilled Trade / Artisan');
+                  setCustomTrade(profSkill);
+                }
+              } else if (prof.isSkilledProfessional) {
                 setSeekerCategory('SKILLED_TRADE');
                 setIsSkilledProfessional(true);
                 const profSkill = prof.skilledProfession || prof.profession || '';
@@ -567,14 +587,24 @@ export default function OnboardingPage() {
     
     if (user?.role === 'JOB_SEEKER') {
       endpoint = '/profiles/job-seeker';
-      const isSkilled = seekerCategory === 'SKILLED_TRADE';
+      const isSkilled = seekerCategory === 'SKILLED_TRADE' || seekerCategory === 'BOTH';
       const resolvedTrade = tradeSpecialization === 'Other Skilled Trade / Artisan' ? customTrade : tradeSpecialization;
-      const finalProfession = isSkilled ? resolvedTrade : profession;
+      const finalProfession = seekerCategory === 'SKILLED_TRADE'
+        ? resolvedTrade
+        : seekerCategory === 'BOTH'
+        ? `${profession.trim()} & ${resolvedTrade}`
+        : profession.trim();
       const finalSalary = salaryAmount.trim() 
         ? `${salaryCurrency} ${salaryAmount.trim()} / ${salaryFrequency.toLowerCase()}` 
         : expectedSalary;
 
       const finalPreferredIndustry = preferredIndustryOption === 'Others' ? preferredIndustryCustom.trim() : preferredIndustryOption;
+
+      // Combine all entered skills, trades, and professions without duplicates
+      const combinedSkillsSet = new Set<string>(skills.map(s => s.trim()).filter(Boolean));
+      if (profession.trim()) combinedSkillsSet.add(profession.trim());
+      if (isSkilled && resolvedTrade.trim()) combinedSkillsSet.add(resolvedTrade.trim());
+      if (skillInput.trim()) combinedSkillsSet.add(skillInput.trim());
 
       payload = {
         firstName, 
@@ -595,11 +625,11 @@ export default function OnboardingPage() {
         residenceCity, 
         citizenshipCountry, 
         willingToRelocate,
-        remotePreference: isOpenToRemote ? 'REMOTE_ONLY' : 'FLEXIBLE',
+        remotePreference: workArrangement === 'Remote' ? 'REMOTE_ONLY' : 'FLEXIBLE',
         desiredJobTitle, 
         preferredIndustry: finalPreferredIndustry, 
         employmentType, 
-        workArrangement: isOpenToRemote ? 'Remote' : workArrangement, 
+        workArrangement, 
         expectedSalary: finalSalary, 
         availability,
         preferredLocations: preferredWorkCountry,
@@ -611,7 +641,7 @@ export default function OnboardingPage() {
         references,
         socialLinks, 
         profilePicture: uploadedUrl, 
-        skills: []
+        skills: Array.from(combinedSkillsSet)
       };
     } else {
       endpoint = '/profiles/employer';
@@ -733,13 +763,13 @@ export default function OnboardingPage() {
       case 2:
         return (
           <div className="fly-in">
-            <h2>Career Track & Expertise</h2>
+            <h2>Career Track, Professions & Multiple Skills</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.2rem' }}>
-              Choose whether you are in corporate/professional work or specialized skilled crafts & trades.
+              Select your career track and add as many skills, professions, or trades as you have (e.g., a Business Administration graduate who is also a Plumber and Home Decorator).
             </p>
 
             {/* Career Category Selector */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginBottom: '1.5rem' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -747,7 +777,7 @@ export default function OnboardingPage() {
                   setIsSkilledProfessional(false);
                 }}
                 style={{
-                  padding: '14px 12px',
+                  padding: '12px 10px',
                   borderRadius: '12px',
                   border: seekerCategory === 'PROFESSIONAL' ? '2px solid #00F0FF' : '1px solid rgba(255,255,255,0.15)',
                   background: seekerCategory === 'PROFESSIONAL' ? 'rgba(0,240,255,0.12)' : 'rgba(255,255,255,0.04)',
@@ -757,11 +787,11 @@ export default function OnboardingPage() {
                   transition: 'all 0.2s',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: seekerCategory === 'PROFESSIONAL' ? '#00F0FF' : 'white' }}>
-                  <Briefcase size={18} /> Corporate & Professional
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '0.88rem', color: seekerCategory === 'PROFESSIONAL' ? '#00F0FF' : 'white' }}>
+                  <Briefcase size={16} /> Corporate / Office
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
-                  Software, Finance, Medical, Management, Marketing & Office roles
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+                  Business, Tech, Finance, Medical & Admin
                 </div>
               </button>
 
@@ -772,7 +802,7 @@ export default function OnboardingPage() {
                   setIsSkilledProfessional(true);
                 }}
                 style={{
-                  padding: '14px 12px',
+                  padding: '12px 10px',
                   borderRadius: '12px',
                   border: seekerCategory === 'SKILLED_TRADE' ? '2px solid #00F0FF' : '1px solid rgba(255,255,255,0.15)',
                   background: seekerCategory === 'SKILLED_TRADE' ? 'rgba(0,240,255,0.12)' : 'rgba(255,255,255,0.04)',
@@ -782,23 +812,68 @@ export default function OnboardingPage() {
                   transition: 'all 0.2s',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: seekerCategory === 'SKILLED_TRADE' ? '#00F0FF' : 'white' }}>
-                  <Wrench size={18} /> Skilled Trade & Artisan
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '0.88rem', color: seekerCategory === 'SKILLED_TRADE' ? '#00F0FF' : 'white' }}>
+                  <Wrench size={16} /> Skilled Trade
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
-                  Electricians, Plumbers, Welders, Mechanics, Chefs, Drivers & Crafts
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+                  Plumber, Electrician, Decorator, Chef, etc.
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSeekerCategory('BOTH');
+                  setIsSkilledProfessional(true);
+                }}
+                style={{
+                  padding: '12px 10px',
+                  borderRadius: '12px',
+                  border: seekerCategory === 'BOTH' ? '2px solid #00F0FF' : '1px solid rgba(255,255,255,0.15)',
+                  background: seekerCategory === 'BOTH' ? 'rgba(0,240,255,0.12)' : 'rgba(255,255,255,0.04)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '0.88rem', color: seekerCategory === 'BOTH' ? '#00F0FF' : 'white' }}>
+                  ✨ Both (Hybrid)
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+                  Graduate / Professional + Skilled Trade(s)
                 </div>
               </button>
             </div>
 
-            {seekerCategory === 'SKILLED_TRADE' ? (
+            {(seekerCategory === 'PROFESSIONAL' || seekerCategory === 'BOTH') && (
+              <div>
+                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
+                  Corporate / Academic Profession <span style={{ color: '#00F0FF' }}>*</span>
+                </label>
+                <input 
+                  placeholder="e.g. Business Administration, Financial Analyst, Software Engineer, Nurse" 
+                  value={profession} 
+                  onChange={e => setProfession(e.target.value)} 
+                  className="input-field" 
+                />
+              </div>
+            )}
+
+            {(seekerCategory === 'SKILLED_TRADE' || seekerCategory === 'BOTH') ? (
               <div style={{ padding: '1rem', background: 'rgba(0,240,255,0.04)', borderRadius: '12px', border: '1px dashed rgba(0,240,255,0.3)', marginBottom: '1.2rem' }}>
                 <label style={{ color: '#00F0FF', display: 'block', fontWeight: 600, marginBottom: '0.4rem', fontSize: '0.9rem' }}>
-                  Select Your Trade / Craft Specialization <span style={{ color: '#00F0FF' }}>*</span>
+                  Primary Trade / Craft Specialization <span style={{ color: '#00F0FF' }}>*</span>
                 </label>
                 <select 
                   value={tradeSpecialization} 
-                  onChange={e => setTradeSpecialization(e.target.value)} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setTradeSpecialization(val);
+                    if (val !== 'Other Skilled Trade / Artisan' && !skills.includes(val)) {
+                      setSkills([...skills, val]);
+                    }
+                  }} 
                   className="input-field"
                   style={{ marginBottom: tradeSpecialization === 'Other Skilled Trade / Artisan' ? '0.8rem' : 0 }}
                 >
@@ -809,7 +884,7 @@ export default function OnboardingPage() {
 
                 {tradeSpecialization === 'Other Skilled Trade / Artisan' && (
                   <input 
-                    placeholder="Specify your trade (e.g. Master Goldsmith, Roofer, Locksmith) *" 
+                    placeholder="Specify your trade (e.g. Home Decorator, Master Goldsmith, Locksmith) *" 
                     value={customTrade} 
                     onChange={e => setCustomTrade(e.target.value)} 
                     className="input-field" 
@@ -819,37 +894,153 @@ export default function OnboardingPage() {
               </div>
             ) : null}
 
+            {/* Multi-Skill & Additional Professions Builder */}
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(0,240,255,0.25)', marginBottom: '1.2rem' }}>
+              <label style={{ color: '#00F0FF', display: 'block', marginBottom: '0.35rem', fontSize: '0.92rem', fontWeight: 600 }}>
+                🛠️ Multiple Skills, Trades & Additional Professions
+              </label>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
+                Add all your skills and vocations! For example: <strong>Plumber</strong>, <strong>Home Decorator</strong>, <strong>Business Administration</strong>, <strong>Electrician</strong>, etc.
+              </p>
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <input
+                  placeholder="Type a skill or trade (e.g. Plumber, Home Decorator, Accounting)..."
+                  value={skillInput}
+                  onChange={e => setSkillInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && skillInput.trim()) {
+                      e.preventDefault();
+                      if (!skills.includes(skillInput.trim())) {
+                        setSkills([...skills, skillInput.trim()]);
+                      }
+                      setSkillInput('');
+                    }
+                  }}
+                  className="input-field"
+                  style={{ marginBottom: 0, flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+                      setSkills([...skills, skillInput.trim()]);
+                      setSkillInput('');
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ whiteSpace: 'nowrap', padding: '0 1.2rem' }}
+                >
+                  + Add Skill
+                </button>
+              </div>
+
+              {/* Quick-add popular multi-skills / trades */}
+              <div style={{ marginBottom: skills.length > 0 ? '0.8rem' : 0 }}>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.4rem' }}>
+                  Quick Add Skills & Trades (click to add):
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {[
+                    'Plumber',
+                    'Home Decorator',
+                    'Business Administration',
+                    'Electrician',
+                    'Painter & Decorator',
+                    'Carpenter',
+                    'Project Management',
+                    'Customer Service',
+                    'Sales & Marketing',
+                    'Software Development',
+                    'Data Analysis',
+                    'HVAC Technician',
+                    'Welder',
+                    'Professional Driver',
+                    'Chef & Catering'
+                  ].map(preset => {
+                    const isSelected = skills.includes(preset);
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSkills(skills.filter(s => s !== preset));
+                          } else {
+                            setSkills([...skills, preset]);
+                          }
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '999px',
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          border: isSelected ? '1px solid #00F0FF' : '1px solid rgba(255,255,255,0.15)',
+                          background: isSelected ? 'rgba(0,240,255,0.2)' : 'rgba(255,255,255,0.05)',
+                          color: isSelected ? '#00F0FF' : 'rgba(255,255,255,0.8)',
+                        }}
+                      >
+                        {isSelected ? `✓ ${preset}` : `+ ${preset}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {skills.length > 0 && (
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: '#00F0FF', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>
+                    Your Selected Skills & Professions ({skills.length}):
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {skills.map((sk, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 12px',
+                          borderRadius: '999px',
+                          background: 'rgba(0,240,255,0.16)',
+                          border: '1px solid #00F0FF',
+                          color: 'white',
+                          fontSize: '0.82rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {sk}
+                        <button
+                          type="button"
+                          onClick={() => setSkills(skills.filter((_, idx) => idx !== i))}
+                          style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '0.9rem' }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
               Professional / Trade Headline <span style={{ color: '#00F0FF' }}>*</span>
             </label>
             <input 
-              placeholder={seekerCategory === 'SKILLED_TRADE' ? "e.g. Certified Industrial Electrician | 8+ Yrs Commercial Wiring" : "e.g. Senior Full-Stack Engineer | AI & Cloud Architecture"} 
+              placeholder={seekerCategory === 'SKILLED_TRADE' ? "e.g. Certified Plumber & Home Decorator | 8+ Yrs Experience" : "e.g. Business Administrator & Certified Plumber | Multi-Skilled Specialist"} 
               value={headline} 
               onChange={e => setHeadline(e.target.value)} 
               className="input-field" 
             />
 
-            {seekerCategory === 'PROFESSIONAL' && (
-              <div>
-                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-                  Primary Profession <span style={{ color: '#00F0FF' }}>*</span>
-                </label>
-                <input 
-                  placeholder="e.g. Financial Analyst, Software Engineer, Nurse" 
-                  value={profession} 
-                  onChange={e => setProfession(e.target.value)} 
-                  className="input-field" 
-                />
-              </div>
-            )}
-
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>
-              {seekerCategory === 'SKILLED_TRADE' ? "Trade Profile & Practical Expertise" : "Professional Summary (About Me)"}
+              {seekerCategory === 'SKILLED_TRADE' ? "Trade Profile & Practical Expertise" : "Professional & Multi-Skill Summary (About Me)"}
             </label>
             <textarea 
               placeholder={seekerCategory === 'SKILLED_TRADE' 
                 ? "Describe your hands-on experience, equipment/tools you operate, apprenticeships completed, and types of projects handled..." 
-                : "Summarize your career highlights, core strengths, leadership experience, and key accomplishments..."} 
+                : "Summarize your career highlights, academic background, practical trades, and key accomplishments..."} 
               value={summary} 
               onChange={e => setSummary(e.target.value)} 
               className="input-field" 
@@ -950,19 +1141,36 @@ export default function OnboardingPage() {
               className="input-field" 
             />
 
-            {/* Relocation and Remote preferences */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
-              <label style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.95rem' }}>
-                <input 
-                  type="checkbox" 
-                  checked={isOpenToRemote} 
-                  onChange={e => setIsOpenToRemote(e.target.checked)} 
-                  style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
-                />
-                <span style={{ fontWeight: 600 }}>🌐 Open to Remote Work / Seeking Remote Opportunities</span>
+            {/* Preferred Work Mode (Remote, Onsite, Hybrid) & Relocation */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(0,240,255,0.2)' }}>
+              <label style={{ color: '#00F0FF', fontWeight: 600, fontSize: '0.92rem' }}>
+                🌐 Preferred Work Mode (Remote, Onsite, or Hybrid)
               </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
+                {(['Remote', 'Onsite', 'Hybrid'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setWorkArrangement(mode);
+                      setIsOpenToRemote(mode === 'Remote' || mode === 'Hybrid');
+                    }}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: workArrangement === mode ? '2px solid #00F0FF' : '1px solid rgba(255,255,255,0.15)',
+                      background: workArrangement === mode ? 'rgba(0,240,255,0.16)' : 'rgba(255,255,255,0.04)',
+                      color: workArrangement === mode ? '#00F0FF' : 'white',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {mode === 'Remote' ? '🌍 Remote' : mode === 'Onsite' ? '🏢 Onsite' : '🔄 Hybrid'}
+                  </button>
+                ))}
+              </div>
 
-              <label style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.95rem' }}>
+              <label style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.95rem', marginTop: '0.4rem' }}>
                 <input 
                   type="checkbox" 
                   checked={willingToRelocate} 
@@ -979,7 +1187,7 @@ export default function OnboardingPage() {
           <div className="fly-in">
             <h2>Job Preferences & Compensation</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.2rem' }}>
-              Specify your target role, work country, and desired pay structure.
+              Specify your target role, work arrangement (Remote, Onsite, or Hybrid), and desired pay structure.
             </p>
 
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
@@ -1026,11 +1234,19 @@ export default function OnboardingPage() {
                 </select>
               </div>
               <div>
-                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Work Arrangement</label>
-                <select value={workArrangement} onChange={e => setWorkArrangement(e.target.value)} className="input-field" style={{ marginBottom: 0 }}>
+                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 600 }}>Work Arrangement (Remote / Onsite / Hybrid)</label>
+                <select
+                  value={workArrangement}
+                  onChange={e => {
+                    setWorkArrangement(e.target.value);
+                    setIsOpenToRemote(e.target.value === 'Remote' || e.target.value === 'Hybrid');
+                  }}
+                  className="input-field"
+                  style={{ marginBottom: 0 }}
+                >
                   <option value="Remote">Remote</option>
+                  <option value="Onsite">Onsite</option>
                   <option value="Hybrid">Hybrid</option>
-                  <option value="On-site">On-site</option>
                 </select>
               </div>
             </div>
@@ -1399,9 +1615,118 @@ export default function OnboardingPage() {
               className="input-field" 
             />
 
-            <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-              {businessType === 'RECRUITING_AGENCY' ? "Agency Description & Track Record *" : "Company Description *"}
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <label style={{ color: 'white', fontSize: '0.9rem', fontWeight: 500 }}>
+                {businessType === 'RECRUITING_AGENCY' ? "Agency Description & Track Record *" : "Company Description *"}
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  disabled={generatingAiCompany}
+                  onClick={async () => {
+                    if (!companyName.trim()) {
+                      alert('Please enter your Company / Agency Name first.');
+                      return;
+                    }
+                    setGeneratingAiCompany(true);
+                    try {
+                      const token = localStorage.getItem('token');
+                      const ind = businessType === 'RECRUITING_AGENCY'
+                        ? (agencyPrimaryIndustryOption === 'Others' ? agencyPrimaryIndustryCustom : agencyPrimaryIndustryOption)
+                        : (employerIndustryOption === 'Others' ? employerIndustryCustom : employerIndustryOption);
+                      const res = await fetch('/api/ai/company-profile/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                          companyName,
+                          industry: ind,
+                          businessType,
+                          companySize,
+                          foundedYear,
+                          locationCountry,
+                          locationCity,
+                          website: employerWebsite,
+                          description,
+                        }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.description) setDescription(data.description);
+                        if (data.mission) setEmployerMission(data.mission);
+                        if (data.vision) setEmployerVision(data.vision);
+                        if (data.culture) setEmployerCulture(data.culture);
+                      } else {
+                        alert('Could not generate AI profile right now.');
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setGeneratingAiCompany(false);
+                    }
+                  }}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #00F0FF',
+                    background: 'rgba(0,240,255,0.14)',
+                    color: '#00F0FF',
+                    fontSize: '0.78rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {generatingAiCompany ? '⏳ Generating...' : '✨ AI Build Profile'}
+                </button>
+                {description.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ind = businessType === 'RECRUITING_AGENCY'
+                        ? (agencyPrimaryIndustryOption === 'Others' ? agencyPrimaryIndustryCustom : agencyPrimaryIndustryOption)
+                        : (employerIndustryOption === 'Others' ? employerIndustryCustom : employerIndustryOption);
+                      const content = [
+                        `======================================================`,
+                        `   OFFICIAL AI-BUILT ${businessType === 'RECRUITING_AGENCY' ? 'AGENCY' : 'COMPANY'} PROFILE`,
+                        `======================================================`,
+                        `Organization: ${companyName || 'Organization'}`,
+                        `Type: ${businessType === 'RECRUITING_AGENCY' ? 'Recruiting Agency' : 'Direct Employer'}`,
+                        `Industry: ${ind || 'General'}`,
+                        `Team Size: ${companySize} | Founded: ${foundedYear}`,
+                        `Website: ${employerWebsite || 'N/A'}`,
+                        `Remote Friendly: ${employerRemoteFriendly ? 'Yes' : 'No'}`,
+                        ``,
+                        `EXECUTIVE OVERVIEW:`,
+                        description,
+                        employerMission ? `\nMISSION:\n${employerMission}` : '',
+                        employerVision ? `\nVISION:\n${employerVision}` : '',
+                        employerCulture ? `\nWORKPLACE CULTURE:\n${employerCulture}` : '',
+                        ``,
+                        `Generated via JobHub AI Global Talent Platform`
+                      ].filter(Boolean).join('\n');
+                      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${(companyName || 'Company').replace(/\s+/g, '_')}_AI_Profile.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #10b981',
+                      background: 'rgba(16,185,129,0.15)',
+                      color: '#34d399',
+                      fontSize: '0.78rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📥 Download AI Profile
+                  </button>
+                )}
+              </div>
+            </div>
             <textarea 
               placeholder={businessType === 'RECRUITING_AGENCY' 
                 ? "Describe your recruiting expertise, client placement record, and hiring specialties..." 
@@ -1409,7 +1734,7 @@ export default function OnboardingPage() {
               value={description} 
               onChange={e => setDescription(e.target.value)} 
               className="input-field" 
-              rows={3} 
+              rows={4} 
             />
 
             {/* Remote Friendly Provision for Employers */}

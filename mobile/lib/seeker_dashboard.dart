@@ -8,6 +8,7 @@ import 'jobs_screen.dart';
 import 'applications_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
+import 'chat_screen.dart';
 import 'screens/resumes/resumes_list_screen.dart';
 import 'screens/wallet_screen.dart';
 import 'screens/network_feed_screen.dart';
@@ -134,6 +135,21 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
     }
   }
 
+  Future<void> _markAlertAsRead(dynamic notif) async {
+    if (notif == null || notif['id'] == null || notif['isRead'] == true) return;
+    setState(() {
+      notif['isRead'] = true;
+    });
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+      await http.patch(
+        Uri.parse('${ApiConfig.baseUrl}/profiles/notifications/${notif['id']}/read'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+    } catch (_) {}
+  }
+
   Future<void> _dismissAlert(String notificationId) async {
     try {
       final token = await ApiConfig.getToken();
@@ -247,6 +263,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unreadAlertsCount = _notifications.where((n) => n['isRead'] != true).length;
 
     return PopScope(
       canPop: false,
@@ -282,8 +299,8 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
             const BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
             BottomNavigationBarItem(
               icon: Badge(
-                label: _notifications.isNotEmpty ? Text('${_notifications.length}') : null,
-                isLabelVisible: _notifications.isNotEmpty,
+                label: unreadAlertsCount > 0 ? Text('$unreadAlertsCount') : null,
+                isLabelVisible: unreadAlertsCount > 0,
                 child: const Icon(Icons.notifications),
               ),
               label: 'Alerts',
@@ -297,75 +314,209 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
 
   Widget _buildInbox() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (_inbox.isEmpty) {
-      return Center(
-        child: Text('No messages', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
-      );
-    }
-    return ListView.builder(
-      itemCount: _inbox.length,
-      itemBuilder: (context, index) {
-        final item = _inbox[index];
-        return ListTile(
-          title: Text('Employer', style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
-          subtitle: Text(item['latestMessage']?['content'] ?? '', style: TextStyle(color: isDark ? Colors.white54 : Colors.black45)),
-        );
-      },
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Messages'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchData,
+          ),
+        ],
+      ),
+      body: _inbox.isEmpty
+          ? Center(
+              child: Text('No messages yet', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _inbox.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final item = _inbox[index];
+                final otherUser = item['otherUser'] ?? {};
+                final otherUserId = otherUser['id']?.toString() ?? '';
+                final employerName = otherUser['employerProfile']?['companyName'] ??
+                    (otherUser['jobSeekerProfile'] != null
+                        ? '${otherUser['jobSeekerProfile']['firstName'] ?? ''} ${otherUser['jobSeekerProfile']['lastName'] ?? ''}'.trim()
+                        : null) ??
+                    (otherUser['email'] != null ? otherUser['email'].toString().split('@').first : 'Employer');
+
+                return Card(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF00F0FF).withOpacity(0.15),
+                      child: const Icon(Icons.business, color: Color(0xFF00F0FF)),
+                    ),
+                    title: Text(
+                      employerName.isNotEmpty ? employerName : 'Employer',
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      item['latestMessage']?['content'] ?? 'Tap to view conversation',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF00F0FF)),
+                    onTap: () async {
+                      if (otherUserId.isEmpty) return;
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                            otherUserId: otherUserId,
+                            otherUserName: employerName.isNotEmpty ? employerName : 'Employer',
+                            otherUserRole: 'Employer / Recruiter',
+                          ),
+                        ),
+                      );
+                      _fetchData();
+                    },
+                  ),
+                );
+              },
+            ),
     );
   }
 
   Widget _buildNotifications() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (_notifications.isEmpty) {
-      return Center(
-        child: Text('No match alerts at this time.', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
-      );
-    }
-    return ListView.builder(
-      itemCount: _notifications.length,
-      padding: const EdgeInsets.all(16),
-      itemBuilder: (context, index) {
-        final notif = _notifications[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.4)),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Alerts & Notifications'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchData,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('⚡ Smart Match Alert', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 16)),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    color: isDark ? Colors.white54 : Colors.black45,
-                    onPressed: () => _dismissAlert(notif['id']),
+        ],
+      ),
+      body: _notifications.isEmpty
+          ? Center(
+              child: Text('No match alerts at this time.', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+            )
+          : ListView.builder(
+              itemCount: _notifications.length,
+              padding: const EdgeInsets.all(16),
+              itemBuilder: (context, index) {
+                final notif = _notifications[index];
+                final bool isRead = notif['isRead'] == true;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _markAlertAsRead(notif),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? (isRead ? Colors.white.withOpacity(0.02) : Colors.white.withOpacity(0.06))
+                          : (isRead ? Colors.grey.shade50 : Colors.white),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isRead
+                            ? (isDark ? Colors.white12 : Colors.black12)
+                            : const Color(0xFF00F0FF).withOpacity(0.5),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  notif['jobId'] != null ? '⚡ Smart Match Alert' : '🔔 Notification',
+                                  style: TextStyle(
+                                    color: isRead ? Colors.grey : const Color(0xFF00F0FF),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isRead
+                                        ? Colors.grey.withOpacity(0.2)
+                                        : const Color(0xFF00F0FF).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    isRead ? 'Read' : 'New',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isRead ? Colors.grey : const Color(0xFF00F0FF),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              color: isDark ? Colors.white54 : Colors.black45,
+                              onPressed: () => _dismissAlert(notif['id']),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          notif['message'] ?? 'A new job matching your profile is available.',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontWeight: isRead ? FontWeight.normal : FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            if (notif['jobId'] != null)
+                              ElevatedButton(
+                                onPressed: () {
+                                  _markAlertAsRead(notif);
+                                  _applyWithConsent(notif);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF6366F1),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Review & Apply with Consent'),
+                              ),
+                            if (!isRead)
+                              OutlinedButton(
+                                onPressed: () => _markAlertAsRead(notif),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF00F0FF),
+                                  side: const BorderSide(color: Color(0xFF00F0FF)),
+                                ),
+                                child: const Text('Mark as Read'),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                notif['message'] ?? 'A new job matching your profile is available.',
-                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => _applyWithConsent(notif),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Review & Apply with Consent'),
-              ),
-            ],
-          ),
-        );
-      },
+                );
+              },
+            ),
     );
   }
 }

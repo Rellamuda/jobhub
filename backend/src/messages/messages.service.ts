@@ -10,13 +10,40 @@ export class MessagesService {
       throw new ForbiddenException('You cannot send a message to yourself.');
     }
 
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         senderId,
         receiverId,
         content,
       },
     });
+
+    try {
+      const sender = await this.prisma.user.findUnique({
+        where: { id: senderId },
+        include: { jobSeekerProfile: true, employer: true },
+      });
+      const senderName =
+        sender?.employer?.companyName ||
+        (sender?.jobSeekerProfile
+          ? `${sender.jobSeekerProfile.firstName || ''} ${sender.jobSeekerProfile.lastName || ''}`.trim()
+          : null) ||
+        sender?.email ||
+        'A user';
+      const snippet = content.length > 80 ? `${content.substring(0, 80)}...` : content;
+
+      await this.prisma.notification.create({
+        data: {
+          userId: receiverId,
+          matchProbability: 100,
+          message: `💬 New Message from ${senderName}: "${snippet}"`,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to create notification for message:', err);
+    }
+
+    return message;
   }
 
   async getInbox(userId: string) {

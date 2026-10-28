@@ -113,15 +113,30 @@ export class AiController {
   @Post('cover-letter/generate')
   async generateCoverLetter(
     @Request() req,
-    @Body('profile') profileData: any,
-    @Body('job') jobData: any,
+    @Body() body: any,
   ) {
     await this.checkGenerationLimit(req, 'cover-letter/generate', 1200);
+    let profileData = body?.profile;
+    let jobData = body?.job;
+
+    if (!profileData && req.user?.userId) {
+      profileData = await this.prisma.jobSeekerProfile.findUnique({
+        where: { userId: req.user.userId },
+      });
+    }
+
+    if (!jobData && body?.jobId) {
+      jobData = await this.prisma.job.findUnique({
+        where: { id: body.jobId },
+        include: { employer: true },
+      });
+    }
+
     const cover_letter = await this.aiService.generateCoverLetter(
-      profileData,
-      jobData,
+      profileData || { firstName: 'Candidate', lastName: '', skills: [] },
+      jobData || { title: body?.jobTitle || 'Role', description: body?.jobDescription || '' },
     );
-    return { cover_letter };
+    return { cover_letter, coverLetter: cover_letter };
   }
 
   @Post('match/score')

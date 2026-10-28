@@ -27,9 +27,21 @@ export class JobsService {
       }
     }
 
+    const rawData: any = { ...data };
+    const normalizedWorkMode = rawData.workMode
+      ? String(rawData.workMode).toUpperCase()
+      : rawData.isRemote
+      ? 'REMOTE'
+      : 'ONSITE';
+    const isRemote = normalizedWorkMode === 'REMOTE' || Boolean(rawData.isRemote);
+    const requiresCoverLetter = Boolean(rawData.requiresCoverLetter);
+
     const newJob = await this.prisma.job.create({
       data: {
-        ...data,
+        ...rawData,
+        workMode: normalizedWorkMode,
+        isRemote,
+        requiresCoverLetter,
         employer: { connect: { id: employer.id } },
       },
     });
@@ -68,9 +80,21 @@ export class JobsService {
         continue;
       }
 
+      const rawData: any = { ...data };
+      const normalizedWorkMode = rawData.workMode
+        ? String(rawData.workMode).toUpperCase()
+        : rawData.isRemote
+        ? 'REMOTE'
+        : 'ONSITE';
+      const isRemote = normalizedWorkMode === 'REMOTE' || Boolean(rawData.isRemote);
+      const requiresCoverLetter = Boolean(rawData.requiresCoverLetter);
+
       const newJob = await this.prisma.job.create({
         data: {
-          ...data,
+          ...rawData,
+          workMode: normalizedWorkMode,
+          isRemote,
+          requiresCoverLetter,
           employer: { connect: { id: employer.id } },
         },
       });

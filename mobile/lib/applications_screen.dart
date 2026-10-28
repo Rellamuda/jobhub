@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'chat_screen.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
@@ -44,13 +45,47 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     }
   }
 
+  Future<void> _respondToInvitation(String appId, String status) async {
+    try {
+      final headers = await ApiConfig.authHeaders();
+      final res = await http.patch(
+        Uri.parse('${ApiConfig.baseUrl}/applications/$appId/seeker-status'),
+        headers: headers,
+        body: jsonEncode({'status': status}),
+      );
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: status == 'ACCEPTED_OFFER' ? const Color(0xFF10B981) : Colors.orange,
+              content: Text(
+                status == 'ACCEPTED_OFFER'
+                    ? '✅ Invitation accepted! The employer has been notified in their Messages & Alerts.'
+                    : 'Invitation declined. The employer has been notified.',
+              ),
+            ),
+          );
+        }
+        _fetchApplications();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error responding: $e')),
+        );
+      }
+    }
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'APPLIED': return Colors.grey;
       case 'VIEWED': return const Color(0xFFF59E0B); // Amber
       case 'SHORTLISTED': return const Color(0xFF3B82F6); // Blue
-      case 'HIRED': return const Color(0xFF10B981); // Green
-      case 'REJECTED': return const Color(0xFFEF4444); // Red
+      case 'HIRED':
+      case 'ACCEPTED_OFFER': return const Color(0xFF10B981); // Green
+      case 'REJECTED':
+      case 'DECLINED_OFFER': return const Color(0xFFEF4444); // Red
       case 'INVITED': return const Color(0xFF8B5CF6); // Purple
       default: return Colors.grey;
     }
@@ -83,7 +118,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Track the status of your recent job applications.',
+                'Track the status of your recent job applications and respond to interview invitations.',
                 style: TextStyle(
                   fontSize: 15,
                   color: isDark ? Colors.white70 : Colors.black54,
@@ -130,6 +165,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                         final job = app['job'] ?? {};
                         final jobTitle = job['title'] ?? 'Untitled Position';
                         final company = job['employer']?['companyName'] ?? 'Company';
+                        final employerUserId = job['employer']?['userId']?.toString() ?? '';
                         final status = app['status'] ?? 'APPLIED';
                         final statusColor = _getStatusColor(status);
                         final date = (app['createdAt'] ?? '').toString().split('T').first;
@@ -191,16 +227,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                                 children: [
                                   Icon(Icons.business, size: 15, color: isDark ? Colors.white54 : Colors.black45),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    company,
-                                    style: TextStyle(
-                                      color: isDark ? Colors.white70 : Colors.black87,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                  Expanded(
+                                    child: Text(
+                                      company,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white70 : Colors.black87,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                   if (matchScore != null) ...[
-                                    const Spacer(),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
@@ -208,7 +245,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        'Match: ${matchScore}%',
+                                        'Match: $matchScore%',
                                         style: const TextStyle(
                                           color: Color(0xFF6366F1),
                                           fontSize: 11,
@@ -231,6 +268,54 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                                       fontSize: 12,
                                     ),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  if (status == 'INVITED') ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () => _respondToInvitation(app['id'], 'ACCEPTED_OFFER'),
+                                      icon: const Icon(Icons.check_circle, size: 16, color: Colors.black),
+                                      label: const Text('Accept Invitation', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF00F0FF),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _respondToInvitation(app['id'], 'DECLINED_OFFER'),
+                                      icon: const Icon(Icons.cancel_outlined, size: 16, color: Colors.redAccent),
+                                      label: const Text('Decline', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: Colors.redAccent),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ),
+                                  ],
+                                  if (employerUserId.isNotEmpty)
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ChatScreen(
+                                              otherUserId: employerUserId,
+                                              otherUserName: company,
+                                              otherUserRole: 'Employer / Recruiter',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.chat_bubble_outline, size: 15, color: Color(0xFF00F0FF)),
+                                      label: const Text('Message Employer', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 12)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: Color(0xFF00F0FF)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ],

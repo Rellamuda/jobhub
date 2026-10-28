@@ -57,8 +57,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 4),
-            content: Text('Account created! A confirmation email has been sent to $email.'),
+            duration: const Duration(seconds: 5),
+            content: Text('Account created! A confirmation email has been sent to $email. Please check your inbox or spam folder.'),
           ),
         );
         Navigator.pop(context); // Go back to login screen

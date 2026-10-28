@@ -8,6 +8,7 @@ export default function RegisterPage() {
   const [role, setRole] = useState('JOB_SEEKER'); // JOB_SEEKER or EMPLOYER
   const [rememberCredentials, setRememberCredentials] = useState(true);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -15,6 +16,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMsg('');
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -45,8 +47,10 @@ export default function RegisterPage() {
         localStorage.setItem('saved_password', password);
       }
 
-      // Redirect to login page for sign in
-      window.location.href = '/login';
+      setSuccessMsg(`Account created! A confirmation email has been sent to ${email.trim().toLowerCase()}. Please check your inbox or spam/junk folder. Redirecting...`);
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2500);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -63,6 +67,12 @@ export default function RegisterPage() {
         <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '2rem' }}>
           Create an account to start your journey (v2)
         </p>
+
+        {successMsg && (
+          <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            {successMsg}
+          </div>
+        )}
 
         {error && (
           <div style={{ backgroundColor: 'rgba(255, 0, 0, 0.1)', border: '1px solid red', color: '#ff4d4d', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center' }}>

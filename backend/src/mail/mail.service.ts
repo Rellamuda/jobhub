@@ -394,10 +394,13 @@ export class MailService {
       </div>
     `;
 
+    const text = `Welcome to JobHub Global!\n\nYour account has been registered successfully with ${params.to}.\n\nAccount Type: ${isEmployer ? 'Employer / Hiring Partner' : 'Job Seeker'}\nStatus: Registered & Active\n\nSign in to access your dashboard and tools: ${loginUrl}\n\nIf you did not create this account, please disregard this email.\n© ${new Date().getFullYear()} JobHub Global. All rights reserved.`;
+
     return this.sendEmail({
       to: params.to,
-      subject: `🎉 Welcome to JobHub Global - Account Registered!`,
+      subject: `Welcome to JobHub Global - Account Registered`,
       html,
+      text,
     });
   }
 }

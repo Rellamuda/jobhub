@@ -256,7 +256,7 @@ export default function AdminDashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1.75rem' }}>🛡️</span>
+              <span style={{ fontSize: '1.75rem' }}>ðŸ›¡ï¸</span>
               <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>
                 JobHub <span style={{ background: 'linear-gradient(90deg, #6366F1, #00F0FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Admin Control Center</span>
               </h1>
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
                 fontSize: '0.9rem',
               }}
             >
-              🔄 Refresh Data
+              ðŸ”„ Refresh Data
             </button>
             <button
               onClick={() => {
@@ -328,7 +328,7 @@ export default function AdminDashboard() {
             }}
           >
             <span>{message.text}</span>
-            <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+            <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1.2rem' }}>âœ•</button>
           </div>
         )}
 
@@ -345,7 +345,7 @@ export default function AdminDashboard() {
               backdropFilter: 'blur(12px)',
             }}
           >
-            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🔐</div>
+            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>ðŸ”</div>
             <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', color: '#F87171' }}>
               Administrator Authentication Required
             </h2>
@@ -368,7 +368,7 @@ export default function AdminDashboard() {
                   gap: '0.5rem',
                 }}
               >
-                🔑 Log In as Administrator
+                ðŸ”‘ Log In as Administrator
               </Link>
               <button
                 onClick={fetchUsers}
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                   cursor: 'pointer',
                 }}
               >
-                🔄 Refresh Session
+                ðŸ”„ Refresh Session
               </button>
             </div>
           </div>
@@ -391,8 +391,8 @@ export default function AdminDashboard() {
         {/* Loading Indicator */}
         {loading && (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            <div>Loading JobHub AI platform intelligence and user database...</div>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>â³</div>
+            <div>Loading JobHub Global platform intelligence and user database...</div>
           </div>
         )}
 
@@ -443,7 +443,7 @@ export default function AdminDashboard() {
         <div style={{ backgroundColor: 'rgba(0, 240, 255, 0.03)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '16px', padding: '1.25rem 1.5rem', marginBottom: '2rem', backdropFilter: 'blur(10px)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.3rem' }}>⚡</span>
+              <span style={{ fontSize: '1.3rem' }}>âš¡</span>
               <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#00F0FF', fontWeight: 700 }}>AI Engine & Gemini Token Telemetry</h3>
             </div>
             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
@@ -627,12 +627,12 @@ export default function AdminDashboard() {
         >
           {loading ? (
             <div style={{ padding: '4rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>⏳</div>
+              <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>â³</div>
               <div>Loading users database...</div>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div style={{ padding: '4rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>ðŸ”</div>
               <div>No users found matching your filters.</div>
             </div>
           ) : (
@@ -658,10 +658,10 @@ export default function AdminDashboard() {
                       : isEmployer
                       ? user.employer?.companyName || 'Employer'
                       : 'Platform Administrator';
-                    const phone = user.jobSeekerProfile?.phone || user.employer?.hrPhone || '—';
+                    const phone = user.jobSeekerProfile?.phone || user.employer?.hrPhone || 'â€”';
                     const location = isSeeker
-                      ? [user.jobSeekerProfile?.residenceCity, user.jobSeekerProfile?.residenceCountry].filter(Boolean).join(', ') || '—'
-                      : [user.employer?.locationCity, user.employer?.locationCountry].filter(Boolean).join(', ') || '—';
+                      ? [user.jobSeekerProfile?.residenceCity, user.jobSeekerProfile?.residenceCountry].filter(Boolean).join(', ') || 'â€”'
+                      : [user.employer?.locationCity, user.employer?.locationCountry].filter(Boolean).join(', ') || 'â€”';
 
                     return (
                       <tr
@@ -780,18 +780,18 @@ export default function AdminDashboard() {
                                 color: user.accountStatus === 'ACTIVE' ? '#10B981' : '#EF4444',
                               }}
                             >
-                              ● {user.accountStatus}
+                              â— {user.accountStatus}
                             </span>
                             {user.isFlagged && (
-                              <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: 600 }}>🚩 Flagged</span>
+                              <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: 600 }}>ðŸš© Flagged</span>
                             )}
                           </div>
                         </td>
 
                         {/* Location / Contact */}
                         <td style={{ padding: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                          <div>📍 {location}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.4)', marginTop: '0.15rem' }}>📞 {phone}</div>
+                          <div>ðŸ“ {location}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.4)', marginTop: '0.15rem' }}>ðŸ“ž {phone}</div>
                         </td>
 
                         {/* Joined Date */}
@@ -889,7 +889,7 @@ export default function AdminDashboard() {
                                 cursor: 'pointer',
                               }}
                             >
-                              🗑️
+                              ðŸ—‘ï¸
                             </button>
                           </div>
                         </td>
@@ -946,7 +946,7 @@ export default function AdminDashboard() {
                   fontSize: '1rem',
                 }}
               >
-                ✕
+                âœ•
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -973,7 +973,7 @@ export default function AdminDashboard() {
                       : selectedUser.employer?.companyName || selectedUser.email}
                   </h2>
                   <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>
-                    {selectedUser.email} • ID: <code style={{ color: '#00F0FF' }}>{selectedUser.id}</code>
+                    {selectedUser.email} â€¢ ID: <code style={{ color: '#00F0FF' }}>{selectedUser.id}</code>
                   </div>
                 </div>
               </div>
@@ -1008,20 +1008,20 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Profession / Role</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUser.jobSeekerProfile.profession || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUser.jobSeekerProfile.profession || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Desired Job Title</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUser.jobSeekerProfile.desiredJobTitle || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUser.jobSeekerProfile.desiredJobTitle || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Phone Number</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUser.jobSeekerProfile.phone || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUser.jobSeekerProfile.phone || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Residence</div>
                       <div style={{ fontWeight: 600 }}>
-                        {[selectedUser.jobSeekerProfile.residenceCity, selectedUser.jobSeekerProfile.residenceState, selectedUser.jobSeekerProfile.residenceCountry].filter(Boolean).join(', ') || '—'}
+                        {[selectedUser.jobSeekerProfile.residenceCity, selectedUser.jobSeekerProfile.residenceState, selectedUser.jobSeekerProfile.residenceCountry].filter(Boolean).join(', ') || 'â€”'}
                       </div>
                     </div>
                     <div>
@@ -1070,11 +1070,11 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Industry</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUser.employer.industry || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUser.employer.industry || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Company Size</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUser.employer.companySize || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUser.employer.companySize || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Website</div>
@@ -1083,17 +1083,17 @@ export default function AdminDashboard() {
                           <a href={selectedUser.employer.website} target="_blank" rel="noreferrer" style={{ color: '#00F0FF' }}>
                             {selectedUser.employer.website}
                           </a>
-                        ) : '—'}
+                        ) : 'â€”'}
                       </div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>Registration No / RC</div>
-                      <div style={{ fontWeight: 600 }}>{selectedUser.employer.registrationNumber || '—'}</div>
+                      <div style={{ fontWeight: 600 }}>{selectedUser.employer.registrationNumber || 'â€”'}</div>
                     </div>
                     <div>
                       <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem' }}>HR Contact</div>
                       <div style={{ fontWeight: 600 }}>
-                        {selectedUser.employer.hrContactName || '—'} ({selectedUser.employer.hrEmail || selectedUser.employer.hrPhone || 'No contact info'})
+                        {selectedUser.employer.hrContactName || 'â€”'} ({selectedUser.employer.hrEmail || selectedUser.employer.hrPhone || 'No contact info'})
                       </div>
                     </div>
                   </div>
@@ -1107,7 +1107,7 @@ export default function AdminDashboard() {
                         {selectedUser.employer.jobs.map((job) => (
                           <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0.8rem', backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '8px', fontSize: '0.85rem' }}>
                             <span style={{ fontWeight: 600 }}>{job.title}</span>
-                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{job.location || 'Remote'} • {job.isRemote ? 'Remote' : 'On-site'}</span>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{job.location || 'Remote'} â€¢ {job.isRemote ? 'Remote' : 'On-site'}</span>
                           </div>
                         ))}
                       </div>

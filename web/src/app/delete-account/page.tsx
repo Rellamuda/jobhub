@@ -83,7 +83,7 @@ export default function DeleteAccountPage() {
     <main style={{ minHeight: '100vh', backgroundColor: '#0A0A0A', color: 'white', padding: '3rem 1.5rem' }}>
       <div style={{ maxWidth: '650px', margin: '0 auto', backgroundColor: '#120B1C', padding: '2.5rem', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img src="/logo.png" alt="JobHub AI" width="56" height="56" style={{ marginBottom: '1rem', objectFit: 'contain' }} />
+          <img src="/header-logo.png" alt="JobHub Global" width="56" height="56" style={{ marginBottom: '1rem', objectFit: 'contain', borderRadius: '10px' }} />
           <h1 style={{ fontSize: '2.2rem', fontWeight: 800, margin: 0 }}>Delete Account &amp; Data</h1>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem', fontSize: '0.95rem' }}>
             Google Play Data Safety &amp; User Account Deletion Portal
@@ -109,7 +109,7 @@ export default function DeleteAccountPage() {
         <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '14px', padding: '1.25rem', marginBottom: '2rem' }}>
           <h3 style={{ margin: '0 0 0.5rem 0', color: '#EF4444', fontSize: '1rem', fontWeight: 700 }}>⚠️ Important Notice Regarding Data Erasure</h3>
           <p style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.8)', margin: 0, lineHeight: 1.6 }}>
-            Deleting your account will permanently remove all your JobHub AI records, including your candidate profile, uploaded resumes/CVs, active job postings, application submissions, and direct message threads. This action is irreversible.
+            Deleting your account will permanently remove all your JobHub Global records, including your candidate profile, uploaded resumes/CVs, active job postings, application submissions, and direct message threads. This action is irreversible.
           </p>
         </div>
 

@@ -55,11 +55,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
-        body: json.encode({'coverLetter': 'One-Tap Marketplace Application via JobHub AI.'})
+        body: json.encode({'coverLetter': 'One-Tap Marketplace Application via JobHub Global.'})
       );
       
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('⚡ One-Tap Application Sent!')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('âš¡ One-Tap Application Sent!')));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to apply or already applied.')));
       }

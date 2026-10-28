@@ -217,14 +217,14 @@ export default function EmployerDashboard() {
       `HR Contact: ${emp.hrContactName || 'N/A'} (${emp.hrEmail || ''})`,
       ``,
       `COMPANY OVERVIEW & DESCRIPTION:`,
-      emp.description || 'Verified Employer on JobHub AI Global Talent Platform.',
+      emp.description || 'Verified Employer on JobHub Global Talent Platform.',
       emp.mission ? `\nMISSION:\n${emp.mission}` : '',
       emp.vision ? `\nVISION:\n${emp.vision}` : '',
       emp.culture ? `\nCULTURE:\n${emp.culture}` : '',
       emp.whyWorkWithUs ? `\nWHY WORK WITH US:\n${emp.whyWorkWithUs}` : '',
       ``,
       `Active Job Postings: ${jobs.length}`,
-      `Generated via JobHub AI (https://jobhub-app.duckdns.org)`
+      `Generated via JobHub Global (https://jobhub-app.duckdns.org)`
     ].filter(Boolean).join('\n');
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -271,7 +271,7 @@ export default function EmployerDashboard() {
             className="btn-primary"
             style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#34d399', boxShadow: 'none', fontWeight: 'bold' }}
           >
-            📥 Download AI Company Profile
+            ðŸ“¥ Download AI Company Profile
           </button>
           <Link href="/dashboard/employer/jobs/new">
             <button className="btn-primary">+ Post New Vacancy</button>
@@ -318,12 +318,12 @@ export default function EmployerDashboard() {
                          <div>
                             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               {app.jobSeekerProfile?.firstName} {app.jobSeekerProfile?.lastName}
-                              {app.jobSeekerProfile?.verificationStatus === 'VERIFIED' && <span style={{ color: '#00f0ff' }}>✔</span>}
+                              {app.jobSeekerProfile?.verificationStatus === 'VERIFIED' && <span style={{ color: '#00f0ff' }}>âœ”</span>}
                             </h3>
-                            <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>Status: <span style={{ color: '#00f0ff', fontWeight: 'bold' }}>{app.status}</span> • AI Match: {app.aiMatchScore || 85}%</p>
+                            <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>Status: <span style={{ color: '#00f0ff', fontWeight: 'bold' }}>{app.status}</span> â€¢ AI Match: {app.aiMatchScore || 85}%</p>
                             {app.resume && (
                               <div style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: '#00f0ff' }}>
-                                📄 Attached Resume: <strong>{app.resume.title || 'Candidate Resume'}</strong>
+                                ðŸ“„ Attached Resume: <strong>{app.resume.title || 'Candidate Resume'}</strong>
                               </div>
                             )}
                           </div>
@@ -333,7 +333,7 @@ export default function EmployerDashboard() {
                               onClick={() => setViewingResume(app)}
                               style={{ padding: '8px 16px', fontSize: '0.9rem', border: '1px solid #00f0ff' }}
                             >
-                              📄 View Resume
+                              ðŸ“„ View Resume
                             </button>
                             <button className="btn-primary" onClick={() => handleInvite(app.jobSeekerProfile.userId)} style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
                               {invitedUserIds.includes(app.jobSeekerProfile.userId) ? 'Message sent' : 'Message Seeker'}
@@ -342,7 +342,7 @@ export default function EmployerDashboard() {
                        </div>
                        {(app.resume?.summary || app.jobSeekerProfile?.summary || app.jobSeekerProfile?.bio) && (
                          <div style={{ marginTop: '0.8rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', borderLeft: '3px solid #00f0ff' }}>
-                           <strong style={{ fontSize: '0.82rem', color: '#00f0ff' }}>📄 Resume Summary:</strong>
+                           <strong style={{ fontSize: '0.82rem', color: '#00f0ff' }}>ðŸ“„ Resume Summary:</strong>
                            <p style={{ margin: '4px 0 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                              {app.resume?.summary || app.jobSeekerProfile?.summary || app.jobSeekerProfile?.bio}
                            </p>
@@ -401,16 +401,16 @@ export default function EmployerDashboard() {
                     <div key={m.id} className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: '4px solid var(--primary-color)' }}>
                       <div style={{ display: 'flex', gap: '1.5rem' }}>
                         <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                          {m.profilePicture ? <img src={m.profilePicture} alt="Profile" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem'}}>👤</div>}
+                          {m.profilePicture ? <img src={m.profilePicture} alt="Profile" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem'}}>ðŸ‘¤</div>}
                         </div>
                         <div>
                           <h3 style={{margin:0, display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                             {m.firstName} {m.lastName}
-                            {m.verificationStatus === 'VERIFIED' && <span style={{ color: '#00f0ff', fontSize: '1.2rem' }} title="Verified">✔</span>}
+                            {m.verificationStatus === 'VERIFIED' && <span style={{ color: '#00f0ff', fontSize: '1.2rem' }} title="Verified">âœ”</span>}
                             <span style={{background: 'rgba(0, 240, 255, 0.1)', color: '#00f0ff', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem'}}>Match: {m.matchScore} pts</span>
                           </h3>
                           <p style={{fontSize:'1rem', color: 'var(--secondary-color)', margin: '4px 0'}}>{m.headline || m.profession || 'Professional'}</p>
-                          <p style={{fontSize:'0.9rem', color: 'var(--text-secondary)', margin: '4px 0'}}>{m.residenceCity}{m.residenceCountry && `, ${m.residenceCountry}`} • Exp: {m.expectedSalary || 'Negotiable'}</p>
+                          <p style={{fontSize:'0.9rem', color: 'var(--text-secondary)', margin: '4px 0'}}>{m.residenceCity}{m.residenceCountry && `, ${m.residenceCountry}`} â€¢ Exp: {m.expectedSalary || 'Negotiable'}</p>
                           {m.skills && m.skills.length > 0 && (
                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                               {m.skills.slice(0, 5).map((s: string) => <span key={s} style={{background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem'}}>{s}</span>)}
@@ -645,7 +645,7 @@ export default function EmployerDashboard() {
                       {profile.firstName || 'Candidate'} {profile.lastName || ''}
                     </h2>
                     {profile.verificationStatus === 'VERIFIED' && (
-                      <span style={{ color: '#00f0ff', fontSize: '1.3rem' }} title="Verified Candidate">✔</span>
+                      <span style={{ color: '#00f0ff', fontSize: '1.3rem' }} title="Verified Candidate">âœ”</span>
                     )}
                     <span style={{
                       background: 'rgba(0, 240, 255, 0.15)',
@@ -673,8 +673,8 @@ export default function EmployerDashboard() {
                     {profile.headline || profile.profession || resume.title || 'Professional Candidate'}
                   </p>
                   <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '0.88rem' }}>
-                    📍 {[profile.residenceCity, profile.residenceCountry].filter(Boolean).join(', ') || 'Location on file'}
-                    {profile.phone && ` • 📞 ${profile.phone}`}
+                    ðŸ“ {[profile.residenceCity, profile.residenceCountry].filter(Boolean).join(', ') || 'Location on file'}
+                    {profile.phone && ` â€¢ ðŸ“ž ${profile.phone}`}
                   </p>
                 </div>
                 <button
@@ -693,7 +693,7 @@ export default function EmployerDashboard() {
                     justifyContent: 'center'
                   }}
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
 
@@ -705,14 +705,14 @@ export default function EmployerDashboard() {
                   style={{ padding: '6px 14px', fontSize: '0.85rem', background: viewingResume.status === 'SHORTLISTED' ? '#22c55e' : undefined }}
                   onClick={() => updateApplicationStatus(viewingResume.id, 'SHORTLISTED')}
                 >
-                  ⭐ Shortlist
+                  â­ Shortlist
                 </button>
                 <button
                   className="btn-primary"
                   style={{ padding: '6px 14px', fontSize: '0.85rem', background: viewingResume.status === 'HIRED' ? '#10b981' : 'linear-gradient(135deg, #10b981, #059669)' }}
                   onClick={() => updateApplicationStatus(viewingResume.id, 'HIRED')}
                 >
-                  🤝 Hire Candidate
+                  ðŸ¤ Hire Candidate
                 </button>
                 <button
                   style={{
@@ -726,7 +726,7 @@ export default function EmployerDashboard() {
                   }}
                   onClick={() => updateApplicationStatus(viewingResume.id, 'REJECTED')}
                 >
-                  ✕ Reject
+                  âœ• Reject
                 </button>
                 {profile.userId && (
                   <button
@@ -734,7 +734,7 @@ export default function EmployerDashboard() {
                     style={{ padding: '6px 14px', fontSize: '0.85rem', marginLeft: 'auto' }}
                     onClick={() => handleInvite(profile.userId)}
                   >
-                    💬 Message Candidate
+                    ðŸ’¬ Message Candidate
                   </button>
                 )}
               </div>
@@ -836,7 +836,7 @@ export default function EmployerDashboard() {
                             <strong style={{ color: '#fff', fontSize: '0.9rem' }}>{proj.title || proj.name || 'Project'}</strong>
                             {(proj.url || proj.link) && (
                               <a href={proj.url || proj.link} target="_blank" rel="noopener noreferrer" style={{ color: '#00f0ff', fontSize: '0.8rem' }}>
-                                View Project ↗
+                                View Project â†—
                               </a>
                             )}
                           </div>

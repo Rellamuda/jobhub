@@ -41,12 +41,12 @@ export default function Header() {
       <Link href="/" className="flex items-center gap-3 no-underline" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
         <img 
           src="/header-logo.png" 
-          alt="JobHub Logo" 
+          alt="JobHub Global Logo" 
           width="36" 
           height="36" 
-          style={{ width: '36px', height: '36px', maxWidth: '36px', maxHeight: '36px', objectFit: 'contain' }} 
+          style={{ width: '36px', height: '36px', maxWidth: '36px', maxHeight: '36px', objectFit: 'contain', borderRadius: '8px' }} 
         />
-        <span className="text-xl md:text-2xl font-black text-gradient" style={{ fontSize: '1.5rem', fontWeight: 900 }}>JobHub</span>
+        <span className="text-xl md:text-2xl font-black text-gradient" style={{ fontSize: '1.5rem', fontWeight: 800 }}>JobHub Global</span>
       </Link>
 
       {/* Center: Navigation Links when Logged In */}
@@ -69,11 +69,11 @@ export default function Header() {
               <Link href="/dashboard/network" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Globe className="w-4 h-4" /> Network
               </Link>
-              <Link href="/dashboard/career-hub" className="px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition flex items-center gap-1.5 text-black" style={{ color: '#000000' }}>
-                <Sparkles className="w-4 h-4 text-black" style={{ color: '#000000' }} /> Career Hub
+              <Link href="/dashboard/career-hub" className="px-3 py-1.5 rounded-lg text-cyan-300 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Career Hub
               </Link>
-              <Link href="/profile" className="px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition flex items-center gap-1.5 text-black" style={{ color: '#000000' }}>
-                <User className="w-4 h-4 text-black" style={{ color: '#000000' }} /> Profile
+              <Link href="/profile" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
+                <User className="w-4 h-4" /> Profile
               </Link>
             </>
           ) : user.role === 'EMPLOYER' ? (
@@ -81,7 +81,7 @@ export default function Header() {
               <Link href="/applications" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" /> Postings & Chats
               </Link>
-              <Link href="/dashboard/employer/jobs/new" className="px-3 py-1.5 rounded-lg text-cyan-600 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+              <Link href="/dashboard/employer/jobs/new" className="px-3 py-1.5 rounded-lg text-cyan-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
                 <PlusCircle className="w-4 h-4" /> Post Job (AI)
               </Link>
               <Link href="/dashboard/employer/crm" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
@@ -90,11 +90,11 @@ export default function Header() {
               <Link href="/dashboard/employer/talent" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4" /> Talent Search
               </Link>
-              <Link href="/dashboard/career-hub" className="px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition flex items-center gap-1.5 text-black" style={{ color: '#000000' }}>
-                <Sparkles className="w-4 h-4 text-black" style={{ color: '#000000' }} /> Career Hub
+              <Link href="/dashboard/career-hub" className="px-3 py-1.5 rounded-lg text-cyan-300 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Career Hub
               </Link>
-              <Link href="/profile" className="px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition flex items-center gap-1.5 text-black" style={{ color: '#000000' }}>
-                <User className="w-4 h-4 text-black" style={{ color: '#000000' }} /> Company
+              <Link href="/profile" className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-white/5 transition flex items-center gap-1.5">
+                <User className="w-4 h-4" /> Company
               </Link>
             </>
           ) : (
@@ -114,7 +114,7 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {!user ? (
           <div className="flex items-center gap-2">
-            <Link href="/login" className="px-3 py-1.5 rounded-lg text-black font-semibold hover:bg-black/10 transition" style={{ color: '#000000' }}>
+            <Link href="/login" className="px-3 py-1.5 rounded-lg text-white font-medium hover:bg-white/10 transition">
               Log In
             </Link>
             <Link href="/register" className="btn-primary text-sm py-2 px-4">
@@ -133,7 +133,7 @@ export default function Header() {
               </Link>
             )}
 
-            <Link href="/pricing" className="px-3 py-1.5 rounded-lg font-bold hover:opacity-80 transition text-sm text-black" style={{ color: '#000000' }}>
+            <Link href="/pricing" className="px-3 py-1.5 rounded-lg text-cyan-400 font-bold hover:bg-cyan-950/30 transition text-sm">
               Upgrade
             </Link>
 

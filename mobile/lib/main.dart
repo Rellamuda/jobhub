@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 import 'config/theme_manager.dart';
@@ -37,7 +36,6 @@ class JobHubAIApp extends StatelessWidget {
               secondary: Color(0xFF00F0FF),
               surface: Color(0xFF120B1C),
             ),
-            textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
             useMaterial3: true,
           ),
           darkTheme: ThemeData(
@@ -49,7 +47,6 @@ class JobHubAIApp extends StatelessWidget {
               secondary: Color(0xFF00F0FF),
               surface: Color(0xFF120B1C),
             ),
-            textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
             useMaterial3: true,
           ),
           home: const AppStartupScreen(),
@@ -83,15 +80,15 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 const Spacer(),
                 Text(
-                  'Welcome to\nJobHub',
+                  'Welcome to\nJobHub Global',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 48,
+                    fontSize: 44,
                     fontWeight: FontWeight.w800,
                     foreground: Paint()
                       ..shader = const LinearGradient(
                         colors: [Color(0xFF6366F1), Color(0xFF00F0FF)],
-                      ).createShader(const Rect.fromLTWH(0.0, 0.0, 300.0, 70.0)),
+                      ).createShader(const Rect.fromLTWH(0.0, 0.0, 320.0, 70.0)),
                   ),
                 ),
                 const SizedBox(height: 16),

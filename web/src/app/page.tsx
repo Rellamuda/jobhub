@@ -6,7 +6,7 @@ export default function Home() {
     <main style={{ padding: '2rem 4rem', maxWidth: '1200px', margin: '0 auto' }}>
       <header style={{ textAlign: 'center', marginBottom: '4rem' }}>
         <h1 style={{ fontSize: '4rem', fontWeight: 800, margin: '0 0 1rem 0' }}>
-          Welcome to <span className="text-gradient">JobHub</span>
+          Welcome to <span className="text-gradient">JobHub Global</span>
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
           The global AI employment operating system that helps job seekers build careers and helps employers hire talent efficiently through automation and intelligence.

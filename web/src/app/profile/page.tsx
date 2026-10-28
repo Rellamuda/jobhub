@@ -85,7 +85,7 @@ export default function ProfilePage() {
     const rawSal = profile.expectedSalary || '';
     if (rawSal) {
       const parts = rawSal.split(' ');
-      if (['$', '₦', '£', '€', 'C$', 'R', 'KSh', 'GH₵', 'A$', 'AED', '₹', 'CHF'].includes(parts[0])) {
+      if (['$', 'â‚¦', 'Â£', 'â‚¬', 'C$', 'R', 'KSh', 'GHâ‚µ', 'A$', 'AED', 'â‚¹', 'CHF'].includes(parts[0])) {
         setEditSalaryCurrency(parts[0]);
         if (parts.length > 1) setEditSalaryAmount(parts[1]);
       } else {
@@ -255,9 +255,9 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.verified) {
         setProfile((prev: any) => ({ ...prev, ...data.employer, verificationStatus: 'VERIFIED' }));
-        alert('🎉 ' + data.message);
+        alert('ðŸŽ‰ ' + data.message);
       } else {
-        alert('⚠️ ' + data.message);
+        alert('âš ï¸ ' + data.message);
       }
     } catch (e) {
       alert('Network error verifying company');
@@ -450,7 +450,7 @@ export default function ProfilePage() {
         const updated = await res.json();
         setProfile(updated);
         setAiCompanySaved(true);
-        alert('✨ AI Company Profile saved to your dashboard successfully!');
+        alert('âœ¨ AI Company Profile saved to your dashboard successfully!');
       }
     } catch (err) {
       console.error(err);
@@ -493,7 +493,7 @@ export default function ProfilePage() {
                   {profile.profilePicture ? (
                     <img src={profile.profilePicture} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem' }}>{user.role === 'EMPLOYER' ? '🏢' : '👤'}</div>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem' }}>{user.role === 'EMPLOYER' ? 'ðŸ¢' : 'ðŸ‘¤'}</div>
                   )}
                   {uploadingPhoto && (
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.8rem' }}>
@@ -515,7 +515,7 @@ export default function ProfilePage() {
                     cursor: 'pointer'
                   }}
                 >
-                  {uploadingPhoto ? 'Uploading...' : '📷 Change Photo'}
+                  {uploadingPhoto ? 'Uploading...' : 'ðŸ“· Change Photo'}
                 </button>
               </div>
               <div>
@@ -523,7 +523,7 @@ export default function ProfilePage() {
                   <>
                     <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {profile.firstName} {profile.lastName}
-                      {profile.verificationStatus === 'VERIFIED' && <span title="Verified Professional" style={{ color: '#00f0ff', fontSize: '1.5rem' }}>✔</span>}
+                      {profile.verificationStatus === 'VERIFIED' && <span title="Verified Professional" style={{ color: '#00f0ff', fontSize: '1.5rem' }}>âœ”</span>}
                     </h1>
                     <p style={{ fontSize: '1.2rem', margin: '0.5rem 0' }}>{profile.headline || profile.profession || 'Job Seeker'} {profile.isSkilledProfessional && `(${profile.skilledProfession})`}</p>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{profile.residenceCity}{profile.residenceState && `, ${profile.residenceState}`} {profile.residenceCountry && `- ${profile.residenceCountry}`}</p>
@@ -543,7 +543,7 @@ export default function ProfilePage() {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
                       <div style={{ background: 'rgba(0, 240, 255, 0.1)', padding: '0.2rem 0.8rem', borderRadius: '20px', color: '#00f0ff', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                        ★★★★☆ Profile Strength ({completion}%)
+                        â˜…â˜…â˜…â˜…â˜† Profile Strength ({completion}%)
                       </div>
                     </div>
                   </>
@@ -551,7 +551,7 @@ export default function ProfilePage() {
                   <>
                     <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {profile.companyName}
-                      {profile.verificationStatus === 'VERIFIED' && <span title="Verified Company" style={{ color: '#00f0ff', fontSize: '1.5rem' }}>✔</span>}
+                      {profile.verificationStatus === 'VERIFIED' && <span title="Verified Company" style={{ color: '#00f0ff', fontSize: '1.5rem' }}>âœ”</span>}
                     </h1>
                     <p style={{ fontSize: '1.2rem', margin: '0.5rem 0', color: 'var(--secondary-color)' }}>{profile.industry || 'Employer'}</p>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{profile.locationCity}{profile.locationState && `, ${profile.locationState}`} {profile.locationCountry && `- ${profile.locationCountry}`}</p>
@@ -579,7 +579,7 @@ export default function ProfilePage() {
                   className="btn-primary"
                   style={{ padding: '0.5rem 1.2rem', background: '#00F0FF', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', borderRadius: '8px' }}
                 >
-                  ✏️ Edit Profile
+                  âœï¸ Edit Profile
                 </button>
               ) : (
                 <Link href="/onboarding" className="btn-primary" style={{ textDecoration: 'none', padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--primary-color)' }}>
@@ -619,10 +619,10 @@ export default function ProfilePage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    🤖 Autonomous Application Settings
+                    ðŸ¤– Autonomous Application Settings
                   </h2>
                   <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    Control how the JobHub AI agent applies for high-match jobs on your behalf.
+                    Control how the JobHub Global agent applies for high-match jobs on your behalf.
                   </p>
                 </div>
                 <button
@@ -639,7 +639,7 @@ export default function ProfilePage() {
                     color: autoApplyEnabled ? '#000' : 'white',
                   }}
                 >
-                  {autoApplyEnabled ? '✅ Auto-Apply Active' : '⚪ Auto-Apply Paused'}
+                  {autoApplyEnabled ? 'âœ… Auto-Apply Active' : 'âšª Auto-Apply Paused'}
                 </button>
               </div>
 
@@ -659,7 +659,7 @@ export default function ProfilePage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: autonomousMode === 'FULL' ? '#00ff88' : 'white', fontSize: '0.95rem' }}>
-                      <span>{autonomousMode === 'FULL' ? '⚡' : '⚪'}</span>
+                      <span>{autonomousMode === 'FULL' ? 'âš¡' : 'âšª'}</span>
                       <span>Full Autonomous Application</span>
                     </div>
                     <p style={{ margin: '0.4rem 0 0 1.6rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
@@ -678,7 +678,7 @@ export default function ProfilePage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: autonomousMode === 'PARTIAL' ? '#00f0ff' : 'white', fontSize: '0.95rem' }}>
-                      <span>{autonomousMode === 'PARTIAL' ? '🛡️' : '⚪'}</span>
+                      <span>{autonomousMode === 'PARTIAL' ? 'ðŸ›¡ï¸' : 'âšª'}</span>
                       <span>Partial Autonomous Application</span>
                     </div>
                     <p style={{ margin: '0.4rem 0 0 1.6rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
@@ -745,7 +745,7 @@ export default function ProfilePage() {
                     <div key={idx} style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{proj.title}</h3>
                       <p style={{ margin: '0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{proj.description}</p>
-                      {proj.liveLink && <a href={proj.liveLink} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', fontSize: '0.9rem' }}>View Project ↗</a>}
+                      {proj.liveLink && <a href={proj.liveLink} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-color)', fontSize: '0.9rem' }}>View Project â†—</a>}
                     </div>
                   ))}
                 </div>
@@ -762,11 +762,11 @@ export default function ProfilePage() {
                 </h2>
                 {profile.verificationStatus === 'VERIFIED' ? (
                   <span style={{ background: 'rgba(0, 240, 255, 0.15)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.5)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                    ✔ Verified Company Badge Active
+                    âœ” Verified Company Badge Active
                   </span>
                 ) : (
                   <span style={{ background: 'rgba(255, 165, 0, 0.15)', color: '#ffa500', border: '1px solid rgba(255, 165, 0, 0.5)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                    ⏳ Unverified Organization
+                    â³ Unverified Organization
                   </span>
                 )}
               </div>
@@ -823,10 +823,10 @@ export default function ProfilePage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.2rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    ✨ AI Company & Agency Profile Builder
+                    âœ¨ AI Company & Agency Profile Builder
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '4px 0 0 0' }}>
-                    Generate an executive corporate or agency profile with mission, vision, culture, core values, and benefits using JobHub AI.
+                    Generate an executive corporate or agency profile with mission, vision, culture, core values, and benefits using JobHub Global.
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -845,7 +845,7 @@ export default function ProfilePage() {
                       cursor: 'pointer'
                     }}
                   >
-                    {aiCompanyLoading ? '🤖 Crafting AI Profile...' : '✨ Generate AI Profile'}
+                    {aiCompanyLoading ? 'ðŸ¤– Crafting AI Profile...' : 'âœ¨ Generate AI Profile'}
                   </button>
                   <button
                     type="button"
@@ -883,7 +883,7 @@ export default function ProfilePage() {
                       cursor: 'pointer'
                     }}
                   >
-                    📥 Download AI Profile (.doc)
+                    ðŸ“¥ Download AI Profile (.doc)
                   </button>
                 </div>
               </div>
@@ -918,7 +918,7 @@ export default function ProfilePage() {
                 <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(0, 240, 255, 0.25)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                     <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#00f0ff' }}>
-                      📋 Generated AI Profile Preview
+                      ðŸ“‹ Generated AI Profile Preview
                     </span>
                     <button
                       type="button"
@@ -933,7 +933,7 @@ export default function ProfilePage() {
                         cursor: 'pointer'
                       }}
                     >
-                      💾 Save AI Profile to Dashboard
+                      ðŸ’¾ Save AI Profile to Dashboard
                     </button>
                   </div>
 
@@ -991,7 +991,7 @@ export default function ProfilePage() {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '6px' }}>
                           {generatedCompanyProfile.benefits.map((b: string, i: number) => (
                             <span key={i} style={{ background: 'rgba(0, 240, 255, 0.1)', color: '#00f0ff', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid rgba(0, 240, 255, 0.3)' }}>
-                              ✓ {b}
+                              âœ“ {b}
                             </span>
                           ))}
                         </div>
@@ -1035,7 +1035,7 @@ export default function ProfilePage() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '6px' }}>
                     {profile.benefits.map((b: any, idx: number) => (
                       <span key={idx} style={{ background: 'rgba(0,255,136,0.1)', color: '#00ff88', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid rgba(0,255,136,0.3)' }}>
-                        ✓ {typeof b === 'string' ? b : b.title || JSON.stringify(b)}
+                        âœ“ {typeof b === 'string' ? b : b.title || JSON.stringify(b)}
                       </span>
                     ))}
                   </div>
@@ -1063,7 +1063,7 @@ export default function ProfilePage() {
                     <div key={job.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{job.title}</h3>
-                        <p style={{ margin: '0.2rem 0 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{job.location || 'Remote'} • {job.employmentType || 'Full-time'}</p>
+                        <p style={{ margin: '0.2rem 0 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{job.location || 'Remote'} â€¢ {job.employmentType || 'Full-time'}</p>
                       </div>
                       <Link href={`/employer-dashboard/jobs/${job.id}/applicants`} className="btn-primary" style={{ padding: '0.4rem 0.8rem', textDecoration: 'none', fontSize: '0.9rem', background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff' }}>
                         View CRM / Applicants
@@ -1090,7 +1090,7 @@ export default function ProfilePage() {
                 <li><strong>Resume Score:</strong> 91%</li>
                 <li><strong>Top Matching Jobs:</strong> 48</li>
                 <li><strong>Missing Skill:</strong> React Native</li>
-                <li><strong>Est. Salary:</strong> ₦850k–₦1.2M/mo</li>
+                <li><strong>Est. Salary:</strong> â‚¦850kâ€“â‚¦1.2M/mo</li>
               </ul>
             </div>
 
@@ -1124,8 +1124,8 @@ export default function ProfilePage() {
                     <div key={app.id} style={{ background: 'rgba(0,240,255,0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #00f0ff' }}>
                       <div style={{ fontWeight: 'bold', color: 'white' }}>{app.job?.title}</div>
                       <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{app.job?.employer?.companyName}</div>
-                      <div style={{ fontSize: '0.9rem', color: '#00f0ff' }}>📅 {app.interviewDate ? new Date(app.interviewDate).toLocaleString() : 'TBD'}</div>
-                      {app.interviewLink && <div style={{ fontSize: '0.9rem', color: '#00f0ff' }}>🔗 <a href={app.interviewLink} target="_blank" rel="noreferrer" style={{ color: '#00f0ff' }}>Join Meeting</a></div>}
+                      <div style={{ fontSize: '0.9rem', color: '#00f0ff' }}>ðŸ“… {app.interviewDate ? new Date(app.interviewDate).toLocaleString() : 'TBD'}</div>
+                      {app.interviewLink && <div style={{ fontSize: '0.9rem', color: '#00f0ff' }}>ðŸ”— <a href={app.interviewLink} target="_blank" rel="noreferrer" style={{ color: '#00f0ff' }}>Join Meeting</a></div>}
                     </div>
                   ))}
                 </div>
@@ -1153,11 +1153,11 @@ export default function ProfilePage() {
             <Link href="/privacy" style={{ color: '#00f0ff', fontSize: '0.88rem', textDecoration: 'underline' }}>
               Privacy Policy
             </Link>
-            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>â€¢</span>
             <Link href="/terms" style={{ color: '#00f0ff', fontSize: '0.88rem', textDecoration: 'underline' }}>
               Terms of Service
             </Link>
-            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>â€¢</span>
             <Link href="/delete-account">
               <button style={{
                 background: 'rgba(239, 68, 68, 0.15)',
@@ -1169,7 +1169,7 @@ export default function ProfilePage() {
                 cursor: 'pointer',
                 fontWeight: 600
               }}>
-                ⚠️ Delete Account & Data
+                âš ï¸ Delete Account & Data
               </button>
             </Link>
           </div>
@@ -1212,7 +1212,7 @@ export default function ProfilePage() {
               }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#fff', fontWeight: 700 }}>
-                    ✏️ Edit Profile & Career Settings
+                    âœï¸ Edit Profile & Career Settings
                   </h2>
                   <p style={{ margin: '0.2rem 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
                     Update your residence, target roles, skills, and qualifications anytime.
@@ -1229,7 +1229,7 @@ export default function ProfilePage() {
                     lineHeight: 1,
                   }}
                 >
-                  ✕
+                  âœ•
                 </button>
               </div>
 
@@ -1241,11 +1241,11 @@ export default function ProfilePage() {
                 overflowX: 'auto',
               }}>
                 {[
-                  { key: 'location', label: '📍 Location' },
-                  { key: 'preferences', label: '💼 Job Targets' },
-                  { key: 'skills', label: '⚡ Skills' },
-                  { key: 'education', label: '🎓 Education' },
-                  { key: 'bio', label: '👤 Bio & Contact' },
+                  { key: 'location', label: 'ðŸ“ Location' },
+                  { key: 'preferences', label: 'ðŸ’¼ Job Targets' },
+                  { key: 'skills', label: 'âš¡ Skills' },
+                  { key: 'education', label: 'ðŸŽ“ Education' },
+                  { key: 'bio', label: 'ðŸ‘¤ Bio & Contact' },
                 ].map(tab => (
                   <button
                     key={tab.key}
@@ -1319,7 +1319,7 @@ export default function ProfilePage() {
                           onChange={e => setEditWillingToRelocate(e.target.checked)}
                           style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
                         />
-                        <span>✈️ Open to Relocation for the right offer</span>
+                        <span>âœˆï¸ Open to Relocation for the right offer</span>
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#fff', cursor: 'pointer' }}>
                         <input
@@ -1328,7 +1328,7 @@ export default function ProfilePage() {
                           onChange={e => setEditOpenToRemote(e.target.checked)}
                           style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
                         />
-                        <span>🌐 Open to 100% Distributed / Remote Roles</span>
+                        <span>ðŸŒ Open to 100% Distributed / Remote Roles</span>
                       </label>
                     </div>
 
@@ -1439,7 +1439,7 @@ export default function ProfilePage() {
                             padding: '0.6rem',
                           }}
                         >
-                          {['$', '₦', '£', '€', 'C$', 'R', 'KSh', 'GH₵', 'A$', 'AED', '₹', 'CHF'].map(c => (
+                          {['$', 'â‚¦', 'Â£', 'â‚¬', 'C$', 'R', 'KSh', 'GHâ‚µ', 'A$', 'AED', 'â‚¹', 'CHF'].map(c => (
                             <option key={c} value={c} style={{ background: '#120B1C' }}>{c}</option>
                           ))}
                         </select>
@@ -1521,7 +1521,7 @@ export default function ProfilePage() {
                     </div>
 
                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', margin: '0 0 0.6rem 0' }}>
-                      Active Skills ({editSkills.length}) — Click × to remove:
+                      Active Skills ({editSkills.length}) â€” Click Ã— to remove:
                     </p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
                       {editSkills.map((s, idx) => (
@@ -1553,7 +1553,7 @@ export default function ProfilePage() {
                               lineHeight: 1,
                             }}
                           >
-                            ×
+                            Ã—
                           </button>
                         </span>
                       ))}
@@ -1675,7 +1675,7 @@ export default function ProfilePage() {
                             <div>
                               <strong style={{ color: '#fff', display: 'block', fontSize: '0.95rem' }}>{edu.degree}</strong>
                               <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem' }}>
-                                {edu.institution} {edu.year ? `• Class of ${edu.year}` : ''}
+                                {edu.institution} {edu.year ? `â€¢ Class of ${edu.year}` : ''}
                               </span>
                             </div>
                             <button

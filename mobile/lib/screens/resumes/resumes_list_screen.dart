@@ -43,7 +43,7 @@ class _ResumesListScreenState extends State<ResumesListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFF10B981),
-            content: Text('📄 PDF Exported and saved successfully!'),
+            content: Text('ðŸ“„ PDF Exported and saved successfully!'),
           ),
         );
       }
@@ -137,7 +137,7 @@ class _ResumesListScreenState extends State<ResumesListScreen> {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
-                            resume['summary'] ?? 'Prepared with JobHub AI verified skills',
+                            resume['summary'] ?? 'Prepared with JobHub Global verified skills',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(color: Colors.white60, fontSize: 12),

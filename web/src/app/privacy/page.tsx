@@ -6,7 +6,7 @@ export default function PrivacyPolicyPage() {
     <main style={{ minHeight: '100vh', backgroundColor: '#0A0A0A', color: 'white', padding: '3rem 1.5rem' }}>
       <div style={{ maxWidth: '850px', margin: '0 auto', backgroundColor: '#120B1C', padding: '2.5rem', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <img src="/logo.png" alt="JobHub AI" width="64" height="64" style={{ marginBottom: '1rem', objectFit: 'contain' }} />
+          <img src="/header-logo.png" alt="JobHub Global" width="64" height="64" style={{ marginBottom: '1rem', objectFit: 'contain', borderRadius: '12px' }} />
           <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0 }}>Privacy Policy</h1>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>Effective Date: October 9, 2026</p>
         </div>
@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>1. Introduction</h2>
             <p>
-              Welcome to <strong>JobHub</strong> (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;). We are committed to protecting your personal information and your right to privacy. This Privacy Policy governs your use of the JobHub website and mobile application (available on Google Play). It explains how we collect, use, disclose, and safeguard your data when you visit our platform or utilize our recruitment services.
+              Welcome to <strong>JobHub Global</strong> (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;). We are committed to protecting your personal information and your right to privacy. This Privacy Policy governs your use of the JobHub Global website and mobile application (available on Google Play &amp; Apple App Store). It explains how we collect, use, disclose, and safeguard your data when you visit our platform or utilize our recruitment services.
             </p>
           </section>
 
@@ -57,7 +57,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>5. User Consent &amp; Autonomous Matching</h2>
             <p>
-              JobHub AI requires explicit candidate approval before any job application is submitted on their behalf. Users may review the vacancy details, job requirements, and company profile before providing consent.
+              JobHub Global requires explicit candidate approval before any job application is submitted on their behalf. Users may review the vacancy details, job requirements, and company profile before providing consent.
             </p>
           </section>
 
@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
               <li><strong>In-App Deletion:</strong> You can delete your account at any time within the mobile app by visiting <em>Profile &gt; Legal &amp; Account &gt; Delete Account</em>.</li>
-              <li><strong>Web Portal Deletion:</strong> You can also submit an account deletion request via our public web portal at <Link href="/delete-account" style={{ color: '#00F0FF' }}>https://jobhub.ai/delete-account</Link>.</li>
+              <li><strong>Web Portal Deletion:</strong> You can also submit an account deletion request via our public web portal at <Link href="/delete-account" style={{ color: '#00F0FF' }}>/delete-account</Link>.</li>
             </ul>
             <p style={{ marginTop: '0.5rem' }}>
               Upon account deletion, all personal data, resumes, applications, messages, and uploaded credentials are permanently purged from our active databases.
@@ -81,16 +81,15 @@ export default function PrivacyPolicyPage() {
               If you have any questions or concerns regarding this Privacy Policy or your data, please contact our Data Protection Officer:
             </p>
             <p style={{ marginTop: '0.5rem' }}>
-              <strong>JobHub Privacy Team</strong><br />
-              Email: <a href="mailto:support@jobhubai.com" style={{ color: '#00F0FF' }}>support@jobhubai.com</a><br />
-              Website: <a href="/" style={{ color: '#00F0FF' }}>https://jobhub.ai</a>
+              <strong>JobHub Global Privacy Team</strong><br />
+              Email: <a href="mailto:support@jobhubai.com" style={{ color: '#00F0FF' }}>support@jobhubai.com</a>
             </p>
           </section>
         </div>
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
           <Link href="/" style={{ color: '#6366F1', textDecoration: 'none', fontWeight: 'bold' }}>
-            ← Return to JobHub Home
+            ← Return to JobHub Global Home
           </Link>
         </div>
       </div>

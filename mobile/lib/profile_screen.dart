@@ -144,7 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profile?['profilePicture'] = data['url'];
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully! 🎉')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully! ðŸŽ‰')));
         }
       } else {
         if (mounted) {
@@ -385,7 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           }
                         },
                         icon: const Icon(Icons.bolt, color: Colors.black),
-                        label: const Text('✨ Generate & Save AI Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                        label: const Text('âœ¨ Generate & Save AI Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF), padding: const EdgeInsets.symmetric(vertical: 14)),
                       ),
 
@@ -397,16 +397,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('✅ AI Profile Saved to Dashboard!', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                            const Text('âœ… AI Profile Saved to Dashboard!', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
                             const SizedBox(height: 8),
                             Text(generatedDesc!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             if (generatedMission != null) ...[
                               const SizedBox(height: 6),
-                              Text('🎯 Mission: $generatedMission', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                              Text('ðŸŽ¯ Mission: $generatedMission', style: const TextStyle(color: Colors.white60, fontSize: 11)),
                             ],
                             if (generatedCulture != null) ...[
                               const SizedBox(height: 4),
-                              Text('🌟 Culture: $generatedCulture', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                              Text('ðŸŒŸ Culture: $generatedCulture', style: const TextStyle(color: Colors.white60, fontSize: 11)),
                             ],
                             const SizedBox(height: 10),
                             SizedBox(
@@ -441,7 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final orgType = _profile?['organizationType'] ?? 'COMPANY';
     final size = _profile?['companySize'] ?? 'N/A';
     final loc = '${_profile?['locationCity'] ?? ''} ${_profile?['locationCountry'] ?? ''}'.trim();
-    final desc = _profile?['description'] ?? 'Verified Employer on JobHub AI Global Talent Ecosystem.';
+    final desc = _profile?['description'] ?? 'Verified Employer on JobHub Global Talent Ecosystem.';
     final mission = _profile?['mission'] ?? '';
     final culture = _profile?['culture'] ?? '';
     final whyWorkWithUs = _profile?['whyWorkWithUs'] ?? '';
@@ -461,7 +461,7 @@ EXECUTIVE OVERVIEW
 $desc
 ${mission.toString().isNotEmpty ? '\nOUR MISSION\n-----------\n$mission\n' : ''}${culture.toString().isNotEmpty ? '\nWORK CULTURE\n------------\n$culture\n' : ''}${whyWorkWithUs.toString().isNotEmpty ? '\nWHY WORK WITH US\n----------------\n$whyWorkWithUs\n' : ''}
 ====================================================
-Generated via JobHub AI Global Talent Platform''';
+Generated via JobHub Global Talent Platform''';
 
     showModalBottomSheet(
       context: context,
@@ -481,7 +481,7 @@ Generated via JobHub AI Global Talent Platform''';
               children: [
                 const Expanded(
                   child: Text(
-                    '🏢 AI Company / Agency Profile',
+                    'ðŸ¢ AI Company / Agency Profile',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -517,7 +517,7 @@ Generated via JobHub AI Global Talent Platform''';
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('✅ AI Company Profile saved to clipboard!'),
+                          content: Text('âœ… AI Company Profile saved to clipboard!'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -648,13 +648,13 @@ Generated via JobHub AI Global Talent Platform''';
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('🎉 ${data['message'] ?? 'Company Verified!'}')),
+            SnackBar(content: Text('ðŸŽ‰ ${data['message'] ?? 'Company Verified!'}')),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('⚠️ ${data['message'] ?? 'Verification failed'}')),
+            SnackBar(content: Text('âš ï¸ ${data['message'] ?? 'Verification failed'}')),
           );
         }
       }
@@ -719,7 +719,7 @@ Generated via JobHub AI Global Talent Platform''';
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E142B),
-        title: const Text('⚠️ Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        title: const Text('âš ï¸ Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
         content: const Text(
           'Are you sure you want to permanently delete your JobHub account?\n\nThis will permanently erase all your profile data, uploaded resumes, applications, messages, and saved jobs. This action CANNOT be undone.',
           style: TextStyle(color: Colors.white70),
@@ -855,7 +855,7 @@ Generated via JobHub AI Global Talent Platform''';
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(color: const Color(0xFF00F0FF).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text('★★★★☆ Profile Strength ($_completion%)', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+            child: Text('â˜…â˜…â˜…â˜…â˜† Profile Strength ($_completion%)', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
           ),
         ),
         
@@ -983,7 +983,7 @@ Generated via JobHub AI Global Talent Platform''';
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('• ', style: TextStyle(color: Colors.white54)),
+                          const Text('â€¢ ', style: TextStyle(color: Colors.white54)),
                           Expanded(child: Text(s.toString(), style: const TextStyle(color: Colors.white54, fontSize: 12))),
                         ],
                       ),
@@ -1029,11 +1029,11 @@ Generated via JobHub AI Global Talent Platform''';
                 const SizedBox(height: 4),
                 Text(app['job']?['employer']?['companyName'] ?? 'Company', style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 8),
-                Text('📅 ${app['interviewDate'] != null ? DateTime.parse(app['interviewDate']).toLocal() : 'TBD'}', style: const TextStyle(color: Color(0xFF00F0FF))),
+                Text('ðŸ“… ${app['interviewDate'] != null ? DateTime.parse(app['interviewDate']).toLocal() : 'TBD'}', style: const TextStyle(color: Color(0xFF00F0FF))),
                 if (app['interviewLink'] != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
-                    child: Text('🔗 ${app['interviewLink']}', style: const TextStyle(color: Color(0xFF00F0FF))),
+                    child: Text('ðŸ”— ${app['interviewLink']}', style: const TextStyle(color: Color(0xFF00F0FF))),
                   ),
               ],
             ),
@@ -1054,7 +1054,7 @@ Generated via JobHub AI Global Talent Platform''';
         _buildInfoRow('Salary', _profile?['expectedSalary'] ?? 'Negotiable'),
 
         const SizedBox(height: 28),
-        _buildSectionTitle('⚡ Autonomous Application Mode'),
+        _buildSectionTitle('âš¡ Autonomous Application Mode'),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1312,7 +1312,7 @@ Generated via JobHub AI Global Talent Platform''';
         ElevatedButton.icon(
           onPressed: _showAiCompanyProfileDialog,
           icon: const Icon(Icons.auto_awesome, color: Colors.black),
-          label: const Text('✨ Build AI Company/Agency Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          label: const Text('âœ¨ Build AI Company/Agency Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF00F0FF),
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1324,7 +1324,7 @@ Generated via JobHub AI Global Talent Platform''';
         OutlinedButton.icon(
           onPressed: _downloadOrShareCompanyProfile,
           icon: const Icon(Icons.download, color: Color(0xFF00F0FF)),
-          label: const Text('📥 Download / Share AI Company Profile', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+          label: const Text('ðŸ“¥ Download / Share AI Company Profile', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Color(0xFF00F0FF)),
             padding: const EdgeInsets.symmetric(vertical: 13),
@@ -1398,43 +1398,37 @@ Generated via JobHub AI Global Talent Platform''';
     required String label,
     required IconData icon,
     required Color bgColor,
-    required VoidCallback onTap,
+    Color? borderColor,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: bgColor.withOpacity(0.35),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 17),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: borderColor != null ? Border.all(color: borderColor) : null,
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.35),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 17),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSocialShareCard() {
-    final shareUrl = ApiConfig.webUrl;
-    final shareText = '🚀 Join me on JobHub Global — The #1 AI-Powered Global Talent & Career Platform for Corporate & Skilled Trade Jobs! $shareUrl';
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1456,7 +1450,7 @@ Generated via JobHub AI Global Talent Platform''';
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '🚀 Share JobHub Global on Social Media',
+                  'ðŸ“± JobHub Global Stores & Social Channels',
                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1464,7 +1458,7 @@ Generated via JobHub AI Global Talent Platform''';
           ),
           const SizedBox(height: 6),
           const Text(
-            'Invite friends, colleagues, and employers across Facebook, WhatsApp, Instagram, TikTok, and YouTube.',
+            'Official Google Play Store, Apple App Store & Social Channels.',
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(height: 14),
@@ -1473,65 +1467,42 @@ Generated via JobHub AI Global Talent Platform''';
             runSpacing: 8,
             children: [
               _buildSocialShareButton(
+                label: 'Google Play',
+                icon: Icons.shop,
+                bgColor: const Color(0xFF141923),
+                borderColor: const Color(0xFF34A853),
+              ),
+              _buildSocialShareButton(
+                label: 'App Store',
+                icon: Icons.apple,
+                bgColor: const Color(0xFF141923),
+                borderColor: Colors.white54,
+              ),
+              _buildSocialShareButton(
                 label: 'Facebook',
                 icon: Icons.facebook,
                 bgColor: const Color(0xFF1877F2),
-                onTap: () => _openWebUrl(
-                  'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareUrl)}&quote=${Uri.encodeComponent(shareText)}',
-                ),
               ),
               _buildSocialShareButton(
                 label: 'WhatsApp',
                 icon: Icons.chat,
                 bgColor: const Color(0xFF25D366),
-                onTap: () => _openWebUrl(
-                  'https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}',
-                ),
               ),
               _buildSocialShareButton(
                 label: 'Instagram',
                 icon: Icons.camera_alt,
                 bgColor: const Color(0xFFE1306C),
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: shareText));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('📸 Share link copied! Opening Instagram...'),
-                      backgroundColor: Color(0xFFE1306C),
-                    ),
-                  );
-                  _openWebUrl('https://www.instagram.com/');
-                },
               ),
               _buildSocialShareButton(
                 label: 'TikTok',
                 icon: Icons.music_note,
                 bgColor: const Color(0xFF111111),
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: shareText));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🎵 Share link copied! Opening TikTok...'),
-                      backgroundColor: Colors.black87,
-                    ),
-                  );
-                  _openWebUrl('https://www.tiktok.com/');
-                },
+                borderColor: const Color(0xFF00F0FF),
               ),
               _buildSocialShareButton(
                 label: 'YouTube',
                 icon: Icons.play_circle_fill,
                 bgColor: const Color(0xFFFF0000),
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: shareText));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('▶️ Share link copied! Opening YouTube...'),
-                      backgroundColor: Color(0xFFFF0000),
-                    ),
-                  );
-                  _openWebUrl('https://www.youtube.com/');
-                },
               ),
             ],
           ),

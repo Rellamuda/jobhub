@@ -110,12 +110,9 @@ jobs:
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx
           
-          # Obtain SSL certificate non-interactively if not already installed
-          if [ ! -d "/etc/letsencrypt/live/jobhub-app.duckdns.org" ]; then
-            sudo certbot --nginx -d jobhub-app.duckdns.org --non-interactive --agree-tos -m erice@rellamuda.com --redirect || true
-          else
-            sudo certbot renew --quiet || true
-          fi
+          # Ensure SSL certificate is installed in Nginx for jobhub-app.duckdns.org and skillskonnect.online
+          sudo certbot --nginx -d jobhub-app.duckdns.org --non-interactive --agree-tos -m erice@rellamuda.com --redirect --keep-until-expiring || true
+          sudo certbot --nginx -d skillskonnect.online -d www.skillskonnect.online --non-interactive --agree-tos -m erice@rellamuda.com --redirect --keep-until-expiring || true
           sudo systemctl reload nginx || true
 
           # Prevent Out of Memory (OOM) crashes during Docker build on small instances
@@ -135,9 +132,6 @@ jobs:
           sudo resize2fs /dev/xvda1 2>/dev/null || sudo resize2fs /dev/nvme0n1p1 2>/dev/null || sudo xfs_growfs / 2>/dev/null || true
           df -h
           
-          echo "=== Docker Compose Down & Prune Dangling Images ==="
-          docker compose down || true
-          docker image prune -f 2>/dev/null || true
           echo "=== Building backend container ==="
           docker compose build backend 2>&1 | tee /tmp/backend_build.log | tail -n 30
           echo "=== Building web container ==="
@@ -146,6 +140,7 @@ jobs:
           docker compose build 2>&1 | tee /tmp/compose_build.log | tail -n 20
           echo "=== Starting all services ==="
           docker compose up -d --force-recreate 2>&1 | tee /tmp/compose_up.log
+          docker image prune -f 2>/dev/null || true
           
           echo "=== Waiting 30s for services to start ==="
           sleep 30

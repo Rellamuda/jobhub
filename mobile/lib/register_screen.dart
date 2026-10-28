@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isCandidate = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberCredentials = true;
   String? _errorMessage;
 
   Future<void> _register() async {
@@ -45,6 +46,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
+
+        if (_rememberCredentials) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('remember_credentials', true);
+          await prefs.setString('saved_email', email.toLowerCase());
+          await prefs.setString('saved_password', password);
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFF10B981),
@@ -262,7 +271,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _rememberCredentials,
+                        activeColor: const Color(0xFF00F0FF),
+                        checkColor: Colors.black,
+                        side: BorderSide(color: Colors.white.withOpacity(0.35), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        onChanged: (val) {
+                          setState(() => _rememberCredentials = val ?? false);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() => _rememberCredentials = !_rememberCredentials);
+                        },
+                        child: Text(
+                          'Remember Email & Password on this device',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(

@@ -1,14 +1,31 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberCredentials, setRememberCredentials] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedRemember = localStorage.getItem('remember_credentials');
+      const savedEmail = localStorage.getItem('saved_email');
+      const savedPassword = localStorage.getItem('saved_password');
+
+      if (savedRemember === 'false') {
+        setRememberCredentials(false);
+      } else {
+        setRememberCredentials(true);
+        if (savedEmail) setEmail(savedEmail);
+        if (savedPassword) setPassword(savedPassword);
+      }
+    } catch (_) {}
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +56,15 @@ export default function LoginPage() {
 
       const data = await res.json();
       localStorage.setItem('token', data.access_token);
+
+      if (rememberCredentials) {
+        localStorage.setItem('remember_credentials', 'true');
+        localStorage.setItem('saved_email', email.trim().toLowerCase());
+        localStorage.setItem('saved_password', password);
+      } else {
+        localStorage.setItem('remember_credentials', 'false');
+        localStorage.removeItem('saved_password');
+      }
       
       // Actively check if user has completed their profile
       const role = data.user?.role;
@@ -149,7 +175,34 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '-0.25rem' }}>
+            <input 
+              type="checkbox" 
+              id="rememberCredentials"
+              checked={rememberCredentials}
+              onChange={(e) => setRememberCredentials(e.target.checked)}
+              style={{
+                accentColor: '#00F0FF',
+                width: '18px',
+                height: '18px',
+                cursor: 'pointer',
+              }}
+            />
+            <label 
+              htmlFor="rememberCredentials"
+              style={{
+                color: 'rgba(255, 255, 255, 0.85)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                userSelect: 'none',
+                fontWeight: 500,
+              }}
+            >
+              Remember Email & Password on this device
+            </label>
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>

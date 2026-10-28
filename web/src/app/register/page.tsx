@@ -6,6 +6,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('JOB_SEEKER'); // JOB_SEEKER or EMPLOYER
+  const [rememberCredentials, setRememberCredentials] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +36,13 @@ export default function RegisterPage() {
           }
         }
         throw new Error(errMsg);
+      }
+
+      // Save credentials if Remember is checked
+      if (rememberCredentials) {
+        localStorage.setItem('remember_credentials', 'true');
+        localStorage.setItem('saved_email', email.trim().toLowerCase());
+        localStorage.setItem('saved_password', password);
       }
 
       // Redirect to login page for sign in
@@ -138,7 +146,34 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '-0.25rem' }}>
+            <input 
+              type="checkbox" 
+              id="rememberRegisterCredentials"
+              checked={rememberCredentials}
+              onChange={(e) => setRememberCredentials(e.target.checked)}
+              style={{
+                accentColor: '#00F0FF',
+                width: '18px',
+                height: '18px',
+                cursor: 'pointer',
+              }}
+            />
+            <label 
+              htmlFor="rememberRegisterCredentials"
+              style={{
+                color: 'rgba(255, 255, 255, 0.85)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                userSelect: 'none',
+                fontWeight: 500,
+              }}
+            >
+              Remember Email & Password on this device
+            </label>
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>

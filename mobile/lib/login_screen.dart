@@ -22,7 +22,37 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberCredentials = true;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final remember = prefs.getBool('remember_credentials') ?? true;
+      final savedEmail = prefs.getString('saved_email');
+      final savedPassword = prefs.getString('saved_password');
+
+      if (mounted) {
+        setState(() {
+          _rememberCredentials = remember;
+          if (remember) {
+            if (savedEmail != null && savedEmail.isNotEmpty) {
+              _emailController.text = savedEmail;
+            }
+            if (savedPassword != null && savedPassword.isNotEmpty) {
+              _passwordController.text = savedPassword;
+            }
+          }
+        });
+      }
+    } catch (_) {}
+  }
 
   Future<void> _login() async {
     setState(() {
@@ -41,9 +71,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['access_token']);
+
+        if (_rememberCredentials) {
+          await prefs.setBool('remember_credentials', true);
+          await prefs.setString('saved_email', _emailController.text.trim().toLowerCase());
+          await prefs.setString('saved_password', _passwordController.text);
+        } else {
+          await prefs.setBool('remember_credentials', false);
+          await prefs.remove('saved_password');
+        }
 
         if (mounted) {
           final role = data['user']?['role'] ?? 'JOB_SEEKER';
@@ -237,7 +275,42 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _rememberCredentials,
+                        activeColor: const Color(0xFF00F0FF),
+                        checkColor: Colors.black,
+                        side: BorderSide(color: Colors.white.withOpacity(0.35), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        onChanged: (val) {
+                          setState(() => _rememberCredentials = val ?? false);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() => _rememberCredentials = !_rememberCredentials);
+                        },
+                        child: Text(
+                          'Remember Email & Password on this device',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(

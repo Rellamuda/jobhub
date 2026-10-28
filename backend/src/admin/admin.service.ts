@@ -223,7 +223,7 @@ export class AdminService {
           }
 
           // Clean up company followers for this employer
-          await tx.companyFollower.deleteMany({ where: { companyId: employer.id } });
+          await tx.companyFollower.deleteMany({ where: { employerId: employer.id } });
 
           await tx.employer.delete({ where: { id: employer.id } });
         }

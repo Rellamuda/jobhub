@@ -135,15 +135,13 @@ jobs:
           sudo resize2fs /dev/xvda1 2>/dev/null || sudo resize2fs /dev/nvme0n1p1 2>/dev/null || sudo xfs_growfs / 2>/dev/null || true
           df -h
           
-          echo "=== Docker Compose Down & Prune Build Cache ==="
+          echo "=== Docker Compose Down & Prune Dangling Images ==="
           docker compose down || true
-          docker image rm -f jobhub-web jobhub_web jobhub-backend jobhub_backend 2>/dev/null || true
-          docker builder prune -af 2>/dev/null || true
           docker image prune -f 2>/dev/null || true
           echo "=== Building backend container ==="
-          docker compose build --no-cache backend 2>&1 | tee /tmp/backend_build.log | tail -n 30
+          docker compose build backend 2>&1 | tee /tmp/backend_build.log | tail -n 30
           echo "=== Building web container ==="
-          docker compose build --no-cache web 2>&1 | tee /tmp/web_build.log | tail -n 20
+          docker compose build web 2>&1 | tee /tmp/web_build.log | tail -n 20
           echo "=== Building remaining services ==="
           docker compose build 2>&1 | tee /tmp/compose_build.log | tail -n 20
           echo "=== Starting all services ==="

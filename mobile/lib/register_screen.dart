@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'config/api_config.dart';
 import 'login_screen.dart';
+import 'verify_email_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'profile_screen.dart';
 
@@ -54,14 +55,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           await prefs.setString('saved_password', password);
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 5),
-            content: Text('Account created! A confirmation email has been sent to $email. Please check your inbox or spam folder.'),
+        // Navigate directly to 6-digit code verification screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerifyEmailScreen(
+              email: email,
+              role: role,
+            ),
           ),
         );
-        Navigator.pop(context); // Go back to login screen
       } else {
         String msg = 'Registration failed. Try a different email.';
         try {

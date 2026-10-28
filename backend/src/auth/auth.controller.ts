@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, HttpCode, HttpStatus, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -15,6 +15,24 @@ export class AuthController {
       password: body.password,
       role: body.role
     }, clientIp);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-email')
+  async verifyEmail(@Body() body: { email: string; code: string }) {
+    if (!body?.email || !body?.code) {
+      throw new BadRequestException('Email and 6-digit verification code are required.');
+    }
+    return this.authService.verifyEmail(body.email, body.code);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('resend-code')
+  async resendCode(@Body() body: { email: string }) {
+    if (!body?.email) {
+      throw new BadRequestException('Email is required.');
+    }
+    return this.authService.resendVerificationCode(body.email);
   }
 
   @HttpCode(HttpStatus.OK)

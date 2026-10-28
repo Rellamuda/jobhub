@@ -46,6 +46,12 @@ export interface RegistrationEmailParams {
   role: 'JOB_SEEKER' | 'EMPLOYER';
 }
 
+export interface VerificationCodeEmailParams {
+  to: string;
+  code: string;
+  role?: string;
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -399,6 +405,52 @@ export class MailService {
     return this.sendEmail({
       to: params.to,
       subject: `Welcome to JobHub Global - Account Registered`,
+      html,
+      text,
+    });
+  }
+
+  // 7. 6-Digit Email Verification Code
+  async sendVerificationCodeEmail(params: VerificationCodeEmailParams) {
+    const isEmployer = params.role === 'EMPLOYER';
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; font-weight: 800; letter-spacing: -0.5px;">JobHub Global</h1>
+          <p style="margin: 6px 0 0 0; color: #a5b4fc; font-size: 13px;">Email Verification Code</p>
+        </div>
+        <div style="padding: 32px 24px; text-align: center;">
+          <h2 style="font-size: 20px; color: #ffffff; margin-top: 0;">Verify Your Email Address</h2>
+          <p style="color: #cbd5e1; line-height: 1.6; font-size: 15px; margin: 0 0 24px 0;">
+            Thank you for registering on <strong>JobHub Global</strong> (${isEmployer ? 'Employer Account' : 'Job Seeker Account'}). Use the 6-digit verification code below to activate your account:
+          </p>
+
+          <div style="background-color: #1e293b; border: 2px dashed #00F0FF; border-radius: 12px; padding: 20px; margin: 0 auto 24px auto; max-width: 280px;">
+            <div style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #00F0FF;">
+              ${params.code}
+            </div>
+            <div style="color: #94a3b8; font-size: 12px; margin-top: 8px;">
+              ⏱️ Valid for 15 minutes
+            </div>
+          </div>
+
+          <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0 0 16px 0;">
+            Enter this code in the app to complete your verification and proceed to onboarding.
+          </p>
+
+          <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 24px 0 0 0; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+            If you did not request this verification code, please ignore this email.<br/>
+            © ${new Date().getFullYear()} JobHub Global. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const text = `Your JobHub Global Verification Code: ${params.code}\n\nThis 6-digit code is valid for 15 minutes.\n\nEnter this code in the app to activate your account.\n\nIf you did not request this code, please disregard this email.`;
+
+    return this.sendEmail({
+      to: params.to,
+      subject: `${params.code} is your JobHub Global verification code`,
       html,
       text,
     });

@@ -6,6 +6,7 @@ import 'config/api_config.dart';
 import 'jobs_screen.dart';
 import 'register_screen.dart';
 import 'onboarding_screen.dart';
+import 'verify_email_screen.dart';
 import 'employer_dashboard.dart';
 import 'seeker_dashboard.dart';
 import 'screens/admin_dashboard.dart';
@@ -138,9 +139,43 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           }
         }
+      } else if (response.statusCode == 403) {
+        String unverifiedEmail = _emailController.text.trim().toLowerCase();
+        String role = 'JOB_SEEKER';
+        try {
+          final data = jsonDecode(response.body);
+          if (data['email'] != null) unverifiedEmail = data['email'].toString();
+          if (data['role'] != null) role = data['role'].toString();
+        } catch (_) {}
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF6366F1),
+              duration: Duration(seconds: 4),
+              content: Text('Please verify your email address. A 6-digit verification code has been sent.'),
+            ),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VerifyEmailScreen(
+                email: unverifiedEmail,
+                role: role,
+              ),
+            ),
+          );
+        }
       } else {
+        String msg = 'Invalid email or password.';
+        try {
+          final data = jsonDecode(response.body);
+          if (data['message'] != null) {
+            msg = data['message'].toString();
+          }
+        } catch (_) {}
         setState(() {
-          _errorMessage = 'Invalid email or password.';
+          _errorMessage = msg;
         });
       }
     } catch (e) {

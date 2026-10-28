@@ -75,33 +75,171 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const validRole = data.role === 'EMPLOYER' ? 'EMPLOYER' : 'JOB_SEEKER';
 
-    const user = await this.usersService.create({
-      ...data,
-      email: cleanEmail,
-      role: validRole,
-      password: hashedPassword,
+    // Generate 6-digit verification code valid for 15 minutes
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    const user = await this.prisma.user.create({
+      data: {
+        ...data,
+        email: cleanEmail,
+        role: validRole,
+        password: hashedPassword,
+        isEmailVerified: false,
+        verificationCode,
+        verificationExpires,
+      },
     });
 
-    // Send instant registration confirmation email via verified Resend domain
+    // Send 6-digit verification code email
     try {
-      await this.mailService.sendRegistrationWelcomeEmail({
+      await this.mailService.sendVerificationCodeEmail({
         to: user.email,
-        role: user.role as any,
+        code: verificationCode,
+        role: user.role,
       });
     } catch (err) {
-      this.logger.error(`Failed to send registration confirmation email to ${user.email}:`, err);
+      this.logger.error(`Failed to send verification code email to ${user.email}:`, err);
     }
 
-    const payload = { email: user.email, sub: user.id, role: user.role };
+    // DO NOT issue access_token yet. User must verify email code first.
     return {
+      requiresVerification: true,
+      email: user.email,
+      role: user.role,
+      message: 'A 6-digit verification code has been sent to your email. Please enter it to continue.',
+    };
+  }
+
+  async verifyEmail(email: string, code: string) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanCode = (code || '').trim();
+
+    if (!cleanEmail || !cleanCode) {
+      throw new BadRequestException('Email and verification code are required.');
+    }
+
+    const user = await this.usersService.findByEmail(cleanEmail);
+    if (!user) {
+      throw new BadRequestException('Account not found with this email.');
+    }
+
+    if (user.isEmailVerified) {
+      const payload = { email: user.email, sub: user.id, role: user.role };
+      return {
+        success: true,
+        alreadyVerified: true,
+        access_token: this.jwtService.sign(payload),
+        user: { id: user.id, email: user.email, role: user.role },
+        profileComplete: false,
+      };
+    }
+
+    if (!user.verificationCode || user.verificationCode !== cleanCode) {
+      throw new BadRequestException('Invalid verification code. Please check your email and try again.');
+    }
+
+    if (!user.verificationExpires || new Date() > user.verificationExpires) {
+      throw new BadRequestException('Verification code has expired. Please request a new code.');
+    }
+
+    // Mark email as verified and clear code
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        verificationCode: null,
+        verificationExpires: null,
+      },
+    });
+
+    // Send registration welcome email upon successful verification
+    try {
+      await this.mailService.sendRegistrationWelcomeEmail({
+        to: updatedUser.email,
+        role: updatedUser.role as any,
+      });
+    } catch (err) {
+      this.logger.error(`Failed to send welcome email after verification:`, err);
+    }
+
+    let profileComplete = false;
+    let profilePicture: string | null = null;
+    let displayName = '';
+    let verificationStatus = 'UNVERIFIED';
+
+    if (updatedUser.role === 'JOB_SEEKER') {
+      const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId: updatedUser.id } });
+      profileComplete = !!profile && profile.firstName.length > 0;
+      profilePicture = profile?.profilePicture || null;
+      displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : '';
+      verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
+    } else if (updatedUser.role === 'EMPLOYER') {
+      const profile = await this.prisma.employer.findUnique({ where: { userId: updatedUser.id } });
+      profileComplete = !!profile && profile.companyName.length > 0;
+      profilePicture = profile?.profilePicture || null;
+      displayName = profile?.companyName || '';
+      verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
+    }
+
+    const payload = { email: updatedUser.email, sub: updatedUser.id, role: updatedUser.role };
+    return {
+      success: true,
       access_token: this.jwtService.sign(payload),
-      user: { id: user.id, email: user.email, role: user.role },
-      profileComplete: false, // New users don't have a profile yet
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        subscriptionTier: updatedUser.subscriptionTier,
+        profilePicture,
+        displayName: displayName || updatedUser.email,
+        verificationStatus,
+      },
+      profileComplete,
+    };
+  }
+
+  async resendVerificationCode(email: string) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      throw new BadRequestException('Email is required.');
+    }
+
+    const user = await this.usersService.findByEmail(cleanEmail);
+    if (!user) {
+      throw new BadRequestException('No account found with this email.');
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException('This email is already verified. You can log in directly.');
+    }
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationCode,
+        verificationExpires,
+      },
+    });
+
+    await this.mailService.sendVerificationCodeEmail({
+      to: user.email,
+      code: verificationCode,
+      role: user.role,
+    });
+
+    return {
+      success: true,
+      message: 'A new 6-digit verification code has been sent to your email.',
     };
   }
 
   async login(email: string, pass: string) {
-    const user = await this.usersService.findByEmail(email);
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const user = await this.usersService.findByEmail(cleanEmail);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -109,6 +247,41 @@ export class AuthService {
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Block unverified non-admin users from logging in or accessing onboarding
+    if (!user.isEmailVerified && user.role !== 'ADMIN') {
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          verificationCode,
+          verificationExpires,
+        },
+      });
+
+      try {
+        await this.mailService.sendVerificationCodeEmail({
+          to: user.email,
+          code: verificationCode,
+          role: user.role,
+        });
+      } catch (err) {
+        this.logger.error(`Failed to send verification code email on login:`, err);
+      }
+
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.FORBIDDEN,
+          requiresVerification: true,
+          email: user.email,
+          role: user.role,
+          message: 'Please verify your email address to continue. A 6-digit verification code has been sent to your email.',
+        },
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     let profileComplete = false;

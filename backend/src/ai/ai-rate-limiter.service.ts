@@ -62,12 +62,17 @@ export class AiRateLimiterService {
 
     timestamps.push(now);
     this.burstWindow.set(identifier, timestamps);
+  }
+
   // Rolling IP-level free trial limiter: Map<ip, timestamp[]>
   private freeTrialIpWindow = new Map<string, number[]>();
-  private readonly MAX_FREE_TIER_PER_IP_DAILY = 3;
+  private readonly MAX_FREE_TIER_PER_IP_DAILY = 10;
 
   checkFreeTrialIpAbuse(ip?: string) {
     if (!ip || ip === 'unknown' || ip === '127.0.0.1' || ip === '::1') return;
+    // Don't rate limit private network or Docker container bridge IPs
+    if (/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(ip)) return;
+
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
 
@@ -85,7 +90,7 @@ export class AiRateLimiterService {
 
   /**
    * 2. Quota Check based on Subscription Tier
-   * Free Tier: 1 total credit (Max 3 per IP/device per day)
+   * Free Tier: 3 total credits (allows testing Resume Builder, Cover Letter, and a Job application)
    * Silver Tier: 15 credits / month
    * Diamond/Premium: Unlimited
    */
@@ -100,15 +105,27 @@ export class AiRateLimiterService {
 
     if (!user) throw new ForbiddenException('User not found');
 
+    // Administrators always have unrestricted AI access
+    if (user.role === 'ADMIN') {
+      this.recordTelemetry({
+        userId,
+        userEmail: user.email,
+        tier: 'PREMIUM',
+        endpoint,
+        estimatedInputChars,
+      });
+      return;
+    }
+
     const tier = user.subscriptionTier;
     const currentUsed = user.freeGenerationsUsed || 0;
 
     // Check tier limits
     if (tier === 'FREE') {
-      const limit = 1;
+      const limit = 3;
       if (currentUsed >= limit) {
         throw new ForbiddenException(
-          'Free AI generation credit reached (1/1). Upgrade to Silver ($13/mo) for 15 generations or Diamond ($20/mo) for unlimited AI access.',
+          'Free AI generation credit reached (3/3). Upgrade to Silver ($13/mo) for 15 generations or Diamond ($20/mo) for unlimited AI access.',
         );
       }
       // Check multi-account IP farming abuse
@@ -199,15 +216,16 @@ export class AiRateLimiterService {
   async getUserQuota(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { subscriptionTier: true, freeGenerationsUsed: true },
+      select: { role: true, subscriptionTier: true, freeGenerationsUsed: true },
     });
 
     if (!user) throw new ForbiddenException('User not found');
 
-    const tier = user.subscriptionTier;
+    const isAdmin = user.role === 'ADMIN';
+    const tier = isAdmin ? 'PREMIUM' : user.subscriptionTier;
     const used = user.freeGenerationsUsed || 0;
-    const limit = tier === 'FREE' ? 1 : tier === 'SILVER' ? 15 : null;
-    const isUnlimited = tier === 'PREMIUM';
+    const limit = isAdmin ? null : tier === 'FREE' ? 3 : tier === 'SILVER' ? 15 : null;
+    const isUnlimited = isAdmin || tier === 'PREMIUM';
     const remaining = isUnlimited ? null : Math.max(0, (limit || 0) - used);
     const canGenerate = isUnlimited || (remaining !== null && remaining > 0);
 

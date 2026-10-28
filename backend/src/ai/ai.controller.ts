@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, Logger } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,6 +7,8 @@ import { AiRateLimiterService } from './ai-rate-limiter.service';
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
+  private readonly logger = new Logger(AiController.name);
+
   constructor(
     private readonly aiService: AiService,
     private readonly prisma: PrismaService,
@@ -41,12 +43,32 @@ export class AiController {
       ? result 
       : (result.resume || JSON.stringify(result.structured || result));
 
-    // Save to profile
-    if (req.user.role === 'JOB_SEEKER') {
-      await this.prisma.jobSeekerProfile.update({
-        where: { userId: req.user.userId },
-        data: { resumeContent: resumeText }
-      });
+    // Save to profile if job seeker
+    if (req.user?.role === 'JOB_SEEKER' && req.user?.userId) {
+      try {
+        const existing = await this.prisma.jobSeekerProfile.findUnique({
+          where: { userId: req.user.userId },
+        });
+
+        if (existing) {
+          await this.prisma.jobSeekerProfile.update({
+            where: { userId: req.user.userId },
+            data: { resumeContent: resumeText },
+          });
+        } else {
+          await this.prisma.jobSeekerProfile.create({
+            data: {
+              userId: req.user.userId,
+              firstName: profileData?.firstName || profileData?.personalInfo?.firstName || 'Candidate',
+              lastName: profileData?.lastName || profileData?.personalInfo?.lastName || '',
+              profession: profileData?.desiredJobTitle || profileData?.title || 'Professional',
+              resumeContent: resumeText,
+            },
+          });
+        }
+      } catch (err: any) {
+        this.logger.warn(`Could not persist resumeContent to JobSeekerProfile: ${err?.message || err}`);
+      }
     }
     return typeof result === 'object' ? result : { resume: resumeText };
   }
@@ -58,21 +80,31 @@ export class AiController {
     }
     const result = await this.aiService.generateCompanyProfile(companyData);
 
-    if (req.user.role === 'EMPLOYER' && companyData?.autoSave) {
-      await this.prisma.employer.update({
-        where: { userId: req.user.userId },
-        data: {
-          description: result.description,
-          mission: result.mission,
-          vision: result.vision,
-          coreValues: result.coreValues,
-          culture: result.culture,
-          whyWorkWithUs: result.whyWorkWithUs,
-          benefits: result.benefits,
-          ...(result.industry ? { industry: result.industry } : {}),
-          ...(result.businessType ? { businessType: result.businessType } : {}),
+    if (req.user?.role === 'EMPLOYER' && companyData?.autoSave && req.user?.userId) {
+      try {
+        const existing = await this.prisma.employer.findUnique({
+          where: { userId: req.user.userId },
+        });
+
+        if (existing) {
+          await this.prisma.employer.update({
+            where: { userId: req.user.userId },
+            data: {
+              description: result.description,
+              mission: result.mission,
+              vision: result.vision,
+              coreValues: result.coreValues,
+              culture: result.culture,
+              whyWorkWithUs: result.whyWorkWithUs,
+              benefits: result.benefits,
+              ...(result.industry ? { industry: result.industry } : {}),
+              ...(result.businessType ? { businessType: result.businessType } : {}),
+            }
+          });
         }
-      });
+      } catch (err: any) {
+        this.logger.warn(`Could not autoSave company profile: ${err?.message || err}`);
+      }
     }
 
     return result;

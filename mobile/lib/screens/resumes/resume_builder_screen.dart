@@ -168,7 +168,16 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
           setState(() => _selectedTab = 1); // switch to Executive Preview
         }
       } else {
-        throw Exception('Server responded with ${res.statusCode}');
+        String msg = 'Could not generate resume (${res.statusCode})';
+        try {
+          final errData = jsonDecode(res.body);
+          if (errData['message'] != null) {
+            msg = errData['message'] is List
+                ? (errData['message'] as List).join(', ')
+                : errData['message'].toString();
+          }
+        } catch (_) {}
+        throw Exception(msg);
       }
     } catch (e) {
       if (mounted) {

@@ -401,14 +401,14 @@ export default function JobsFeedPage() {
                       <button 
                         type="button"
                         onClick={() => handleGenerateCoverLetter(job)}
-                        disabled={generatingCoverLetter || (subscriptionTier === 'FREE' && freeGenerationsUsed >= 1)}
+                        disabled={generatingCoverLetter || (subscriptionTier === 'FREE' && freeGenerationsUsed >= 3)}
                         style={{ background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff', padding: '3px 10px', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
                       >
                         {generatingCoverLetter ? 'Generating...' : '✨ Generate AI Cover Letter'}
                       </button>
                     </div>
-                    {subscriptionTier === 'FREE' && freeGenerationsUsed >= 1 && (
-                      <div style={{ color: '#ff8c00', marginBottom: '0.5rem', fontSize: '0.85rem' }}>⚠️ Free generation limit reached. You can type manually or upgrade for unlimited AI generations.</div>
+                    {subscriptionTier === 'FREE' && freeGenerationsUsed >= 3 && (
+                      <div style={{ color: '#ff8c00', marginBottom: '0.5rem', fontSize: '0.85rem' }}>⚠️ Free generation limit (3/3) reached. You can type manually or upgrade for unlimited AI generations.</div>
                     )}
                     <textarea 
                       value={coverLetter}

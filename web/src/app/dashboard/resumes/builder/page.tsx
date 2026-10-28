@@ -99,9 +99,15 @@ function ResumeBuilder() {
   }, [resumeId, parsedDataParam]);
 
   const handleGenerateAIResume = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      alert('Please log in to generate an AI resume.');
+      window.location.href = '/login';
+      return;
+    }
+
     setIsGeneratingAI(true);
     try {
-      const token = localStorage.getItem('token');
       const payload = {
         ...resume,
         additionalInfo: additionalInfo.trim(),
@@ -117,7 +123,7 @@ function ResumeBuilder() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
@@ -149,11 +155,18 @@ function ResumeBuilder() {
         generateMatchingCoverLetter(payload);
         setActiveTab('preview');
       } else {
-        alert('Could not generate resume at this moment. Please try again.');
+        let msg = 'Could not generate resume at this moment. Please try again.';
+        try {
+          const errData = await res.json();
+          if (errData?.message) {
+            msg = Array.isArray(errData.message) ? errData.message.join(', ') : errData.message;
+          }
+        } catch (_) {}
+        alert(msg);
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error connecting to AI generation service.');
+    } catch (err: any) {
+      console.error('Error generating AI resume:', err);
+      alert(err?.message || 'Error connecting to AI generation service.');
     } finally {
       setIsGeneratingAI(false);
     }

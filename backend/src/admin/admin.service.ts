@@ -1,8 +1,9 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
   constructor(private prisma: PrismaService) {}
 
   async getStats() {
@@ -162,50 +163,109 @@ export class AdminService {
 
   async deleteUser(id: string) {
     try {
+      const existingUser = await this.prisma.user.findUnique({ where: { id } });
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
       return await this.prisma.$transaction(async (tx) => {
         // 1. Delete notifications
-        await tx.notification.deleteMany({ where: { userId: id } }).catch(() => {});
-        // 2. Delete messages
-        await tx.message.deleteMany({ where: { OR: [{ senderId: id }, { receiverId: id }] } }).catch(() => {});
-        // 3. Delete payments
-        await tx.payment.deleteMany({ where: { userId: id } }).catch(() => {});
-        // 4. Delete candidate notes
-        await tx.candidateNote.deleteMany({ where: { authorId: id } }).catch(() => {});
-        // 5. Delete connections, posts, comments, likes
-        await tx.like.deleteMany({ where: { userId: id } }).catch(() => {});
-        await tx.comment.deleteMany({ where: { authorId: id } }).catch(() => {});
-        await tx.post.deleteMany({ where: { authorId: id } }).catch(() => {});
-        await tx.connection.deleteMany({ where: { OR: [{ userId: id }, { connectedUserId: id }] } }).catch(() => {});
-        await tx.companyFollower.deleteMany({ where: { userId: id } }).catch(() => {});
+        await tx.notification.deleteMany({ where: { userId: id } });
 
-        // 6. Check and delete employer
-        const employer = await tx.employer.findUnique({ where: { userId: id } });
-        if (employer) {
-          const jobs = await tx.job.findMany({ where: { employerId: employer.id } });
-          for (const job of jobs) {
-            await tx.application.deleteMany({ where: { jobId: job.id } }).catch(() => {});
-            await tx.job.delete({ where: { id: job.id } }).catch(() => {});
-          }
-          await tx.employer.delete({ where: { id: employer.id } }).catch(() => {});
-        }
-
-        // 7. Check and delete jobSeekerProfile
-        const seeker = await tx.jobSeekerProfile.findUnique({ where: { userId: id } });
-        if (seeker) {
-          await tx.application.deleteMany({ where: { jobSeekerId: seeker.id } }).catch(() => {});
-          await tx.credential.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
-          await tx.candidateTag.deleteMany({ where: { jobSeekerProfileId: seeker.id } }).catch(() => {});
-          await tx.jobSeekerProfile.delete({ where: { id: seeker.id } }).catch(() => {});
-        }
-
-        // 8. Delete user
-        await tx.user.delete({
-          where: { id },
+        // 2. Delete direct messages sent or received
+        await tx.message.deleteMany({
+          where: { OR: [{ senderId: id }, { receiverId: id }] },
         });
 
+        // 3. Delete payments
+        await tx.payment.deleteMany({ where: { userId: id } });
+
+        // 4. Delete candidate notes authored by this user
+        await tx.candidateNote.deleteMany({ where: { authorId: id } });
+
+        // 5. Delete likes by user
+        await tx.like.deleteMany({ where: { userId: id } });
+
+        // 6. Delete comments by user
+        await tx.comment.deleteMany({ where: { authorId: id } });
+
+        // 7. Delete posts authored by user (and any associated likes/comments on them)
+        const userPosts = await tx.post.findMany({ where: { authorId: id }, select: { id: true } });
+        if (userPosts.length > 0) {
+          const postIds = userPosts.map((p) => p.id);
+          await tx.like.deleteMany({ where: { postId: { in: postIds } } });
+          await tx.comment.deleteMany({ where: { postId: { in: postIds } } });
+          await tx.post.deleteMany({ where: { id: { in: postIds } } });
+        }
+
+        // 8. Delete connections & followed companies
+        await tx.connection.deleteMany({
+          where: { OR: [{ userId: id }, { connectedUserId: id }] },
+        });
+        await tx.companyFollower.deleteMany({ where: { userId: id } });
+
+        // 9. Delete referrals where user is the referrer
+        await tx.referral.deleteMany({ where: { referrerId: id } });
+
+        // 10. Check and clean up Employer profile & associated data
+        const employer = await tx.employer.findUnique({ where: { userId: id } });
+        if (employer) {
+          // Clean up talent pools
+          await tx.talentPool.deleteMany({ where: { employerId: employer.id } });
+
+          // Clean up jobs and their applications + referrals
+          const employerJobs = await tx.job.findMany({ where: { employerId: employer.id }, select: { id: true } });
+          if (employerJobs.length > 0) {
+            const jobIds = employerJobs.map((j) => j.id);
+            await tx.referral.deleteMany({ where: { jobId: { in: jobIds } } });
+            await tx.application.deleteMany({ where: { jobId: { in: jobIds } } });
+            await tx.job.deleteMany({ where: { id: { in: jobIds } } });
+          }
+
+          // Clean up company followers for this employer
+          await tx.companyFollower.deleteMany({ where: { companyId: employer.id } });
+
+          await tx.employer.delete({ where: { id: employer.id } });
+        }
+
+        // 11. Check and clean up JobSeekerProfile & associated data
+        const seeker = await tx.jobSeekerProfile.findUnique({ where: { userId: id } });
+        if (seeker) {
+          // Clean up candidate notes written about this candidate
+          await tx.candidateNote.deleteMany({ where: { jobSeekerProfileId: seeker.id } });
+
+          // Clean up candidate tags
+          await tx.candidateTag.deleteMany({ where: { jobSeekerProfileId: seeker.id } });
+
+          // Clean up credentials
+          await tx.credential.deleteMany({ where: { jobSeekerProfileId: seeker.id } });
+
+          // Clean up referrals where seeker is the referred candidate
+          await tx.referral.deleteMany({ where: { candidateId: seeker.id } });
+
+          // Clean up applications submitted by this seeker
+          await tx.application.deleteMany({ where: { jobSeekerId: seeker.id } });
+
+          // Clean up resumes created by this seeker (and any remaining application links)
+          const seekerResumes = await tx.resume.findMany({ where: { jobSeekerId: seeker.id }, select: { id: true } });
+          if (seekerResumes.length > 0) {
+            const resumeIds = seekerResumes.map((r) => r.id);
+            await tx.application.deleteMany({ where: { resumeId: { in: resumeIds } } });
+            await tx.resume.deleteMany({ where: { id: { in: resumeIds } } });
+          }
+
+          await tx.jobSeekerProfile.delete({ where: { id: seeker.id } });
+        }
+
+        // 12. Finally, delete User record
+        await tx.user.delete({ where: { id } });
+
+        this.logger.log(`User ${id} and all related dependencies successfully deleted.`);
         return { success: true, message: 'User and all associated data permanently deleted' };
       });
     } catch (e: any) {
+      this.logger.error(`Failed to delete user ${id}: ${e.message}`, e.stack);
+      if (e instanceof NotFoundException) throw e;
       throw new InternalServerErrorException(e.message || 'Failed to delete user due to dependencies');
     }
   }

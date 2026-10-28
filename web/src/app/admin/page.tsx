@@ -179,10 +179,15 @@ export default function AdminDashboard() {
         if (selectedUser?.id === user.id) setSelectedUser(null);
         fetchUsers();
       } else {
-        showNotification('error', 'Failed to delete user');
+        let errorMsg = 'Failed to delete user';
+        try {
+          const errData = await res.json();
+          if (errData && errData.message) errorMsg = errData.message;
+        } catch (_) {}
+        showNotification('error', errorMsg);
       }
     } catch (e: any) {
-      showNotification('error', e.message);
+      showNotification('error', e.message || 'Network error deleting user');
     }
   };
 

@@ -40,7 +40,7 @@ export default function Header() {
       {/* Left: Logo and App Name */}
       <Link href="/" className="flex items-center gap-3 no-underline" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
         <img 
-          src="/logo.png" 
+          src="/header-logo.png" 
           alt="JobHub Logo" 
           width="36" 
           height="36" 

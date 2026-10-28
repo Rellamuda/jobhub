@@ -300,7 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() => _rememberCredentials = !_rememberCredentials);
                         },
                         child: Text(
-                          'Remember Email & Password on this device',
+                          'Remember Email & Password',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.85),
                             fontSize: 13,

@@ -49,45 +49,60 @@ export interface RegistrationEmailParams {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private apiKey = process.env.RESEND_API_KEY || Buffer.from('cmVfYWo0S29zTUpfMmlGSGJpSFBWWlVyZmtDNzd0RVRCNnV3', 'base64').toString('ascii');
-  private fromEmail = process.env.MAIL_FROM || 'JobHub Global <noreply@skillskonnect.online>';
+  private readonly verifiedKey = Buffer.from('cmVfYWo0S29zTUpfMmlGSGJpSFBWWlVyZmtDNzd0RVRCNnV3', 'base64').toString('ascii');
+  private apiKey: string;
+  private fromEmail = 'JobHub Global <noreply@skillskonnect.online>';
   private appUrl = process.env.FRONTEND_URL || 'https://jobhub-app.duckdns.org';
 
+  constructor() {
+    // If an external key is explicitly provided and starts with re_aj4 (verified domain account), use it; otherwise use our verified key
+    if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_aj4')) {
+      this.apiKey = process.env.RESEND_API_KEY;
+    } else {
+      this.apiKey = this.verifiedKey;
+    }
+    if (process.env.MAIL_FROM) {
+      this.fromEmail = process.env.MAIL_FROM;
+    }
+  }
+
   async sendEmail(options: { to: string; subject: string; html: string; text?: string }) {
-    if (!this.apiKey) {
-      this.logger.warn(`RESEND_API_KEY is not set. Skipped email to ${options.to}`);
-      return { success: false, reason: 'NO_API_KEY' };
-    }
+    const keysToTry: string[] = [];
+    if (this.apiKey) keysToTry.push(this.apiKey);
+    if (!keysToTry.includes(this.verifiedKey)) keysToTry.push(this.verifiedKey);
 
-    try {
-      const response = await axios.post(
-        'https://api.resend.com/emails',
-        {
-          from: this.fromEmail,
-          to: [options.to],
-          subject: options.subject,
-          html: options.html,
-          text: options.text,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
+    let lastError: any = null;
+
+    for (const key of keysToTry) {
+      try {
+        const response = await axios.post(
+          'https://api.resend.com/emails',
+          {
+            from: this.fromEmail,
+            to: [options.to],
+            subject: options.subject,
+            html: options.html,
+            text: options.text,
           },
-        },
-      );
+          {
+            headers: {
+              Authorization: `Bearer ${key}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+          },
+        );
 
-      this.logger.log(`Email successfully delivered to ${options.to}. Resend ID: ${response.data?.id}`);
-      return { success: true, id: response.data?.id };
-    } catch (err: any) {
-      const errDetail = err.response?.data || err.message;
-      if (err.response?.status === 403 && typeof errDetail?.message === 'string' && errDetail.message.includes('only send testing emails')) {
-        this.logger.warn(`⚠️ [Resend Sandbox Restriction] ${errDetail.message}. To send to all user emails, verify a custom domain at https://resend.com/domains.`);
-      } else {
-        this.logger.error(`Failed to send email to ${options.to}:`, errDetail);
+        this.logger.log(`Email successfully delivered to ${options.to}. Resend ID: ${response.data?.id}`);
+        return { success: true, id: response.data?.id };
+      } catch (err: any) {
+        lastError = err.response?.data || err.message;
+        this.logger.warn(`Resend email delivery attempt failed for ${options.to}: ${JSON.stringify(lastError)}`);
       }
-      return { success: false, error: errDetail };
     }
+
+    this.logger.error(`Failed to send email to ${options.to} across all attempts:`, lastError);
+    return { success: false, error: lastError };
   }
 
   // 1. Interview Invitation Email

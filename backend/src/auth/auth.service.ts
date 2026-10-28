@@ -83,14 +83,14 @@ export class AuthService {
     });
 
     // Send instant registration confirmation email via verified Resend domain
-    this.mailService
-      .sendRegistrationWelcomeEmail({
+    try {
+      await this.mailService.sendRegistrationWelcomeEmail({
         to: user.email,
         role: user.role as any,
-      })
-      .catch((err) => {
-        this.logger.error(`Failed to send registration confirmation email to ${user.email}`, err);
       });
+    } catch (err) {
+      this.logger.error(`Failed to send registration confirmation email to ${user.email}:`, err);
+    }
 
     const payload = { email: user.email, sub: user.id, role: user.role };
     return {

@@ -198,7 +198,7 @@ export default function LoginPage() {
                 fontWeight: 500,
               }}
             >
-              Remember Email & Password on this device
+              Remember Email & Password
             </label>
           </div>
 

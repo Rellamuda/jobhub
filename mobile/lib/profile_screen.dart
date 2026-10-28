@@ -413,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               width: double.infinity,
                               child: OutlinedButton.icon(
                                 onPressed: () {
-                                  Navigator.pop(ctx);
+                                  Navigator.pop(context);
                                   _downloadOrShareCompanyProfile();
                                 },
                                 icon: const Icon(Icons.download, size: 16, color: Color(0xFF00F0FF)),

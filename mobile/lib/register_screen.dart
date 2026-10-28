@@ -57,8 +57,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFF10B981),
-            duration: Duration(seconds: 4),
-            content: Text('Account created! A confirmation email has been sent to your inbox. Please sign in.'),
+            duration: Duration(seconds: 3),
+            content: Text('Account created successfully! Please sign in to continue.'),
           ),
         );
         Navigator.pop(context); // Go back to login screen
@@ -115,9 +115,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 const SizedBox(height: 20),
                 Text(
-                  'Join JobHub',
+                  'Join JobHub Global',
                   style: TextStyle(
-                    fontSize: 40,
+                    fontSize: 38,
                     fontWeight: FontWeight.w800,
                     foreground: Paint()
                       ..shader = const LinearGradient(

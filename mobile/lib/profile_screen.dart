@@ -1394,123 +1394,6 @@ Generated via JobHub Global Talent Platform''';
     );
   }
 
-  Widget _buildSocialShareButton({
-    required String label,
-    required IconData icon,
-    required Color bgColor,
-    Color? borderColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: borderColor != null ? Border.all(color: borderColor) : null,
-        boxShadow: [
-          BoxShadow(
-            color: bgColor.withOpacity(0.35),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 17),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSocialShareCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF6366F1).withOpacity(0.15),
-            const Color(0xFF00F0FF).withOpacity(0.08),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.share, color: Color(0xFF00F0FF), size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'ðŸ“± JobHub Global Stores & Social Channels',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Official Google Play Store, Apple App Store & Social Channels.',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildSocialShareButton(
-                label: 'Google Play',
-                icon: Icons.shop,
-                bgColor: const Color(0xFF141923),
-                borderColor: const Color(0xFF34A853),
-              ),
-              _buildSocialShareButton(
-                label: 'App Store',
-                icon: Icons.apple,
-                bgColor: const Color(0xFF141923),
-                borderColor: Colors.white54,
-              ),
-              _buildSocialShareButton(
-                label: 'Facebook',
-                icon: Icons.facebook,
-                bgColor: const Color(0xFF1877F2),
-              ),
-              _buildSocialShareButton(
-                label: 'WhatsApp',
-                icon: Icons.chat,
-                bgColor: const Color(0xFF25D366),
-              ),
-              _buildSocialShareButton(
-                label: 'Instagram',
-                icon: Icons.camera_alt,
-                bgColor: const Color(0xFFE1306C),
-              ),
-              _buildSocialShareButton(
-                label: 'TikTok',
-                icon: Icons.music_note,
-                bgColor: const Color(0xFF111111),
-                borderColor: const Color(0xFF00F0FF),
-              ),
-              _buildSocialShareButton(
-                label: 'YouTube',
-                icon: Icons.play_circle_fill,
-                bgColor: const Color(0xFFFF0000),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -1586,8 +1469,6 @@ Generated via JobHub Global Talent Platform''';
               ),
               const SizedBox(height: 16),
               if (_user!['role'] == 'JOB_SEEKER') _buildSeekerProfile() else _buildEmployerProfile(),
-              const SizedBox(height: 28),
-              _buildSocialShareCard(),
               const SizedBox(height: 24),
               // Legal & Google Play Compliance Section
               Container(

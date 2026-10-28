@@ -117,7 +117,7 @@ export class MailService {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
         <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub AI</h1>
+          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub Global</h1>
           <p style="margin: 8px 0 0 0; color: #a5b4fc; font-size: 14px;">Interview Invitation</p>
         </div>
         <div style="padding: 32px 24px;">
@@ -164,7 +164,7 @@ export class MailService {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
         <div style="background: linear-gradient(135deg, #092e3b 0%, #065975 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub AI Autopilot</h1>
+          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub Global Autopilot</h1>
           <p style="margin: 8px 0 0 0; color: #7dd3fc; font-size: 14px;">Permission to Apply on Your Behalf</p>
         </div>
         <div style="padding: 32px 24px;">
@@ -212,7 +212,7 @@ export class MailService {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
         <div style="background: linear-gradient(135deg, #312e81 0%, #4338ca 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="margin: 0; font-size: 26px; color: #00F0FF;">JobHub AI</h1>
+          <h1 style="margin: 0; font-size: 26px; color: #00F0FF;">JobHub Global</h1>
           <p style="margin: 8px 0 0 0; color: #c7d2fe; font-size: 14px;">Subscription Confirmation</p>
         </div>
         <div style="padding: 32px 24px;">
@@ -259,7 +259,7 @@ export class MailService {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub AI</h1>
+          <h1 style="margin: 0; font-size: 26px; color: #00F0FF; letter-spacing: -0.5px;">JobHub Global</h1>
           <p style="margin: 8px 0 0 0; color: #38bdf8; font-size: 14px;">Application Acknowledgement & Receipt</p>
         </div>
         <div style="padding: 32px 24px;">
@@ -283,7 +283,7 @@ export class MailService {
           </div>
 
           <p style="color: #64748b; font-size: 12px; margin-bottom: 0; text-align: center;">
-            Thank you for applying through JobHub AI Operating System.
+            Thank you for applying through JobHub Global Operating System.
           </p>
         </div>
       </div>

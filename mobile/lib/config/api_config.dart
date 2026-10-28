@@ -2,8 +2,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
   // Configured with domain URL, easily overrideable for local dev
-  static String baseUrl = 'https://jobhub-app.duckdns.org/api';
-  static String webUrl = 'https://jobhub-app.duckdns.org';
+  static String baseUrl = 'https://skillskonnect.online/api';
+  static String webUrl = 'https://skillskonnect.online';
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();

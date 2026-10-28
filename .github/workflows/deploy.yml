@@ -110,9 +110,8 @@ jobs:
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx
           
-          # Ensure SSL certificate is installed in Nginx for jobhub-app.duckdns.org and skillskonnect.online
-          sudo certbot --nginx -d jobhub-app.duckdns.org --non-interactive --agree-tos -m erice@rellamuda.com --redirect --keep-until-expiring || true
-          sudo certbot --nginx -d skillskonnect.online -d www.skillskonnect.online --non-interactive --agree-tos -m erice@rellamuda.com --redirect --keep-until-expiring || true
+          # Ensure a multi-domain SSL certificate covering skillskonnect.online, www.skillskonnect.online, and jobhub-app.duckdns.org is installed
+          sudo certbot --nginx --expand -d skillskonnect.online -d www.skillskonnect.online -d jobhub-app.duckdns.org --non-interactive --agree-tos -m erice@rellamuda.com --redirect || true
           sudo systemctl reload nginx || true
 
           # Prevent Out of Memory (OOM) crashes during Docker build on small instances

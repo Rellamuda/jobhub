@@ -423,19 +423,19 @@ export default function SeekerDashboard() {
             {profile.profilePicture ? (
               <img src={profile.profilePicture} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>ðŸ‘¤</div>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}></div>
             )}
           </div>
           <h2 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--text-primary)' }}>{profile.firstName} {profile.lastName}</h2>
           <p style={{ margin: '4px 0 1rem 0', color: 'var(--text-secondary)', fontSize: '1.1rem' }}>{profile.profession || 'Job Seeker'}</p>
           
           <button className="btn-primary" onClick={fetchAiInsights} disabled={aiLoading} style={{ background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff', boxShadow: 'none' }}>
-            {aiLoading ? 'Generating AI Insights...' : 'âœ¨ Generate AI Career Insights'}
+            {aiLoading ? 'Generating AI Insights...' : 'Generate AI Career Insights'}
           </button>
 
           {aiInsights && (
             <div className="glass-panel" style={{ marginTop: '2rem', padding: '1.5rem', textAlign: 'left', width: '100%', maxWidth: '650px', borderLeft: '4px solid #00f0ff' }}>
-              <h3 style={{ marginTop: 0, color: '#00f0ff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>âœ¨ AI Career Insights</h3>
+              <h3 style={{ marginTop: 0, color: '#00f0ff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>AI Career Insights</h3>
               
               <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
@@ -482,12 +482,12 @@ export default function SeekerDashboard() {
         <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
           <Link href="/dashboard/resumes">
             <button className="btn-outline" style={{ border: '1px solid #00f0ff', color: '#00f0ff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              ðŸ“ Saved Documents & Resumes
+              Saved Documents & Resumes
             </button>
           </Link>
           <Link href="/dashboard/resumes/builder">
             <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)', color: '#000', fontWeight: 'bold' }}>
-              âœ¨ AI Resume Builder
+              AI Resume Builder
             </button>
           </Link>
           <Link href="/jobs">
@@ -516,7 +516,7 @@ export default function SeekerDashboard() {
           onClick={() => setActiveTab('AUTONOMOUS')} 
           style={{ background: 'none', border: 'none', color: activeTab === 'AUTONOMOUS' ? '#00f0ff' : 'var(--text-secondary)', fontSize: '1.1rem', cursor: 'pointer', fontWeight: activeTab === 'AUTONOMOUS' ? 'bold' : 'normal', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
         >
-          ðŸ¤– Autonomous Agent
+          Autonomous Agent
           {autoApplyEnabled && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', display: 'inline-block' }} />}
         </button>
 
@@ -561,7 +561,7 @@ export default function SeekerDashboard() {
                         <h2 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)' }}>{app.job.title}</h2>
                         {isAuto && (
                           <span style={{ background: 'rgba(0, 240, 255, 0.15)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                            ðŸ¤– Auto-Applied by AI
+                            Auto-Applied by AI
                           </span>
                         )}
                       </div>
@@ -595,8 +595,8 @@ export default function SeekerDashboard() {
                     </p>
                     {app.interviewDate && (
                       <p style={{ margin: '6px 0 0 0', color: '#00f0ff', fontSize: '0.9rem' }}>
-                        ðŸ“… Scheduled: {new Date(app.interviewDate).toLocaleString()}
-                        {app.interviewLink && <span style={{ marginLeft: 8 }}>ðŸ”— <a href={app.interviewLink} target="_blank" rel="noreferrer" style={{ color: '#00f0ff', textDecoration: 'underline' }}>Join Link</a></span>}
+                        Scheduled: {new Date(app.interviewDate).toLocaleString()}
+                        {app.interviewLink && <span style={{ marginLeft: 8 }}><a href={app.interviewLink} target="_blank" rel="noreferrer" style={{ color: '#00f0ff', textDecoration: 'underline' }}>Join Link</a></span>}
                       </p>
                     )}
                   </div>
@@ -608,7 +608,7 @@ export default function SeekerDashboard() {
                       className="btn-primary" 
                       style={{ padding: '8px 16px', background: 'rgba(0, 240, 255, 0.15)', border: '1px solid #00f0ff', color: '#00f0ff', fontSize: '0.9rem' }}
                     >
-                      ðŸ’¬ Message Employer
+                      Message Employer
                     </button>
 
                     {app.status === 'INVITED' ? (
@@ -617,7 +617,7 @@ export default function SeekerDashboard() {
                         <button className="btn-primary" style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ff4d4d', color: '#ff4d4d', fontSize: '0.9rem' }} onClick={() => respondToInvitation(app.id, false)}>Decline</button>
                       </>
                     ) : (
-                      <span style={{ color: '#00ff88', fontWeight: 'bold' }}>Accepted! ðŸŽ‰</span>
+                      <span style={{ color: '#00ff88', fontWeight: 'bold' }}>Accepted! </span>
                     )}
                   </div>
                 </div>
@@ -632,7 +632,7 @@ export default function SeekerDashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
                     <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      ðŸ¤– Autonomous AI Job Application Agent
+                      Autonomous AI Job Application Agent
                     </h2>
                     <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0 0', maxWidth: '650px' }}>
                       When enabled, JobHub Global automatically scans all newly posted jobs matching your target keywords and applies on your behalf 24/7 with a personalized cover letter.
@@ -654,7 +654,7 @@ export default function SeekerDashboard() {
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      {autoApplyEnabled ? 'âœ… Agent Active' : 'âšª Agent Paused (Click to Enable)'}
+                      {autoApplyEnabled ? 'Agent Active' : 'Agent Paused (Click to Enable)'}
                     </button>
                   </div>
                 </div>
@@ -681,7 +681,7 @@ export default function SeekerDashboard() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: 'bold', fontSize: '1rem', color: autonomousMode === 'FULL' ? '#00ff88' : 'white' }}>
-                        <span style={{ fontSize: '1.2rem' }}>{autonomousMode === 'FULL' ? 'âš¡' : 'âšª'}</span>
+                        <span style={{ fontSize: '1.2rem' }}>{autonomousMode === 'FULL' ? '' : ''}</span>
                         <span>Full Autonomous Application</span>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: autonomousMode === 'FULL' ? '#00ff88' : 'var(--text-secondary)', margin: '4px 0 0 2rem', fontWeight: 600 }}>
@@ -704,7 +704,7 @@ export default function SeekerDashboard() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: 'bold', fontSize: '1rem', color: autonomousMode === 'PARTIAL' ? '#00f0ff' : 'white' }}>
-                        <span style={{ fontSize: '1.2rem' }}>{autonomousMode === 'PARTIAL' ? 'ðŸ›¡ï¸' : 'âšª'}</span>
+                        <span style={{ fontSize: '1.2rem' }}>{autonomousMode === 'PARTIAL' ? '' : ''}</span>
                         <span>Partial Autonomous Application</span>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: autonomousMode === 'PARTIAL' ? '#00f0ff' : 'var(--text-secondary)', margin: '4px 0 0 2rem', fontWeight: 600 }}>
@@ -731,7 +731,7 @@ export default function SeekerDashboard() {
                     className="btn-primary" 
                     style={{ padding: '12px 28px', background: 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)', color: '#000', fontWeight: 'bold' }}
                   >
-                    {runningAutonomous ? 'ðŸ¤– Scanning & Applying...' : 'ðŸš€ Run Auto-Apply Now'}
+                    {runningAutonomous ? 'Scanning & Applying...' : 'Run Auto-Apply Now'}
                   </button>
                   <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                     Total jobs applied by AI: <strong style={{ color: '#00f0ff' }}>{autoAppliedCount}</strong>
@@ -917,7 +917,7 @@ export default function SeekerDashboard() {
         }}>
           <div className="glass-panel" style={{ padding: '2rem', maxWidth: '520px', width: '100%', borderRadius: '16px' }}>
             <h2 style={{ color: '#00f0ff', marginTop: 0, marginBottom: '0.5rem' }}>
-              ðŸ’¬ Reply to {replyEmployer.companyName}
+              Reply to {replyEmployer.companyName}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.2rem' }}>
               Regarding invitation for: <strong style={{ color: 'var(--text-primary)' }}>{replyEmployer.jobTitle}</strong>

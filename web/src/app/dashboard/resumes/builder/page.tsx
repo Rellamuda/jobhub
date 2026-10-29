@@ -246,7 +246,7 @@ function ResumeBuilder() {
 
     const eduHtml = resume.education.map(ed => `
       <div style="margin-bottom:8px;font-size:13px;">
-        <strong>${ed.course || ed.degree || ''}</strong> â€” ${ed.school || ed.institution || ''} (${ed.dates || ed.yearGraduated || ''})
+        <strong>${ed.course || ed.degree || ''}</strong> — ${ed.school || ed.institution || ''} (${ed.dates || ed.yearGraduated || ''})
       </div>
     `).join('');
 
@@ -281,7 +281,7 @@ function ResumeBuilder() {
         ${resume.education.length > 0 ? `<div class="section-header">Education & Credentials</div>${eduHtml}` : ''}
 
         <div style="margin-top:30px;text-align:center;font-size:9pt;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px;">
-          Generated via JobHub Global Ecosystem â€¢ JobHub Digital Credentials
+          Generated via JobHub Global Ecosystem • JobHub Digital Credentials
         </div>
       </body>
       </html>
@@ -439,19 +439,19 @@ function ResumeBuilder() {
                 onClick={() => setActiveTab('editor')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'editor' ? 'bg-cyan-500 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
               >
-                âœï¸ Form Editor
+                Form Editor
               </button>
               <button
                 onClick={() => setActiveTab('preview')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'preview' ? 'bg-cyan-500 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
               >
-                ðŸ“„ Executive Preview
+                Executive Preview
               </button>
               <button
                 onClick={() => setActiveTab('coverletter')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'coverletter' ? 'bg-indigo-500 text-white font-bold' : 'text-gray-400 hover:text-white'}`}
               >
-                ðŸ’Œ AI Cover Letter
+                AI Cover Letter
               </button>
             </div>
           </div>
@@ -463,7 +463,7 @@ function ResumeBuilder() {
               className="gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:opacity-90 text-white font-bold shadow-md shadow-orange-500/20"
             >
               <Sparkles className="w-4 h-4" />
-              {isGeneratingAI ? 'Generating AI Resume...' : 'âœ¨ Generate AI Resume'}
+              {isGeneratingAI ? 'Generating AI Resume...' : ' Generate AI Resume'}
             </Button>
             <Button 
               onClick={handlePrint}
@@ -490,7 +490,7 @@ function ResumeBuilder() {
               className="gap-1.5 text-xs text-purple-300 border-purple-500/40 hover:bg-purple-500/10"
               title="Share Resume"
             >
-              ðŸ“¤ Share Resume
+               Share Resume
             </Button>
             <Button 
               onClick={handleSave} 
@@ -544,7 +544,7 @@ function ResumeBuilder() {
                   disabled={isGeneratingAI}
                   className="bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs shrink-0 px-4 py-2"
                 >
-                  {isGeneratingAI ? 'Building...' : 'âœ¨ Generate AI Resume'}
+                  {isGeneratingAI ? 'Building...' : ' Generate AI Resume'}
                 </Button>
               </div>
 
@@ -789,7 +789,7 @@ function ResumeBuilder() {
                   size="sm"
                   className="gap-1.5 text-xs bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> âœ¨ Generate AI Cover Letter
+                  <Sparkles className="w-3.5 h-3.5" />  Generate AI Cover Letter
                 </Button>
                 <Button 
                   onClick={handleCopyCoverLetter} 
@@ -805,7 +805,7 @@ function ResumeBuilder() {
                   size="sm"
                   className="gap-1.5 text-xs text-purple-300 border-purple-500/40 hover:bg-purple-500/10"
                 >
-                  ðŸ“¤ Share Cover Letter
+                   Share Cover Letter
                 </Button>
                 <Button 
                   onClick={handleDownloadCoverLetterDoc} 
@@ -848,9 +848,9 @@ function ResumeBuilder() {
               {resume.title}
             </p>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-600 mt-2 font-medium">
-              {resume.personalInfo?.email && <span>ðŸ“§ {resume.personalInfo.email}</span>}
-              {resume.personalInfo?.phone && <span>ðŸ“± {resume.personalInfo.phone}</span>}
-              {resume.personalInfo?.city && <span>ðŸ“ {resume.personalInfo.city}</span>}
+              {resume.personalInfo?.email && <span> {resume.personalInfo.email}</span>}
+              {resume.personalInfo?.phone && <span> {resume.personalInfo.phone}</span>}
+              {resume.personalInfo?.city && <span> {resume.personalInfo.city}</span>}
             </div>
           </div>
 
@@ -918,7 +918,7 @@ function ResumeBuilder() {
                   <div key={i} className="flex justify-between items-baseline text-xs">
                     <div>
                       <span className="font-bold text-gray-900">{edu.course || edu.degree}</span>
-                      <span className="text-gray-600"> â€” {edu.school || edu.institution}</span>
+                      <span className="text-gray-600"> — {edu.school || edu.institution}</span>
                     </div>
                     <span className="text-gray-500 italic font-mono">{edu.dates || edu.yearGraduated}</span>
                   </div>
@@ -928,7 +928,7 @@ function ResumeBuilder() {
           )}
 
           <div className="pt-4 text-center border-t border-gray-100 text-[10px] text-gray-400 font-mono">
-            Verified via JobHub Global Ecosystem â€¢ JobHub Digital Credentials
+            Verified via JobHub Global Ecosystem • JobHub Digital Credentials
           </div>
         </div>
       </div>

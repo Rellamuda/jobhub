@@ -43,7 +43,7 @@ class _ResumesListScreenState extends State<ResumesListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFF10B981),
-            content: Text('ðŸ“„ PDF Exported and saved successfully!'),
+            content: Text(' PDF Exported and saved successfully!'),
           ),
         );
       }

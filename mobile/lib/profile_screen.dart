@@ -144,7 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profile?['profilePicture'] = data['url'];
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully! ðŸŽ‰')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully! ')));
         }
       } else {
         if (mounted) {
@@ -385,7 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           }
                         },
                         icon: const Icon(Icons.bolt, color: Colors.black),
-                        label: const Text('âœ¨ Generate & Save AI Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                        label: const Text(' Generate & Save AI Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF), padding: const EdgeInsets.symmetric(vertical: 14)),
                       ),
 
@@ -397,16 +397,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('âœ… AI Profile Saved to Dashboard!', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
+                            const Text('Active AI Profile Saved to Dashboard!', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13)),
                             const SizedBox(height: 8),
                             Text(generatedDesc!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             if (generatedMission != null) ...[
                               const SizedBox(height: 6),
-                              Text('ðŸŽ¯ Mission: $generatedMission', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                              Text(' Mission: $generatedMission', style: const TextStyle(color: Colors.white60, fontSize: 11)),
                             ],
                             if (generatedCulture != null) ...[
                               const SizedBox(height: 4),
-                              Text('ðŸŒŸ Culture: $generatedCulture', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                              Text('Ÿ Culture: $generatedCulture', style: const TextStyle(color: Colors.white60, fontSize: 11)),
                             ],
                             const SizedBox(height: 10),
                             SizedBox(
@@ -481,7 +481,7 @@ Generated via JobHub Global Talent Platform''';
               children: [
                 const Expanded(
                   child: Text(
-                    'ðŸ¢ AI Company / Agency Profile',
+                    ' AI Company / Agency Profile',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -517,7 +517,7 @@ Generated via JobHub Global Talent Platform''';
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('âœ… AI Company Profile saved to clipboard!'),
+                          content: Text('Active AI Company Profile saved to clipboard!'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -648,13 +648,13 @@ Generated via JobHub Global Talent Platform''';
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('ðŸŽ‰ ${data['message'] ?? 'Company Verified!'}')),
+            SnackBar(content: Text('${data['message'] ?? 'Company Verified!'}')),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('âš ï¸ ${data['message'] ?? 'Verification failed'}')),
+            SnackBar(content: Text(' ${data['message'] ?? 'Verification failed'}')),
           );
         }
       }
@@ -719,7 +719,7 @@ Generated via JobHub Global Talent Platform''';
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E142B),
-        title: const Text('âš ï¸ Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        title: const Text(' Delete Account & Data', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
         content: const Text(
           'Are you sure you want to permanently delete your JobHub account?\n\nThis will permanently erase all your profile data, uploaded resumes, applications, messages, and saved jobs. This action CANNOT be undone.',
           style: TextStyle(color: Colors.white70),
@@ -855,7 +855,14 @@ Generated via JobHub Global Talent Platform''';
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(color: const Color(0xFF00F0FF).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text('â˜…â˜…â˜…â˜…â˜† Profile Strength ($_completion%)', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.star_rounded, color: Color(0xFF00F0FF), size: 18),
+                const SizedBox(width: 6),
+                Text('Profile Strength ($_completion%)', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
         ),
         
@@ -983,7 +990,7 @@ Generated via JobHub Global Talent Platform''';
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('â€¢ ', style: TextStyle(color: Colors.white54)),
+                          const Text('• ', style: TextStyle(color: Colors.white54)),
                           Expanded(child: Text(s.toString(), style: const TextStyle(color: Colors.white54, fontSize: 12))),
                         ],
                       ),
@@ -1029,11 +1036,11 @@ Generated via JobHub Global Talent Platform''';
                 const SizedBox(height: 4),
                 Text(app['job']?['employer']?['companyName'] ?? 'Company', style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 8),
-                Text('ðŸ“… ${app['interviewDate'] != null ? DateTime.parse(app['interviewDate']).toLocal() : 'TBD'}', style: const TextStyle(color: Color(0xFF00F0FF))),
+                Text('${app['interviewDate'] != null ? DateTime.parse(app['interviewDate']).toLocal() : 'TBD'}', style: const TextStyle(color: Color(0xFF00F0FF))),
                 if (app['interviewLink'] != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
-                    child: Text('ðŸ”— ${app['interviewLink']}', style: const TextStyle(color: Color(0xFF00F0FF))),
+                    child: Text('${app['interviewLink']}', style: const TextStyle(color: Color(0xFF00F0FF))),
                   ),
               ],
             ),
@@ -1054,7 +1061,7 @@ Generated via JobHub Global Talent Platform''';
         _buildInfoRow('Salary', _profile?['expectedSalary'] ?? 'Negotiable'),
 
         const SizedBox(height: 28),
-        _buildSectionTitle('âš¡ Autonomous Application Mode'),
+        _buildSectionTitle(' Autonomous Application Mode'),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1312,7 +1319,7 @@ Generated via JobHub Global Talent Platform''';
         ElevatedButton.icon(
           onPressed: _showAiCompanyProfileDialog,
           icon: const Icon(Icons.auto_awesome, color: Colors.black),
-          label: const Text('âœ¨ Build AI Company/Agency Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          label: const Text(' Build AI Company/Agency Profile', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF00F0FF),
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1324,7 +1331,7 @@ Generated via JobHub Global Talent Platform''';
         OutlinedButton.icon(
           onPressed: _downloadOrShareCompanyProfile,
           icon: const Icon(Icons.download, color: Color(0xFF00F0FF)),
-          label: const Text('ðŸ“¥ Download / Share AI Company Profile', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
+          label: const Text(' Download / Share AI Company Profile', style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold)),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Color(0xFF00F0FF)),
             padding: const EdgeInsets.symmetric(vertical: 13),

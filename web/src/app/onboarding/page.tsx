@@ -92,16 +92,16 @@ const foundedYearsList = Array.from({ length: 70 }, (_, i) => (new Date().getFul
 
 const currencyOptions = [
   { label: "$ USD - US Dollar", code: "$" },
-  { label: "â‚¦ NGN - Nigerian Naira", code: "â‚¦" },
-  { label: "Â£ GBP - British Pound", code: "Â£" },
-  { label: "â‚¬ EUR - Euro", code: "â‚¬" },
+  { label: "₦ NGN - Nigerian Naira", code: "₦" },
+  { label: "£ GBP - British Pound", code: "£" },
+  { label: "€ EUR - Euro", code: "€" },
   { label: "C$ CAD - Canadian Dollar", code: "C$" },
   { label: "R ZAR - South African Rand", code: "R" },
   { label: "KSh KES - Kenyan Shilling", code: "KSh" },
-  { label: "GHâ‚µ GHS - Ghanaian Cedi", code: "GHâ‚µ" },
+  { label: "GH₵ GHS - Ghanaian Cedi", code: "GH₵" },
   { label: "A$ AUD - Australian Dollar", code: "A$" },
   { label: "AED - UAE Dirham", code: "AED" },
-  { label: "â‚¹ INR - Indian Rupee", code: "â‚¹" },
+  { label: "₹ INR - Indian Rupee", code: "₹" },
   { label: "CHF - Swiss Franc", code: "CHF" },
 ];
 
@@ -109,22 +109,22 @@ const getCurrencySymbol = (country: string) => {
   const currencyMapping: { [key: string]: string } = {
     "United States": "$",
     "Canada": "C$",
-    "United Kingdom": "Â£",
-    "Nigeria": "â‚¦",
-    "India": "â‚¹",
-    "Ghana": "GHâ‚µ",
+    "United Kingdom": "£",
+    "Nigeria": "₦",
+    "India": "₹",
+    "Ghana": "GH₵",
     "Kenya": "KSh",
     "South Africa": "R",
     "Australia": "A$",
-    "Germany": "â‚¬",
-    "France": "â‚¬",
-    "Italy": "â‚¬",
-    "Spain": "â‚¬",
-    "Netherlands": "â‚¬",
-    "Belgium": "â‚¬",
+    "Germany": "€",
+    "France": "€",
+    "Italy": "€",
+    "Spain": "€",
+    "Netherlands": "€",
+    "Belgium": "€",
     "Switzerland": "CHF",
-    "China": "Â¥",
-    "Japan": "Â¥",
+    "China": "¥",
+    "Japan": "¥",
     "Brazil": "R$",
     "Egypt": "EGP",
     "Saudi Arabia": "SR",
@@ -478,7 +478,7 @@ export default function OnboardingPage() {
               const rawSalary = prof.expectedSalary || '';
               setExpectedSalary(rawSalary);
               if (rawSalary) {
-                // e.g. "$ 75000 / monthly" or "â‚¦ 200,000 / month"
+                // e.g. "$ 75000 / monthly" or "₦ 200,000 / month"
                 const parts = rawSalary.split(' ');
                 if (parts.length >= 2) {
                   const currMatch = currencyOptions.find(c => c.code === parts[0]);
@@ -838,7 +838,7 @@ export default function OnboardingPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '0.88rem', color: seekerCategory === 'BOTH' ? '#00F0FF' : 'white' }}>
-                  âœ¨ Both (Hybrid)
+                  Both (Hybrid)
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
                   Graduate / Professional + Skilled Trade(s)
@@ -897,7 +897,7 @@ export default function OnboardingPage() {
             {/* Multi-Skill & Additional Professions Builder */}
             <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(0,240,255,0.25)', marginBottom: '1.2rem' }}>
               <label style={{ color: '#00F0FF', display: 'block', marginBottom: '0.35rem', fontSize: '0.92rem', fontWeight: 600 }}>
-                ðŸ› ï¸ Multiple Skills, Trades & Additional Professions
+                 Multiple Skills, Trades & Additional Professions
               </label>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
                 Add all your skills and vocations! For example: <strong>Plumber</strong>, <strong>Home Decorator</strong>, <strong>Business Administration</strong>, <strong>Electrician</strong>, etc.
@@ -980,7 +980,7 @@ export default function OnboardingPage() {
                           color: isSelected ? '#00F0FF' : 'rgba(255,255,255,0.8)',
                         }}
                       >
-                        {isSelected ? `âœ“ ${preset}` : `+ ${preset}`}
+                        {isSelected ? `✓ ${preset}` : `+ ${preset}`}
                       </button>
                     );
                   })}
@@ -1015,7 +1015,7 @@ export default function OnboardingPage() {
                           onClick={() => setSkills(skills.filter((_, idx) => idx !== i))}
                           style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '0.9rem' }}
                         >
-                          Ã—
+                          ×
                         </button>
                       </span>
                     ))}
@@ -1144,7 +1144,7 @@ export default function OnboardingPage() {
             {/* Preferred Work Mode (Remote, Onsite, Hybrid) & Relocation */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(0,240,255,0.2)' }}>
               <label style={{ color: '#00F0FF', fontWeight: 600, fontSize: '0.92rem' }}>
-                ðŸŒ Preferred Work Mode (Remote, Onsite, or Hybrid)
+                 Preferred Work Mode (Remote, Onsite, or Hybrid)
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
                 {(['Remote', 'Onsite', 'Hybrid'] as const).map((mode) => (
@@ -1165,7 +1165,7 @@ export default function OnboardingPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    {mode === 'Remote' ? 'ðŸŒ Remote' : mode === 'Onsite' ? 'ðŸ¢ Onsite' : 'ðŸ”„ Hybrid'}
+                    {mode === 'Remote' ? ' Remote' : mode === 'Onsite' ? ' Onsite' : 'Hybrid'}
                   </button>
                 ))}
               </div>
@@ -1177,7 +1177,7 @@ export default function OnboardingPage() {
                   onChange={e => setWillingToRelocate(e.target.checked)} 
                   style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
                 />
-                <span>âœˆï¸ Willing to Relocate for the right role</span>
+                <span> Willing to Relocate for the right role</span>
               </label>
             </div>
           </div>
@@ -1427,7 +1427,7 @@ export default function OnboardingPage() {
                     textAlign: 'left'
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', color: businessType === 'DIRECT_EMPLOYER' ? '#00f0ff' : 'white' }}>ðŸ¢ Direct Company</div>
+                  <div style={{ fontWeight: 'bold', color: businessType === 'DIRECT_EMPLOYER' ? '#00f0ff' : 'white' }}> Direct Company</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Hiring directly for internal workforce</div>
                 </button>
                 <button
@@ -1443,7 +1443,7 @@ export default function OnboardingPage() {
                     textAlign: 'left'
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', color: businessType === 'RECRUITING_AGENCY' ? '#00f0ff' : 'white' }}>ðŸ¤ Recruiting Agency</div>
+                  <div style={{ fontWeight: 'bold', color: businessType === 'RECRUITING_AGENCY' ? '#00f0ff' : 'white' }}> Recruiting Agency</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Recruiting talent on behalf of client companies</div>
                 </button>
               </div>
@@ -1675,7 +1675,7 @@ export default function OnboardingPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  {generatingAiCompany ? 'â³ Generating...' : 'âœ¨ AI Build Profile'}
+                  {generatingAiCompany ? ' Generating...' : 'AI Build Profile'}
                 </button>
                 {description.trim() && (
                   <button
@@ -1722,7 +1722,7 @@ export default function OnboardingPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    ðŸ“¥ Download AI Profile
+                    Download AI Profile
                   </button>
                 )}
               </div>
@@ -1746,7 +1746,7 @@ export default function OnboardingPage() {
                   onChange={e => setEmployerRemoteFriendly(e.target.checked)} 
                   style={{ width: '18px', height: '18px', accentColor: '#00F0FF' }}
                 />
-                <span style={{ fontWeight: 600 }}>ðŸŒ Remote Friendly: Our organization is hiring remote / distributed workers</span>
+                <span style={{ fontWeight: 600 }}> Remote Friendly: Our organization is hiring remote / distributed workers</span>
               </label>
             </div>
           </div>
@@ -1906,7 +1906,7 @@ export default function OnboardingPage() {
         
         {validationError && (
           <div style={{ padding: '0.8rem 1rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '10px', color: '#fca5a5', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center' }}>
-            âš ï¸ {validationError}
+             {validationError}
           </div>
         )}
 

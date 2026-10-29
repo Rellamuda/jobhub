@@ -273,7 +273,136 @@ export class AiService {
       const response = await lastValueFrom(this.httpService.post(`${this.fastApiUrl}/job-description/generate`, jobData));
       return response.data;
     } catch (error) {
-      throw new HttpException('Failed to generate job description', HttpStatus.INTERNAL_SERVER_ERROR);
+      // Coherent, role-aware fallback if Python AI service is busy or offline
+      const title = (jobData?.title || jobData?.prompt || 'Open Position').trim();
+      const t = title.toLowerCase();
+
+      let overview = `We are seeking a proactive and skilled ${title} to join our team. In this position, you will be responsible for executing essential operational duties, maintaining high standards of quality, and contributing to overall team success.`;
+      let responsibilities = [
+        `Coordinate and execute day-to-day duties associated with the role of ${title}.`,
+        'Collaborate productively with team members and cross-functional colleagues.',
+        'Maintain high standards of accuracy, organization, and timely completion of assignments.',
+        'Identify workflow improvements and proactively resolve operational challenges.',
+        'Ensure adherence to organizational guidelines, industry standards, and workplace safety protocols.'
+      ];
+      let skills = [
+        'Strong work ethic, reliability, and personal accountability',
+        'Effective verbal and written communication skills',
+        'Organized approach to task prioritization and problem solving',
+        'Ability to work collaboratively in a fast-paced environment'
+      ];
+      let qualifications = [
+        `Relevant experience or educational background suitable for a ${title}`,
+        'Strong commitment to professional growth and team excellence'
+      ];
+
+      if (['clean', 'housekeep', 'janitor', 'maid', 'sanitat', 'custodian', 'laundry', 'sweeper'].some(k => t.includes(k))) {
+        overview = `We are seeking a dedicated and thorough ${title} to ensure high standards of cleanliness, hygiene, and organization across our facilities. In this role, you will maintain a clean, comfortable, and safe environment for staff, clients, and visitors.`;
+        responsibilities = [
+          'Perform comprehensive cleaning, sweeping, vacuuming, and mopping of all designated areas and floors.',
+          'Sanitize restrooms, washrooms, breakrooms, and high-touch surface points with approved disinfectants.',
+          'Empty trash receptacles, dispose of waste responsibly, and replace bin liners regularly.',
+          'Monitor and replenish cleaning supplies, paper products, and hygiene dispensers.',
+          'Operate cleaning equipment safely and maintain all tools in good working order.',
+          'Promptly report any safety hazards, needed repairs, or facility maintenance issues.'
+        ];
+        skills = [
+          'Strong attention to detail and high standards of cleanliness',
+          'Knowledge of sanitization and hygiene safety practices',
+          'Physical stamina and ability to lift or operate cleaning tools',
+          'Dependable time management and ability to work independently'
+        ];
+        qualifications = [
+          'Prior experience in residential, commercial, or industrial cleaning is an advantage',
+          'Commitment to punctuality, reliability, and workplace safety'
+        ];
+      } else if (['driver', 'chauffeur', 'delivery', 'courier', 'dispatch', 'truck', 'forklift', 'rider', 'van'].some(k => t.includes(k))) {
+        overview = `We are looking for a reliable and safety-focused ${title} to handle transportation and delivery operations. You will ensure passengers, packages, or goods arrive at their destinations safely, securely, and on schedule.`;
+        responsibilities = [
+          'Operate assigned company vehicles safely and in strict compliance with all traffic laws and transport regulations.',
+          'Plan optimal travel and delivery routes utilizing GPS navigation to avoid heavy traffic and delays.',
+          'Conduct routine pre-trip and post-trip vehicle safety inspections (fluids, tire pressure, brakes).',
+          'Safely load, secure, transport, and unload cargo, parcels, or passenger luggage.',
+          'Maintain accurate trip logs, delivery receipts, and vehicle mileage records.',
+          'Deliver polite, professional, and respectful customer service at all times.'
+        ];
+        skills = [
+          'Defensive driving expertise and clean driving record',
+          'GPS navigation and route planning proficiency',
+          'Dependable time management and punctuality',
+          'Physical capability to load and unload goods'
+        ];
+        qualifications = [
+          "Valid appropriate driver's license with clean driving history",
+          'Previous professional driving, courier, or delivery experience'
+        ];
+      } else if (['cook', 'chef', 'baker', 'barista', 'waiter', 'waitress', 'bartender', 'catering', 'kitchen', 'server', 'restaurant'].some(k => t.includes(k))) {
+        overview = `We are seeking an enthusiastic and skilled ${title} to prepare high-quality culinary items and deliver exceptional dining service. You will uphold stringent food safety, quality, and kitchen hygiene standards.`;
+        responsibilities = [
+          'Prepare, season, and cook menu items according to established recipes, portion standards, and presentations.',
+          'Maintain immaculate cleanliness, sanitization, and organization across all kitchen and prep stations.',
+          'Inspect raw ingredients for freshness and guarantee safe temperature storage for all perishables.',
+          'Coordinate smoothly with front-of-house staff to ensure prompt, accurate order delivery.',
+          'Operate commercial kitchen equipment responsibly and adhere strictly to food safety regulations.'
+        ];
+        skills = [
+          'Culinary craftsmanship or beverage preparation skills',
+          'Knowledge of food safety, hygiene, and safe temperature handling',
+          'Ability to thrive in a high-tempo, team-oriented kitchen',
+          'Strong communication and attention to recipe precision'
+        ];
+        qualifications = [
+          'Food handler certification or culinary training',
+          'Proven cooking or hospitality experience in a restaurant or kitchen'
+        ];
+      } else if (['security', 'guard', 'officer', 'surveillance', 'bouncer', 'patrol'].some(k => t.includes(k))) {
+        overview = `We are hiring an alert and responsible ${title} to protect our premises, personnel, and assets. You will maintain a secure environment and respond swiftly to any disruptions or emergency situations.`;
+        responsibilities = [
+          'Patrol facility grounds, monitor access points, and verify credentials of entering visitors.',
+          'Operate surveillance cameras, alarm panels, and security monitoring equipment.',
+          'Detect and de-escalate suspicious activities, security breaches, or unauthorized entry.',
+          'Respond calmly and effectively to emergency alarms, safety hazards, or medical incidents.',
+          'Maintain comprehensive daily activity logs and compile precise incident reports.'
+        ];
+        skills = [
+          'Situational awareness and alert observation abilities',
+          'Professional conflict resolution and verbal de-escalation skills',
+          'Sound judgment and composure under high-pressure scenarios',
+          'Physical fitness and stamina for standing or patrolling'
+        ];
+        qualifications = [
+          'Security license or certification preferred',
+          'Prior security, surveillance, or law enforcement experience'
+        ];
+      } else if (['sales', 'cashier', 'retail', 'store', 'teller'].some(k => t.includes(k))) {
+        overview = `We are looking for an energetic and customer-focused ${title} to drive sales performance and create positive shopper experiences. You will assist customers, answer product queries, and process transactions.`;
+        responsibilities = [
+          'Greet customers warmly, understand their needs, and provide helpful product recommendations.',
+          'Process customer purchases, returns, and digital transactions accurately through the POS system.',
+          'Keep shelves stocked, organize merchandise displays, and assist with stock inventory audits.',
+          'Handle customer inquiries, feedback, and special requests with courteous professionalism.',
+          'Work collaboratively with the team to achieve daily, weekly, and monthly sales targets.'
+        ];
+        skills = [
+          'Active listening and persuasive customer engagement',
+          'Accurate cash handling and POS system operation',
+          'Product knowledge and upbeat, positive attitude'
+        ];
+        qualifications = [
+          'Previous experience in retail, sales, or customer service preferred',
+          'Strong communication skills and dependable work ethic'
+        ];
+      }
+
+      const combined = `${overview}\n\nKey Responsibilities:\n${responsibilities.map(r => `- ${r}`).join('\n')}\n\nRequirements & Qualifications:\n${[...skills, ...qualifications].map(s => `- ${s}`).join('\n')}`;
+
+      return {
+        title,
+        description: combined,
+        responsibilities,
+        requiredSkills: skills,
+        qualifications
+      };
     }
   }
 

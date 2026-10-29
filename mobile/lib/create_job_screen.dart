@@ -18,12 +18,20 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _salaryController = TextEditingController();
+  String _selectedCurrency = '\$';
+  String _salaryFrequency = 'Monthly'; // 'Hourly', 'Daily', 'Monthly', 'Yearly'
+  String? _employerCountry;
   bool _isRemote = false;
   String _workMode = 'ONSITE'; // 'REMOTE' | 'ONSITE' | 'HYBRID'
   bool _requiresCoverLetter = false;
   bool _isLoading = false;
   bool _isGeneratingAi = false;
   String? _errorMessage;
+
+  final List<String> _currencies = [
+    '₦', '\$', '£', '€', 'C\$', 'GH₵', 'KSh', 'R', 'A\$', 'AED', 'SR', '₹', 'CHF', '¥'
+  ];
+  final List<String> _frequencies = ['Hourly', 'Daily', 'Monthly', 'Yearly'];
 
   // Bulk vacancies state
   final _bulkTextController = TextEditingController();
@@ -34,6 +42,75 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadEmployerProfile();
+  }
+
+  String _getCurrencySymbol(String country) {
+    const currencyMapping = {
+      "Nigeria": "₦",
+      "United States": "\$",
+      "United Kingdom": "£",
+      "Canada": "C\$",
+      "Ghana": "GH₵",
+      "Kenya": "KSh",
+      "South Africa": "R",
+      "Australia": "A\$",
+      "Germany": "€",
+      "France": "€",
+      "Italy": "€",
+      "Spain": "€",
+      "Netherlands": "€",
+      "Belgium": "€",
+      "Ireland": "€",
+      "Switzerland": "CHF",
+      "India": "₹",
+      "United Arab Emirates": "AED",
+      "Saudi Arabia": "SR",
+      "China": "¥",
+      "Japan": "¥",
+      "Brazil": "R\$",
+      "Egypt": "EGP",
+    };
+    return currencyMapping[country] ?? "\$";
+  }
+
+  Future<void> _loadEmployerProfile() async {
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/profiles/employer'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final country = data['locationCountry'];
+        if (country != null && country.toString().trim().isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _employerCountry = country.toString().trim();
+              _selectedCurrency = _getCurrencySymbol(_employerCountry!);
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  String _getFormattedSalary() {
+    final amount = _salaryController.text.trim();
+    if (amount.isEmpty) return 'Competitive';
+    final freq = _salaryFrequency.toLowerCase() == 'yearly'
+        ? 'year'
+        : _salaryFrequency.toLowerCase() == 'monthly'
+            ? 'month'
+            : _salaryFrequency.toLowerCase() == 'daily'
+                ? 'day'
+                : 'hour';
+    return '$_selectedCurrency $amount / $freq';
   }
 
   @override
@@ -70,9 +147,10 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'title': _titleController.text,
-          'location': _locationController.text,
-          'salary': _salaryController.text,
+          'title': _titleController.text.trim(),
+          'location': _locationController.text.trim(),
+          'salary': _getFormattedSalary(),
+          'country': _employerCountry ?? '',
           'isRemote': _workMode == 'REMOTE',
         }),
       );
@@ -122,6 +200,8 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
         return;
       }
 
+      final finalSalary = _getFormattedSalary();
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/jobs'),
         headers: {
@@ -134,7 +214,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
           'location': _locationController.text.trim().isEmpty
               ? (_workMode == 'REMOTE' ? 'Remote' : 'Onsite')
               : _locationController.text.trim(),
-          'salary': _salaryController.text.trim(),
+          'salary': finalSalary,
           'isRemote': _workMode == 'REMOTE',
           'workMode': _workMode,
           'requiresCoverLetter': _requiresCoverLetter,
@@ -399,36 +479,172 @@ HR Talent Specialist,London UK,\$75k - \$90k,No,Manage end-to-end recruitment li
           ),
           const SizedBox(height: 16),
           
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _locationController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Location',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
+          TextField(
+            controller: _locationController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Location',
+              hintText: 'e.g. Lagos, Nigeria or San Francisco, CA',
+              prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF00F0FF), size: 20),
+              labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+              hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.05),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Salary Range & Compensation with Country Currency & Payment Frequency
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.payments_outlined, color: Color(0xFF00F0FF), size: 18),
+                        SizedBox(width: 6),
+                        Text(
+                          'Salary Range & Compensation *',
+                          style: TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    if (_employerCountry != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00F0FF).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          '$_employerCountry ($_selectedCurrency)',
+                          style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextField(
-                  controller: _salaryController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Salary Range',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
+                const SizedBox(height: 12),
+                
+                // Currency dropdown + Salary amount / range
+                Row(
+                  children: [
+                    Container(
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _currencies.contains(_selectedCurrency) ? _selectedCurrency : '\$',
+                          dropdownColor: const Color(0xFF1B132B),
+                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00F0FF)),
+                          style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 16),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedCurrency = val);
+                          },
+                          items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _salaryController,
+                        style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          labelText: 'Amount or Range',
+                          hintText: 'e.g. 50,000 - 80,000 or 25',
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                          labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                
+                Text(
+                  'Payment Frequency',
+                  style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: _frequencies.map((freq) {
+                    final isSelected = _salaryFrequency == freq;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: InkWell(
+                          onTap: () => setState(() => _salaryFrequency = freq),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFF00F0FF).withOpacity(0.18) : Colors.white.withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF00F0FF) : Colors.white.withOpacity(0.12),
+                                width: isSelected ? 1.5 : 1.0,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              freq,
+                              style: TextStyle(
+                                color: isSelected ? const Color(0xFF00F0FF) : Colors.white70,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                
+                if (_salaryController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00F0FF).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle_outline, color: Color(0xFF00F0FF), size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Displayed: ${_getFormattedSalary()}',
+                          style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           const Text(

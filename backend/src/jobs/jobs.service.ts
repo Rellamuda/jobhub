@@ -36,9 +36,20 @@ export class JobsService {
     const isRemote = normalizedWorkMode === 'REMOTE' || Boolean(rawData.isRemote);
     const requiresCoverLetter = Boolean(rawData.requiresCoverLetter);
 
+    // Omit any client-only fields before Prisma insertion
+    const {
+      currency,
+      salaryPeriod,
+      salaryFrequency,
+      salaryAmount,
+      salaryMin,
+      salaryMax,
+      ...cleanJobData
+    } = rawData;
+
     const newJob = await this.prisma.job.create({
       data: {
-        ...rawData,
+        ...cleanJobData,
         workMode: normalizedWorkMode,
         isRemote,
         requiresCoverLetter,
@@ -89,9 +100,19 @@ export class JobsService {
       const isRemote = normalizedWorkMode === 'REMOTE' || Boolean(rawData.isRemote);
       const requiresCoverLetter = Boolean(rawData.requiresCoverLetter);
 
+      const {
+        currency,
+        salaryPeriod,
+        salaryFrequency,
+        salaryAmount,
+        salaryMin,
+        salaryMax,
+        ...cleanJobData
+      } = rawData;
+
       const newJob = await this.prisma.job.create({
         data: {
-          ...rawData,
+          ...cleanJobData,
           workMode: normalizedWorkMode,
           isRemote,
           requiresCoverLetter,

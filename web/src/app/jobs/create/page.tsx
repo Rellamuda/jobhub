@@ -1,7 +1,57 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, Plus, Trash2, DollarSign, Clock, Calendar } from 'lucide-react';
+
+const COUNTRY_CURRENCY_MAP: Record<string, { symbol: string; code: string }> = {
+  "Nigeria": { symbol: "₦", code: "NGN" },
+  "United States": { symbol: "$", code: "USD" },
+  "United Kingdom": { symbol: "£", code: "GBP" },
+  "Canada": { symbol: "C$", code: "CAD" },
+  "Ghana": { symbol: "GH₵", code: "GHS" },
+  "Kenya": { symbol: "KSh", code: "KES" },
+  "South Africa": { symbol: "R", code: "ZAR" },
+  "Australia": { symbol: "A$", code: "AUD" },
+  "Germany": { symbol: "€", code: "EUR" },
+  "France": { symbol: "€", code: "EUR" },
+  "Italy": { symbol: "€", code: "EUR" },
+  "Spain": { symbol: "€", code: "EUR" },
+  "Netherlands": { symbol: "€", code: "EUR" },
+  "Belgium": { symbol: "€", code: "EUR" },
+  "Ireland": { symbol: "€", code: "EUR" },
+  "Switzerland": { symbol: "CHF", code: "CHF" },
+  "India": { symbol: "₹", code: "INR" },
+  "United Arab Emirates": { symbol: "AED", code: "AED" },
+  "Saudi Arabia": { symbol: "SR", code: "SAR" },
+  "China": { symbol: "¥", code: "CNY" },
+  "Japan": { symbol: "¥", code: "JPY" },
+  "Brazil": { symbol: "R$", code: "BRL" },
+  "Egypt": { symbol: "EGP", code: "EGP" },
+};
+
+const POPULAR_CURRENCIES = [
+  { symbol: "₦", label: "₦ NGN - Nigerian Naira" },
+  { symbol: "$", label: "$ USD - US Dollar" },
+  { symbol: "£", label: "£ GBP - British Pound" },
+  { symbol: "€", label: "€ EUR - Euro" },
+  { symbol: "C$", label: "C$ CAD - Canadian Dollar" },
+  { symbol: "GH₵", label: "GH₵ GHS - Ghanaian Cedi" },
+  { symbol: "KSh", label: "KSh KES - Kenyan Shilling" },
+  { symbol: "R", label: "R ZAR - South African Rand" },
+  { symbol: "A$", label: "A$ AUD - Australian Dollar" },
+  { symbol: "₹", label: "₹ INR - Indian Rupee" },
+  { symbol: "AED", label: "AED - UAE Dirham" },
+  { symbol: "SR", label: "SR - Saudi Riyal" },
+  { symbol: "CHF", label: "CHF - Swiss Franc" },
+  { symbol: "¥", label: "¥ JPY/CNY - Yen / Yuan" },
+];
+
+const PAYMENT_FREQUENCIES = [
+  { id: 'hour', label: 'Per Hour', suffix: '/ hour' },
+  { id: 'day', label: 'Daily', suffix: '/ day' },
+  { id: 'month', label: 'Monthly', suffix: '/ month' },
+  { id: 'year', label: 'Yearly', suffix: '/ year' },
+] as const;
 
 interface ParsedJob {
   title: string;
@@ -19,7 +69,10 @@ export default function CreateJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [salary, setSalary] = useState('');
+  const [currencySymbol, setCurrencySymbol] = useState('$');
+  const [salaryAmount, setSalaryAmount] = useState('');
+  const [salaryFrequency, setSalaryFrequency] = useState<'hour' | 'day' | 'month' | 'year'>('month');
+  const [employerCountry, setEmployerCountry] = useState('');
   const [isRemote, setIsRemote] = useState(false);
   const [workMode, setWorkMode] = useState<'REMOTE' | 'ONSITE' | 'HYBRID'>('ONSITE');
   const [requiresCoverLetter, setRequiresCoverLetter] = useState(false);
@@ -32,6 +85,39 @@ export default function CreateJobPage() {
   const [bulkText, setBulkText] = useState('');
   const [parsedJobs, setParsedJobs] = useState<ParsedJob[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Load employer's registered country and currency
+  useEffect(() => {
+    const fetchEmployer = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch('/api/profiles/employer', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const emp = await res.json();
+          if (emp?.locationCountry) {
+            setEmployerCountry(emp.locationCountry);
+            const mapping = COUNTRY_CURRENCY_MAP[emp.locationCountry];
+            if (mapping) {
+              setCurrencySymbol(mapping.symbol);
+            }
+          }
+        }
+      } catch (e) {
+        // Fallback silently to default
+      }
+    };
+    fetchEmployer();
+  }, []);
+
+  const getFormattedSalary = () => {
+    const trimmed = salaryAmount.trim();
+    if (!trimmed) return '';
+    const freq = PAYMENT_FREQUENCIES.find(f => f.id === salaryFrequency)?.suffix || '/ month';
+    return `${currencySymbol} ${trimmed} ${freq}`;
+  };
 
   const handleGenerateAiDescription = async () => {
     if (!title) {
@@ -52,7 +138,8 @@ export default function CreateJobPage() {
           title,
           location,
           isRemote: workMode === 'REMOTE',
-          salary
+          salary: getFormattedSalary() || 'Competitive',
+          country: employerCountry,
         }),
       });
       if (res.ok) {
@@ -80,6 +167,8 @@ export default function CreateJobPage() {
         throw new Error('You must be logged in as an Employer to post a job.');
       }
 
+      const finalSalary = getFormattedSalary() || 'Competitive';
+
       const res = await fetch('/api/jobs', {
         method: 'POST',
         headers: {
@@ -90,7 +179,7 @@ export default function CreateJobPage() {
           title,
           description,
           location: location || (workMode === 'REMOTE' ? 'Remote' : 'Onsite'),
-          salary,
+          salary: finalSalary,
           isRemote: workMode === 'REMOTE',
           workMode,
           requiresCoverLetter,
@@ -343,27 +432,124 @@ Talent Acquisition Specialist,New York NY,$80k - $100k,No,Source and screen top 
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Location</label>
-                <input 
-                  type="text" 
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '1rem', outline: 'none' }}
-                  placeholder="e.g. San Francisco, CA"
-                />
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Location</label>
+              <input 
+                type="text" 
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '1rem', outline: 'none' }}
+                placeholder="e.g. Lagos, Nigeria or San Francisco, CA"
+              />
+            </div>
+
+            {/* Salary Range & Compensation with Country Currency & Payment Frequency */}
+            <div style={{ padding: '1.25rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <label style={{ color: '#00f0ff', fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <DollarSign className="w-4 h-4" /> Salary Range & Compensation *
+                </label>
+                {employerCountry && (
+                  <span style={{ fontSize: '0.8rem', padding: '3px 10px', borderRadius: '10px', background: 'rgba(0, 240, 255, 0.12)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.3)' }}>
+                    Registered in: <strong>{employerCountry}</strong> ({currencySymbol})
+                  </span>
+                )}
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Salary Range</label>
-                <input 
-                  type="text" 
-                  value={salary}
-                  onChange={(e) => setSalary(e.target.value)}
-                  style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'white', fontSize: '1rem', outline: 'none' }}
-                  placeholder="e.g. $120k - $150k"
-                />
+
+              {/* Currency + Amount row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 1.2fr) 2fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Currency</label>
+                  <select
+                    value={currencySymbol}
+                    onChange={(e) => setCurrencySymbol(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.85rem',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      backgroundColor: '#16122e',
+                      color: 'white',
+                      fontSize: '0.95rem',
+                      outline: 'none',
+                    }}
+                  >
+                    {POPULAR_CURRENCIES.map(c => (
+                      <option key={c.label} value={c.symbol} style={{ background: '#16122e', color: 'white' }}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Amount or Range</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', color: '#00f0ff', fontWeight: 'bold', fontSize: '1rem' }}>
+                      {currencySymbol}
+                    </span>
+                    <input 
+                      type="text" 
+                      value={salaryAmount}
+                      onChange={(e) => setSalaryAmount(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.85rem 0.85rem 0.85rem 2.2rem',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        color: 'white',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                      }}
+                      placeholder="e.g. 50,000 - 80,000 or 25"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* Payment Frequency Selector: Per Hour, Daily, Monthly, Yearly */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
+                  Payment Frequency
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                  {PAYMENT_FREQUENCIES.map(freq => {
+                    const isSelected = salaryFrequency === freq.id;
+                    return (
+                      <button
+                        key={freq.id}
+                        type="button"
+                        onClick={() => setSalaryFrequency(freq.id)}
+                        style={{
+                          padding: '8px 4px',
+                          borderRadius: '8px',
+                          border: isSelected ? '1.5px solid #00f0ff' : '1px solid rgba(255, 255, 255, 0.12)',
+                          background: isSelected ? 'rgba(0, 240, 255, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                          color: isSelected ? '#00f0ff' : 'white',
+                          fontSize: '0.85rem',
+                          fontWeight: isSelected ? 600 : 400,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {freq.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Live Formatted Compensation Preview */}
+              {salaryAmount.trim() && (
+                <div style={{ marginTop: '0.75rem', padding: '6px 12px', borderRadius: '8px', background: 'rgba(0, 240, 255, 0.08)', border: '1px dashed rgba(0, 240, 255, 0.3)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#e0f7fa' }}>
+                  <span>💰 Displayed Compensation:</span>
+                  <strong style={{ color: '#00f0ff' }}>
+                    {getFormattedSalary()}
+                  </strong>
+                </div>
+              )}
             </div>
 
             {/* Work Mode Selector (Remote, Onsite, Hybrid) */}

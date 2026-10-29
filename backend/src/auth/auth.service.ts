@@ -343,6 +343,9 @@ export class AuthService {
             verificationStatus: true,
             businessType: true,
             website: true,
+            locationCountry: true,
+            locationState: true,
+            locationCity: true,
           }
         }
       }

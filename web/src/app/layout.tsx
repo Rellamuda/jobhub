@@ -32,9 +32,6 @@ export const metadata: Metadata = {
   creator: 'JobHub Global',
   publisher: 'JobHub Global',
   applicationName: 'JobHub Global',
-  alternates: {
-    canonical: siteUrl,
-  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -48,7 +45,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: siteUrl,
     siteName: 'JobHub Global',
     title: 'JobHub Global - The Autonomous Career & Hiring Engine',
     description:

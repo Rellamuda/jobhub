@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Patch, Delete, Body, UseGuards, Request, ForbiddenException, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Patch, Delete, Body, UseGuards, Request, ForbiddenException, BadRequestException, Param, Query } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Prisma } from '@prisma/client';
@@ -98,6 +98,24 @@ export class ProfilesController {
     if (req.user.role !== 'JOB_SEEKER') {
       throw new ForbiddenException('Only JOB_SEEKERs can create this profile type.');
     }
+    const firstName = (data.firstName || '').trim();
+    const lastName = (data.lastName || '').trim();
+    if (!firstName || firstName.length < 2) {
+      throw new BadRequestException('First Name is required (minimum 2 characters).');
+    }
+    if (!lastName || lastName.length < 2) {
+      throw new BadRequestException('Last Name is required (minimum 2 characters).');
+    }
+    const phone = (data.phone || '').trim();
+    if (!phone || phone.replace(/\D/g, '').length < 6) {
+      throw new BadRequestException('A valid Phone Number is required (minimum 6 digits).');
+    }
+    if (!data.headline || data.headline.trim().length < 3) {
+      throw new BadRequestException('Professional Headline is required (minimum 3 characters).');
+    }
+    if (!data.residenceCountry || !data.residenceCity) {
+      throw new BadRequestException('Location Country and City are required.');
+    }
     // ensure skills is initialized if undefined
     if (data.skills === undefined) {
       data.skills = [];
@@ -170,9 +188,33 @@ export class ProfilesController {
   }
 
   @Post('employer')
-  async upsertEmployerProfile(@Request() req, @Body() data: Prisma.EmployerUpdateInput & Prisma.EmployerCreateWithoutUserInput) {
+  async upsertEmployerProfile(@Request() req, @Body() data: any) {
     if (req.user.role !== 'EMPLOYER') {
       throw new ForbiddenException('Only EMPLOYERs can create this profile type.');
+    }
+    const companyName = (data.companyName || '').trim();
+    if (!companyName || companyName.length < 2) {
+      throw new BadRequestException('Company or Agency Name is required (minimum 2 characters).');
+    }
+    const description = (data.description || '').trim();
+    if (!description || description.length < 15) {
+      throw new BadRequestException('Company Description is required (minimum 15 characters).');
+    }
+    if (!data.locationCountry || !data.locationCity) {
+      throw new BadRequestException('Location Country and City are required.');
+    }
+    const hrContactName = (data.hrContactName || '').trim();
+    if (!hrContactName || hrContactName.length < 2) {
+      throw new BadRequestException('HR Contact Name is required (minimum 2 characters).');
+    }
+    const hrEmail = (data.hrEmail || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!hrEmail || !emailRegex.test(hrEmail)) {
+      throw new BadRequestException('A valid HR Contact Email address is required.');
+    }
+    const hrPhone = (data.hrPhone || '').trim();
+    if (!hrPhone || hrPhone.replace(/\D/g, '').length < 6) {
+      throw new BadRequestException('A valid HR Phone Number is required (minimum 6 digits).');
     }
     return this.profilesService.upsertEmployerProfile(req.user.userId, data);
   }

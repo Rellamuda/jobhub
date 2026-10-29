@@ -406,7 +406,7 @@ export default function Footer() {
         fontSize: '0.8rem',
         color: '#64748b',
       }}>
-        <span>&copy; {new Date().getFullYear()} JobHub Global. All rights reserved.</span>
+        <span>&copy; {new Date().getFullYear()} Clean Connect. All rights reserved.</span>
         <span>Secure &amp; Verified Recruitment Ecosystem</span>
       </div>
     </footer>

@@ -238,16 +238,25 @@ export default function OnboardingPage() {
     if (isSeeker) {
       switch (currentStep) {
         case 1:
-          if (!firstName.trim()) {
-            setValidationError('Please enter your First Name.');
+          if (!firstName.trim() || firstName.trim().length < 2) {
+            setValidationError('Please enter your First Name (minimum 2 characters).');
             return false;
           }
-          if (!lastName.trim()) {
-            setValidationError('Please enter your Last Name.');
+          if (!lastName.trim() || lastName.trim().length < 2) {
+            setValidationError('Please enter your Last Name (minimum 2 characters).');
             return false;
           }
-          if (!phone.trim() || phone.replace(/\D/g, '').length < 6) {
+          const cleanPhone = phone.replace(/\D/g, '');
+          if (!phone.trim() || cleanPhone.length < 6) {
             setValidationError('Please enter a valid Phone Number (minimum 6 digits).');
+            return false;
+          }
+          if (!gender || gender.trim() === '') {
+            setValidationError('Please select your Gender.');
+            return false;
+          }
+          if (!maritalStatus || maritalStatus.trim() === '') {
+            setValidationError('Please select your Marital Status.');
             return false;
           }
           if (!dateOfBirth) {
@@ -259,25 +268,41 @@ export default function OnboardingPage() {
             setValidationError('Please enter a valid past Date of Birth.');
             return false;
           }
+          const minAgeDate = new Date();
+          minAgeDate.setFullYear(minAgeDate.getFullYear() - 15);
+          if (dobDate > minAgeDate) {
+            setValidationError('You must be at least 15 years old to register.');
+            return false;
+          }
           return true;
+
         case 2:
-          if (!headline.trim()) {
-            setValidationError('Please enter your Professional / Trade Headline.');
+          if (!headline.trim() || headline.trim().length < 3) {
+            setValidationError('Please enter your Professional / Trade Headline (minimum 3 characters).');
             return false;
           }
           if (seekerCategory === 'SKILLED_TRADE' || seekerCategory === 'BOTH') {
+            if (!tradeSpecialization) {
+              setValidationError('Please select your Trade / Craft specialization.');
+              return false;
+            }
             if (tradeSpecialization === 'Other Skilled Trade / Artisan' && !customTrade.trim()) {
               setValidationError('Please specify your Skilled Trade / Artisan profession.');
               return false;
             }
           }
           if (seekerCategory === 'PROFESSIONAL' || seekerCategory === 'BOTH') {
-            if (!profession.trim()) {
+            if (!profession.trim() || profession.trim().length < 2) {
               setValidationError('Please enter your Corporate / Academic Profession.');
               return false;
             }
           }
+          if (!skills || skills.length === 0) {
+            setValidationError('Please select or add at least one Skill or Trade before proceeding.');
+            return false;
+          }
           return true;
+
         case 3:
           if (!residenceCountry) {
             setValidationError('Please select your Resident Country.');
@@ -296,28 +321,76 @@ export default function OnboardingPage() {
             return false;
           }
           return true;
+
         case 4:
-          if (!desiredJobTitle.trim()) {
+          if (!desiredJobTitle.trim() || desiredJobTitle.trim().length < 2) {
             setValidationError('Please enter your Desired Job Title.');
+            return false;
+          }
+          if (preferredIndustryOption === 'Others' && !preferredIndustryCustom.trim()) {
+            setValidationError('Please specify your Preferred Industry / Domain.');
             return false;
           }
           if (!preferredWorkCountry) {
             setValidationError('Please select your Preferred Work Country (or select Any Country).');
             return false;
           }
-          if (!salaryAmount.trim() && !expectedSalary.trim()) {
-            setValidationError('Please enter your Desired / Expected Compensation amount.');
+          const numericSalary = parseFloat(salaryAmount.replace(/,/g, '').trim());
+          if (!salaryAmount.trim() || isNaN(numericSalary) || numericSalary <= 0) {
+            setValidationError('Please enter a valid positive numeric compensation amount.');
+            return false;
+          }
+          if (!availability) {
+            setValidationError('Please select your Availability to Start.');
             return false;
           }
           return true;
+
+        case 5:
+          for (let i = 0; i < education.length; i++) {
+            const ed = education[i];
+            if (!ed.school.trim() || !ed.course.trim() || !ed.dates.trim()) {
+              setValidationError(`Please complete all fields (Institution, Course, Dates) for Education entry #${i + 1}.`);
+              return false;
+            }
+          }
+          return true;
+
+        case 6:
+          for (let i = 0; i < experience.length; i++) {
+            const ex = experience[i];
+            if (!ex.company.trim() || !ex.role.trim() || !ex.dates.trim()) {
+              setValidationError(`Please complete Company, Role, and Dates for Experience entry #${i + 1}.`);
+              return false;
+            }
+          }
+          return true;
+
+        case 7:
+          for (let i = 0; i < certificates.length; i++) {
+            const cert = certificates[i];
+            if (!cert.name.trim() || !cert.date.trim()) {
+              setValidationError(`Please complete Name and Date for Certification #${i + 1}.`);
+              return false;
+            }
+          }
+          for (let i = 0; i < projects.length; i++) {
+            const pr = projects[i];
+            if (!pr.title.trim() || !pr.description.trim()) {
+              setValidationError(`Please complete Title and Description for Project #${i + 1}.`);
+              return false;
+            }
+          }
+          return true;
+
         default:
           return true;
       }
     } else {
       switch (currentStep) {
         case 1:
-          if (!companyName.trim()) {
-            setValidationError('Please enter your Company / Agency Name.');
+          if (!companyName.trim() || companyName.trim().length < 2) {
+            setValidationError('Please enter your Company / Agency Name (minimum 2 characters).');
             return false;
           }
           if (businessType === 'RECRUITING_AGENCY') {
@@ -339,9 +412,16 @@ export default function OnboardingPage() {
               return false;
             }
           }
-          if (!description.trim()) {
-            setValidationError('Please enter a brief Company Description.');
+          if (!description.trim() || description.trim().length < 15) {
+            setValidationError('Please enter a more detailed Company Description (minimum 15 characters).');
             return false;
+          }
+          if (employerWebsite.trim()) {
+            const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+            if (!urlRegex.test(employerWebsite.trim())) {
+              setValidationError('Please enter a valid website URL (e.g. https://company.com).');
+              return false;
+            }
           }
           if (!companySize.trim()) {
             setValidationError('Please select Team Size.');
@@ -352,6 +432,7 @@ export default function OnboardingPage() {
             return false;
           }
           return true;
+
         case 2:
           if (!locationCountry) {
             setValidationError('Please select Location Country.');
@@ -365,20 +446,22 @@ export default function OnboardingPage() {
             setValidationError('Please enter Location City / Town.');
             return false;
           }
-          if (!hrContactName.trim()) {
-            setValidationError('Please enter HR Contact Name.');
+          if (!hrContactName.trim() || hrContactName.trim().length < 2) {
+            setValidationError('Please enter HR Contact Name (minimum 2 characters).');
             return false;
           }
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!hrEmail.trim() || !emailRegex.test(hrEmail.trim())) {
-            setValidationError('Please enter a valid HR Contact Email address.');
+            setValidationError('Please enter a valid HR Contact Email address (e.g. hr@company.com).');
             return false;
           }
-          if (!hrPhone.trim() || hrPhone.replace(/\D/g, '').length < 6) {
-            setValidationError('Please enter a valid HR Contact Phone Number.');
+          const cleanHrPhone = hrPhone.replace(/\D/g, '');
+          if (!hrPhone.trim() || cleanHrPhone.length < 6) {
+            setValidationError('Please enter a valid HR Contact Phone Number (minimum 6 digits).');
             return false;
           }
           return true;
+
         default:
           return true;
       }
@@ -729,18 +812,18 @@ export default function OnboardingPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.2rem' }}>
               <div>
-                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Gender</label>
+                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Gender <span style={{ color: '#00F0FF' }}>*</span></label>
                 <select value={gender} onChange={e => setGender(e.target.value)} className="input-field" style={{ marginBottom: 0 }}>
-                  <option value="">Select Gender</option>
+                  <option value="">Select Gender *</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
               <div>
-                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Marital Status</label>
+                <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem' }}>Marital Status <span style={{ color: '#00F0FF' }}>*</span></label>
                 <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className="input-field" style={{ marginBottom: 0 }}>
-                  <option value="">Select Status</option>
+                  <option value="">Select Status *</option>
                   <option value="Single">Single</option>
                   <option value="Married">Married</option>
                   <option value="Other">Other</option>

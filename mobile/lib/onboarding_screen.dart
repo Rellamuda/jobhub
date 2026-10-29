@@ -817,41 +817,69 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (isSeeker) {
       switch (_currentStep) {
         case 1:
-          if (_firstName.text.trim().isEmpty) {
-            _showError('First Name is required');
+          if (_firstName.text.trim().length < 2) {
+            _showError('First Name must be at least 2 characters');
             return false;
           }
-          if (_lastName.text.trim().isEmpty) {
-            _showError('Last Name is required');
+          if (_lastName.text.trim().length < 2) {
+            _showError('Last Name must be at least 2 characters');
             return false;
           }
           if (_phone.text.trim().isEmpty || _phone.text.trim().replaceAll(RegExp(r'\D'), '').length < 6) {
             _showError('Please enter a valid Phone Number (minimum 6 digits)');
             return false;
           }
+          if (_gender.trim().isEmpty) {
+            _showError('Please select your Gender');
+            return false;
+          }
+          if (_maritalStatus.trim().isEmpty) {
+            _showError('Please select your Marital Status');
+            return false;
+          }
           if (_dateOfBirth.text.trim().isEmpty) {
             _showError('Date of Birth is required');
             return false;
           }
+          final dob = DateTime.tryParse(_dateOfBirth.text.trim());
+          if (dob == null || dob.isAfter(DateTime.now())) {
+            _showError('Please enter a valid past Date of Birth');
+            return false;
+          }
+          final minAge = DateTime.now().subtract(const Duration(days: 365 * 15));
+          if (dob.isAfter(minAge)) {
+            _showError('You must be at least 15 years old to register');
+            return false;
+          }
           return true;
+
         case 2:
-          if (_headline.text.trim().isEmpty) {
-            _showError('Professional / Trade Headline is required');
+          if (_headline.text.trim().length < 3) {
+            _showError('Professional / Trade Headline is required (minimum 3 characters)');
             return false;
           }
           if (_seekerCategory == 'SKILLED_TRADE' || _seekerCategory == 'BOTH') {
+            if (_tradeSpecialization.trim().isEmpty) {
+              _showError('Please select your Trade / Craft specialization');
+              return false;
+            }
             if (_tradeSpecialization == 'Other Skilled Trade / Artisan' && _customTrade.text.trim().isEmpty) {
               _showError('Please specify your Trade / Craft specialization');
               return false;
             }
           }
           if (_seekerCategory == 'PROFESSIONAL' || _seekerCategory == 'BOTH') {
-            if (_profession.text.trim().isEmpty) {
-              _showError('Primary Profession is required');
+            if (_profession.text.trim().length < 2) {
+              _showError('Corporate / Academic Profession is required');
               return false;
             }
           }
+          if (_skills.isEmpty) {
+            _showError('Please select or add at least one Skill or Trade');
+            return false;
+          }
           return true;
+
         case 3:
           if (_residenceCountry.text.trim().isEmpty) {
             _showError('Resident Country is required');
@@ -870,28 +898,78 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             return false;
           }
           return true;
+
         case 4:
-          if (_desiredJobTitle.text.trim().isEmpty) {
+          if (_desiredJobTitle.text.trim().length < 2) {
             _showError('Desired Job Title is required');
+            return false;
+          }
+          if (_preferredIndustryOption == 'Others' && _preferredIndustryCustom.text.trim().isEmpty) {
+            _showError('Please specify your Preferred Industry');
             return false;
           }
           if (_preferredWorkCountry.trim().isEmpty) {
             _showError('Preferred Work Country is required (choose Any Country if flexible)');
             return false;
           }
-          if (_salaryAmount.text.trim().isEmpty && _expectedSalary.text.trim().isEmpty) {
-            _showError('Please enter your Desired / Expected Compensation amount');
+          final amount = double.tryParse(_salaryAmount.text.trim().replaceAll(',', ''));
+          if (_salaryAmount.text.trim().isEmpty || amount == null || amount <= 0) {
+            _showError('Please enter a valid positive compensation amount');
             return false;
           }
           return true;
+
+        case 5:
+          for (int i = 0; i < _education.length; i++) {
+            final ed = _education[i];
+            if ((ed['school'] ?? '').toString().trim().isEmpty ||
+                (ed['course'] ?? '').toString().trim().isEmpty ||
+                (ed['dates'] ?? '').toString().trim().isEmpty) {
+              _showError('Please complete all fields (Institution, Course, Dates) for Education #${i + 1}');
+              return false;
+            }
+          }
+          return true;
+
+        case 6:
+          for (int i = 0; i < _experience.length; i++) {
+            final ex = _experience[i];
+            if ((ex['company'] ?? '').toString().trim().isEmpty ||
+                (ex['role'] ?? '').toString().trim().isEmpty ||
+                (ex['dates'] ?? '').toString().trim().isEmpty) {
+              _showError('Please complete Company, Role, and Dates for Experience #${i + 1}');
+              return false;
+            }
+          }
+          return true;
+
+        case 7:
+          for (int i = 0; i < _certificates.length; i++) {
+            final cert = _certificates[i];
+            if ((cert['name'] ?? '').toString().trim().isEmpty ||
+                (cert['date'] ?? '').toString().trim().isEmpty) {
+              _showError('Please complete Name and Date for Certification #${i + 1}');
+              return false;
+            }
+          }
+          for (int i = 0; i < _projects.length; i++) {
+            final pr = _projects[i];
+            if ((pr['title'] ?? '').toString().trim().isEmpty ||
+                (pr['description'] ?? '').toString().trim().isEmpty) {
+              _showError('Please complete Title and Description for Project #${i + 1}');
+              return false;
+            }
+          }
+          return true;
+
         default:
           return true;
       }
     } else {
       switch (_currentStep) {
         case 1:
-          if (_companyName.text.trim().isEmpty) {
-            _showError('Company or Agency Name is required');
+          if (_companyName.text.trim().length < 2) {
+            _showError('Company or Agency Name is required (minimum 2 characters)');
             return false;
           }
           if (_businessType == 'RECRUITING_AGENCY') {
@@ -913,38 +991,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return false;
             }
           }
-          if (_description.text.trim().isEmpty) {
-            _showError('Company / Agency Description is required');
+          if (_description.text.trim().length < 15) {
+            _showError('Company / Agency Description must be at least 15 characters');
             return false;
           }
+          if (_empWebsite.text.trim().isNotEmpty) {
+            final urlRegex = RegExp(r'^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$', caseSensitive: false);
+            if (!urlRegex.hasMatch(_empWebsite.text.trim())) {
+              _showError('Please enter a valid website URL (e.g. https://company.com)');
+              return false;
+            }
+          }
           return true;
+
         case 2:
           if (_locationCountry.text.trim().isEmpty) {
-            _showError('Country is required');
+            _showError('Location Country is required');
             return false;
           }
           if (_locationState.text.trim().isEmpty) {
-            _showError('State / Province is required');
+            _showError('Location State / Province is required');
             return false;
           }
           if (_locationCity.text.trim().isEmpty) {
-            _showError('City is required');
+            _showError('Location City / Town is required');
             return false;
           }
-          if (_hrContactName.text.trim().isEmpty) {
-            _showError('HR Contact Name is required');
+          if (_hrContactName.text.trim().length < 2) {
+            _showError('HR Contact Name is required (minimum 2 characters)');
             return false;
           }
           final emailPattern = RegExp(r'^[\w\.\-]+@[a-zA-Z0-9\-]+(\.[a-zA-Z0-9\-]+)+$');
           if (_hrEmail.text.trim().isEmpty || !emailPattern.hasMatch(_hrEmail.text.trim())) {
-            _showError('Please enter a valid HR Email address');
+            _showError('Please enter a valid HR Email address (e.g. hr@company.com)');
             return false;
           }
           if (_hrPhone.text.trim().isEmpty || _hrPhone.text.trim().replaceAll(RegExp(r'\D'), '').length < 6) {
-            _showError('Please enter a valid HR Phone Number');
+            _showError('Please enter a valid HR Phone Number (minimum 6 digits)');
             return false;
           }
           return true;
+
         default:
           return true;
       }

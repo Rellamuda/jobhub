@@ -91,7 +91,8 @@ class RevenueCatService {
   static Future<bool> purchasePackage(Package package) async {
     if (!_isConfigured) return false;
     try {
-      final customerInfo = await Purchases.purchasePackage(package);
+      final purchaseResult = await Purchases.purchasePackage(package);
+      final customerInfo = purchaseResult.customerInfo;
       final hasActiveEntitlement = customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
       return hasActiveEntitlement;
     } catch (e) {

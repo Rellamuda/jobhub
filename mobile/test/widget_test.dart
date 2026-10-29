@@ -1,12 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/config/theme_manager.dart';
 import 'package:mobile/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('JobHubAIApp smoke test', (WidgetTester tester) async {
-    // Build the JobHub AI app widget tree
+    SharedPreferences.setMockInitialValues({});
+    await ThemeManager.init();
     await tester.pumpWidget(const JobHubAIApp());
 
-    // Verify root app widget mounts cleanly
     expect(find.byType(JobHubAIApp), findsOneWidget);
   });
 }

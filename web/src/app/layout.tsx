@@ -55,7 +55,7 @@ export const metadata: Metadata = {
       'Autonomous AI job matching, 1-tap applications, verified credentials, and smart ATS optimization.',
     images: [
       {
-        url: '/jobhub-global-og.png?v=2026',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'JobHub Global - The Autonomous Career & Hiring Engine',
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     title: 'JobHub Global - The Autonomous Career & Hiring Engine',
     description:
       'Autonomous AI job matching, 1-tap applications, verified credentials, and smart ATS optimization.',
-    images: ['/jobhub-global-og.png?v=2026'],
+    images: ['/og-image.png'],
     creator: '@jobhubglobal',
   },
   robots: {

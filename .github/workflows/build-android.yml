@@ -125,12 +125,17 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
-            sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk /home/${{ secrets.EC2_USERNAME }}/JobHub-app-release.apk || true
-            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-backend-1:/app/public/uploads/JobHub-app-release.apk || true
-            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-web-1:/app/public/JobHub-app-release.apk || true
-            sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab /home/${{ secrets.EC2_USERNAME }}/JobHub-app-release.aab || true
-            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab jobhub-backend-1:/app/public/uploads/JobHub-app-release.aab || true
-            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab jobhub-web-1:/app/public/JobHub-app-release.aab || true
+            sudo mkdir -p /home/${{ secrets.EC2_USERNAME }}/downloads
+            # Copy APK to target locations
+            [ -f /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk ] && sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk /home/${{ secrets.EC2_USERNAME }}/downloads/JobHub-app-release.apk || true
+            # Copy AAB from either root downloads or release subfolder
+            [ -f /home/${{ secrets.EC2_USERNAME }}/downloads/release/app-release.aab ] && sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/release/app-release.aab /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab || true
+            [ -f /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab ] && sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab /home/${{ secrets.EC2_USERNAME }}/downloads/JobHub-app-release.aab || true
+            # Set global read permissions for Nginx
+            sudo chmod -R 755 /home/${{ secrets.EC2_USERNAME }}
+            sudo chmod -R 755 /home/${{ secrets.EC2_USERNAME }}/downloads
+            echo "Direct download files on EC2:"
+            ls -la /home/${{ secrets.EC2_USERNAME }}/downloads/
             echo "Artifacts ready for direct download:"
             echo "APK: https://skillskonnect.online/JobHub-app-release.apk"
             echo "AAB: https://skillskonnect.online/JobHub-app-release.aab"

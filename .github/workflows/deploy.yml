@@ -98,15 +98,25 @@ jobs:
                   proxy_set_header X-Forwarded-Proto $scheme;
               }
 
+              # Direct static downloads for APK and AAB release binaries
+              location ~* \.(apk|aab)$ {
+                  root /home/${{ secrets.EC2_USERNAME }}/downloads;
+                  try_files $uri /downloads$uri /release$uri =404;
+                  default_type application/octet-stream;
+                  add_header Content-Disposition "attachment";
+              }
+
               location /downloads/ {
-                  proxy_pass http://127.0.0.1:3001/downloads/;
-                  proxy_http_version 1.1;
-                  proxy_set_header Host $host;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $scheme;
+                  alias /home/${{ secrets.EC2_USERNAME }}/downloads/;
+                  autoindex off;
+                  default_type application/octet-stream;
+                  add_header Content-Disposition "attachment";
               }
           }
           EOF
+          sudo mkdir -p /home/${{ secrets.EC2_USERNAME }}/downloads
+          sudo chmod -R 755 /home/${{ secrets.EC2_USERNAME }}
+          sudo chmod -R 755 /home/${{ secrets.EC2_USERNAME }}/downloads
           sudo ln -sf /etc/nginx/sites-available/jobhub /etc/nginx/sites-enabled/
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx

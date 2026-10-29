@@ -106,18 +106,18 @@ jobs:
           name: JobHub-GooglePlay-AAB
           path: mobile/build/app/outputs/bundle/release/app-release.aab
 
-      - name: Transfer APK to EC2
+      - name: Transfer Release Artifacts to EC2
         if: success()
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "mobile/build/app/outputs/flutter-apk/app-release.apk"
+          source: "mobile/build/app/outputs/flutter-apk/app-release.apk,mobile/build/app/outputs/bundle/release/app-release.aab"
           target: "/home/${{ secrets.EC2_USERNAME }}/downloads"
           strip_components: 5
 
-      - name: Distribute APK on EC2 for Direct Phone Download
+      - name: Distribute Artifacts on EC2 for Direct Browser & Phone Download
         if: success()
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -128,4 +128,9 @@ jobs:
             sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk /home/${{ secrets.EC2_USERNAME }}/JobHub-app-release.apk || true
             sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-backend-1:/app/public/uploads/JobHub-app-release.apk || true
             sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.apk jobhub-web-1:/app/public/JobHub-app-release.apk || true
-            echo "APK ready for direct download at https://jobhub-app.duckdns.org/JobHub-app-release.apk"
+            sudo cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab /home/${{ secrets.EC2_USERNAME }}/JobHub-app-release.aab || true
+            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab jobhub-backend-1:/app/public/uploads/JobHub-app-release.aab || true
+            sudo docker cp /home/${{ secrets.EC2_USERNAME }}/downloads/app-release.aab jobhub-web-1:/app/public/JobHub-app-release.aab || true
+            echo "Artifacts ready for direct download:"
+            echo "APK: https://skillskonnect.online/JobHub-app-release.apk"
+            echo "AAB: https://skillskonnect.online/JobHub-app-release.aab"

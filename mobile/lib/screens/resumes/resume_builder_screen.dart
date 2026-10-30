@@ -191,7 +191,13 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
             message: msg,
             targetTier: nextTier,
             initialRole: 'JOB_SEEKER',
-            buttonText: nextTier == 'PREMIUM' ? 'Upgrade to Diamond ($20/mo)' : 'Upgrade to Silver ($13/mo)',
+            buttonText: nextTier == 'ENTERPRISE_FIRM'
+                ? 'Upgrade to Enterprise Firm (\$130/mo)'
+                : (nextTier == 'PRO_CONTRACTOR'
+                    ? 'Upgrade to Pro Contractor (\$70/mo)'
+                    : (nextTier == 'PREMIUM'
+                        ? 'Upgrade to Diamond (\$20/mo)'
+                        : 'Upgrade to Silver (\$13/mo)')),
             isExhausted: true,
           );
         }

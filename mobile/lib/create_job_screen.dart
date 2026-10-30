@@ -250,7 +250,13 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
             message: msg,
             targetTier: nextTier,
             initialRole: 'EMPLOYER',
-            buttonText: nextTier == 'ENTERPRISE' ? 'Upgrade to Enterprise ($100/mo)' : 'Upgrade to Premium ($50/mo)',
+            buttonText: nextTier == 'ENTERPRISE_FIRM'
+                ? 'Upgrade to Enterprise Firm (\$130/mo)'
+                : (nextTier == 'PRO_CONTRACTOR'
+                    ? 'Upgrade to Pro Contractor (\$70/mo)'
+                    : (nextTier == 'ENTERPRISE'
+                        ? 'Upgrade to Enterprise (\$100/mo)'
+                        : 'Upgrade to Premium (\$50/mo)')),
             isExhausted: true,
           );
         }

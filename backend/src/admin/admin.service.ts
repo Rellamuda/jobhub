@@ -87,6 +87,7 @@ export class AdminService {
               autoApplyEnabled: true,
               experience: true,
               education: true,
+              profilePicture: true,
             },
           },
           employer: {
@@ -97,6 +98,7 @@ export class AdminService {
               industry: true,
               companySize: true,
               website: true,
+              profilePicture: true,
               locationCountry: true,
               locationState: true,
               locationCity: true,

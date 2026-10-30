@@ -112,11 +112,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  String? _resolvePicUrl(dynamic path) {
+    if (path == null) return null;
+    final s = path.toString().trim();
+    if (s.isEmpty) return null;
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    final clean = s.startsWith('/') ? s : '/$s';
+    return '${ApiConfig.webUrl}$clean';
+  }
+
   void _showEditModal(Map<String, dynamic> user) {
     String selectedRole = user['role'] ?? 'JOB_SEEKER';
     String selectedTier = user['subscriptionTier'] ?? 'FREE';
     String selectedStatus = user['accountStatus'] ?? 'ACTIVE';
     bool isFlagged = user['isFlagged'] == true;
+    final profile = user['jobSeekerProfile'];
+    final employer = user['employer'];
+    final picUrl = _resolvePicUrl(profile?['profilePicture'] ?? employer?['profilePicture']);
+    final displayName = (profile != null && profile['firstName'] != null)
+        ? '${profile['firstName']} ${profile['lastName'] ?? ''}'.trim()
+        : (employer != null && employer['companyName'] != null ? employer['companyName'] : '');
+    final initial = (displayName.isNotEmpty ? displayName : (user['email'] ?? '?')).toString()[0].toUpperCase();
 
     showDialog(
       context: context,
@@ -129,9 +145,41 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 borderRadius: BorderRadius.circular(16),
                 side: const BorderSide(color: Color(0xFF00F0FF), width: 1),
               ),
-              title: Text(
-                'Edit User\n${user['email']}',
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              title: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundImage: picUrl != null ? NetworkImage(picUrl) : null,
+                    child: picUrl == null
+                        ? Text(
+                            initial,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (displayName.isNotEmpty)
+                          Text(
+                            displayName,
+                            style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 15, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        Text(
+                          user['email'] ?? '',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.normal),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -363,6 +411,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         displayName = employer['companyName'];
                       }
 
+                      final picUrl = _resolvePicUrl(profile?['profilePicture'] ?? employer?['profilePicture']);
+                      final initial = (displayName.isNotEmpty ? displayName : (user['email'] ?? '?')).toString()[0].toUpperCase();
+
                       return GlassCard(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
@@ -370,8 +421,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: user['role'] == 'JOB_SEEKER'
+                                      ? const Color(0xFF4338CA)
+                                      : (user['role'] == 'EMPLOYER' ? const Color(0xFF0891B2) : const Color(0xFFB45309)),
+                                  backgroundImage: picUrl != null ? NetworkImage(picUrl) : null,
+                                  child: picUrl == null
+                                      ? Text(
+                                          initial,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,

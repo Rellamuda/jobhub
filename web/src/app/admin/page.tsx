@@ -35,6 +35,7 @@ interface UserData {
     autoApplyEnabled?: boolean;
     experience?: any;
     education?: any;
+    profilePicture?: string;
   };
   employer?: {
     id?: string;
@@ -43,6 +44,7 @@ interface UserData {
     industry?: string;
     companySize?: string;
     website?: string;
+    profilePicture?: string;
     locationCountry?: string;
     locationState?: string;
     locationCity?: string;
@@ -65,6 +67,13 @@ interface UserData {
     sentMessages?: number;
   };
 }
+
+const resolvePicUrl = (path?: string) => {
+  if (!path || !path.trim()) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('/')) return path;
+  return `/${path}`;
+};
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<UserData[]>([]);
@@ -676,23 +685,54 @@ export default function AdminDashboard() {
                         {/* User & Profile */}
                         <td style={{ padding: '1rem 1.25rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div
-                              style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '50%',
-                                backgroundColor: isSeeker ? '#4338CA' : isEmployer ? '#0891B2' : '#B45309',
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 700,
-                                fontSize: '0.9rem',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {(fullName || user.email)[0].toUpperCase()}
-                            </div>
+                            {(() => {
+                              const picUrl = resolvePicUrl(user.jobSeekerProfile?.profilePicture || user.employer?.profilePicture);
+                              return (
+                                <div
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '50%',
+                                    backgroundColor: isSeeker ? '#4338CA' : isEmployer ? '#0891B2' : '#B45309',
+                                    color: 'white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 700,
+                                    fontSize: '0.9rem',
+                                    flexShrink: 0,
+                                    overflow: 'hidden',
+                                    position: 'relative',
+                                    border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                                  }}
+                                >
+                                  {picUrl && (
+                                    <img
+                                      src={picUrl}
+                                      alt={fullName || user.email}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLElement).style.display = 'none';
+                                        const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback') as HTMLElement | null;
+                                        if (fallback) fallback.style.display = 'flex';
+                                      }}
+                                    />
+                                  )}
+                                  <span
+                                    className="avatar-fallback"
+                                    style={{
+                                      display: picUrl ? 'none' : 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '100%',
+                                      height: '100%',
+                                    }}
+                                  >
+                                    {(fullName || user.email)[0].toUpperCase()}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                             <div>
                               <div style={{ fontWeight: 600, color: 'white' }}>{fullName || user.email}</div>
                               <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)' }}>{user.email}</div>
@@ -949,34 +989,66 @@ export default function AdminDashboard() {
                 ✕
               </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div
-                  style={{
-                    width: '54px',
-                    height: '54px',
-                    borderRadius: '50%',
-                    backgroundColor: '#6366F1',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: '1.3rem',
-                  }}
-                >
-                  {selectedUser.email[0].toUpperCase()}
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
-                    {selectedUser.jobSeekerProfile
-                      ? `${selectedUser.jobSeekerProfile.firstName || ''} ${selectedUser.jobSeekerProfile.lastName || ''}`.trim() || selectedUser.email
-                      : selectedUser.employer?.companyName || selectedUser.email}
-                  </h2>
-                  <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>
-                    {selectedUser.email} • ID: <code style={{ color: '#00F0FF' }}>{selectedUser.id}</code>
+              {(() => {
+                const modalPicUrl = resolvePicUrl(selectedUser.jobSeekerProfile?.profilePicture || selectedUser.employer?.profilePicture);
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        backgroundColor: '#6366F1',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '1.4rem',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        position: 'relative',
+                        border: '2px solid rgba(0, 240, 255, 0.4)',
+                      }}
+                    >
+                      {modalPicUrl && (
+                        <img
+                          src={modalPicUrl}
+                          alt={selectedUser.email}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                            const fallback = e.currentTarget.parentElement?.querySelector('.modal-avatar-fallback') as HTMLElement | null;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      )}
+                      <span
+                        className="modal-avatar-fallback"
+                        style={{
+                          display: modalPicUrl ? 'none' : 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '100%',
+                          height: '100%',
+                        }}
+                      >
+                        {selectedUser.email[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
+                        {selectedUser.jobSeekerProfile
+                          ? `${selectedUser.jobSeekerProfile.firstName || ''} ${selectedUser.jobSeekerProfile.lastName || ''}`.trim() || selectedUser.email
+                          : selectedUser.employer?.companyName || selectedUser.email}
+                      </h2>
+                      <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>
+                        {selectedUser.email} • ID: <code style={{ color: '#00F0FF' }}>{selectedUser.id}</code>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Badges Bar */}
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>

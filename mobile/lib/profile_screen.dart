@@ -14,6 +14,8 @@ import 'employer_crm_screen.dart';
 import 'subscription_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/resumes/resumes_list_screen.dart';
+import 'employer_dashboard.dart';
+import 'seeker_dashboard.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -42,7 +44,229 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isVerifying = false;
   bool _isUploadingPhoto = false;
   bool _isSavingAutoApply = false;
+  bool _isSwitchingRole = false;
   final _keywordController = TextEditingController();
+
+  Future<void> _switchRole() async {
+    final currentRole = _user?['role'] ?? 'JOB_SEEKER';
+    final targetMode = currentRole == 'JOB_SEEKER' ? 'Employer / Hiring Mode' : 'Contractor / Job Mode';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E142B),
+        title: Row(
+          children: [
+            const Icon(Icons.swap_horiz, color: Color(0xFF00F0FF)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Switch to $targetMode',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          currentRole == 'JOB_SEEKER'
+              ? 'Switching into Employer Mode allows you to post jobs and hire workers for your crew or organization.\n\nYou can switch back to Contractor/Job Seeker mode anytime.'
+              : 'Switching into Contractor Mode allows you to bid on commercial contracts and projects for your company or trade.\n\nYou can switch back to Employer mode anytime.',
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF)),
+            child: const Text('Confirm Switch', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isSwitchingRole = true);
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/switch-role'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = jsonDecode(res.body);
+        final newRole = data['role'];
+        final newToken = data['access_token'];
+
+        final prefs = await SharedPreferences.getInstance();
+        if (newToken != null) {
+          await prefs.setString('token', newToken);
+        }
+        await prefs.setString('user_role', newRole);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF10B981),
+            content: Text(data['message'] ?? 'Mode switched successfully!'),
+          ),
+        );
+
+        if (newRole == 'EMPLOYER') {
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (c) => const EmployerDashboard()),
+            (r) => false,
+          );
+        } else {
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (c) => const SeekerDashboard()),
+            (r) => false,
+          );
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('Failed to switch mode: ${res.body}'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('Network error switching mode: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSwitchingRole = false);
+    }
+  }
+
+  Widget _buildDualModeSwitcherCard() {
+    final currentRole = _user?['role'] ?? 'JOB_SEEKER';
+    final isSeeker = currentRole == 'JOB_SEEKER';
+    final isContractor = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' || _profile?['isDualCapacity'] == true;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isSeeker
+              ? [const Color(0xFF1E1435), const Color(0xFF2C194D)]
+              : [const Color(0xFF142435), const Color(0xFF1A384D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSeeker ? const Color(0xFFA855F7).withOpacity(0.5) : const Color(0xFF00F0FF).withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isSeeker ? const Color(0xFFA855F7) : const Color(0xFF00F0FF)).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isSeeker ? Icons.handyman : Icons.business,
+                  color: isSeeker ? const Color(0xFFC084FC) : const Color(0xFF00F0FF),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isSeeker ? 'Contractor & Job Mode Active' : 'Employer / Hiring Mode Active',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isSeeker
+                          ? 'Bidding on commercial contracts & jobs'
+                          : 'Posting vacancies & hiring crew',
+                      style: const TextStyle(color: Colors.white60, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('Dual Account', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          if (isContractor && isSeeker && _profile?['companyName'] != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified, color: Color(0xFF00F0FF), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Registered Contractor: ${_profile?['companyName']} (Crew: ${_profile?['crewSize'] ?? 1})',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isSwitchingRole ? null : _switchRole,
+              icon: _isSwitchingRole
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Icon(Icons.swap_horiz, color: Colors.black, size: 20),
+              label: Text(
+                _isSwitchingRole
+                    ? 'Switching Mode...'
+                    : (isSeeker ? 'Switch to Employer Mode (Hire Staff)' : 'Switch to Contractor Mode (Bid on Jobs)'),
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSeeker ? const Color(0xFFC084FC) : const Color(0xFF00F0FF),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -1475,6 +1699,7 @@ Generated via JobHub Global Talent Platform''';
                 ],
               ),
               const SizedBox(height: 16),
+              _buildDualModeSwitcherCard(),
               if (_user!['role'] == 'JOB_SEEKER') _buildSeekerProfile() else _buildEmployerProfile(),
               const SizedBox(height: 24),
               // Legal & Google Play Compliance Section
@@ -1503,6 +1728,22 @@ Generated via JobHub Global Talent Platform''';
                       ],
                     ),
                     const SizedBox(height: 16),
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.swap_horiz, color: Color(0xFF00F0FF)),
+                      title: Text(
+                        _user?['role'] == 'JOB_SEEKER' ? 'Switch to Employer Mode' : 'Switch to Contractor Mode',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        _user?['role'] == 'JOB_SEEKER' ? 'Post jobs and recruit workforce crew' : 'Bid on commercial jobs and service contracts',
+                        style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF00F0FF), size: 14),
+                      onTap: _switchRole,
+                    ),
+                    const Divider(color: Colors.white12),
                     ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,

@@ -19,32 +19,48 @@ export class JobsService {
       throw new ForbiddenException('You must create an employer profile before posting a job.');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { jobSeekerProfile: true },
+    });
+    const isDual = Boolean(
+      user?.jobSeekerProfile?.isDualCapacity ||
+      user?.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ||
+      employer?.businessType?.toLowerCase().includes('contractor') ||
+      employer?.businessType?.toLowerCase().includes('agency')
+    );
     const tier = user?.role === 'ADMIN' ? 'PREMIUM' : (user?.subscriptionTier || 'FREE');
+
     if (tier === 'FREE') {
       const jobCount = await this.prisma.job.count({ where: { employerId: employer.id } });
-      if (jobCount >= 3) {
+      const freeLimit = isDual ? 1 : 3;
+      if (jobCount >= freeLimit) {
         throw new ForbiddenException(
           JSON.stringify({
             code: 'TIER_LIMIT_EXHAUSTED',
-            message: 'Free tier limit reached (3/3 job postings). Upgrade to Premium ($50/mo) to post up to 70 jobs with 50 AI matches per job!',
+            message: isDual
+              ? 'Free Contractor limit reached (1/1 job posting). Upgrade to Pro Contractor ($70/mo) to post up to 15 crew jobs and bid on 30 commercial contracts!'
+              : 'Free tier limit reached (3/3 job postings). Upgrade to Premium ($50/mo) to post up to 70 jobs with 50 AI matches per job!',
             currentTier: 'FREE',
-            nextTier: 'PREMIUM',
-            limit: 3,
+            nextTier: isDual ? 'PRO_CONTRACTOR' : 'PREMIUM',
+            limit: freeLimit,
             used: jobCount,
           }),
         );
       }
     } else if (tier === 'SILVER') {
       const jobCount = await this.prisma.job.count({ where: { employerId: employer.id } });
-      if (jobCount >= 70) {
+      const silverLimit = isDual ? 15 : 70;
+      if (jobCount >= silverLimit) {
         throw new ForbiddenException(
           JSON.stringify({
             code: 'TIER_LIMIT_EXHAUSTED',
-            message: 'Premium tier monthly limit reached (70/70 job postings). Upgrade to Enterprise ($100/mo) for unlimited job postings!',
+            message: isDual
+              ? 'Pro Contractor limit reached (15/15 job postings). Upgrade to Enterprise Firm ($130/mo) for unlimited crew postings and contract bidding!'
+              : 'Premium tier monthly limit reached (70/70 job postings). Upgrade to Enterprise ($100/mo) for unlimited job postings!',
             currentTier: 'SILVER',
-            nextTier: 'ENTERPRISE',
-            limit: 70,
+            nextTier: isDual ? 'ENTERPRISE_FIRM' : 'ENTERPRISE',
+            limit: silverLimit,
             used: jobCount,
           }),
         );

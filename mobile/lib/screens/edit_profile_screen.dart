@@ -49,6 +49,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   String _maritalStatus = 'Single';
   final _nationalityController = TextEditingController();
 
+  // Dual-Capacity Contractor Profile
+  String _seekerType = 'INDIVIDUAL';
+  final _companyNameController = TextEditingController();
+  final _businessRegNumberController = TextEditingController();
+  final _crewSizeController = TextEditingController(text: '1');
+  bool _isDualCapacity = false;
+
   final List<String> _industryOptions = [
     'Information Technology & Software',
     'Financial Services & Fintech',
@@ -163,6 +170,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
       _maritalStatus = p['maritalStatus'];
     }
     _nationalityController.text = p['citizenshipCountry'] ?? p['nationality'] ?? '';
+
+    // Contractor / Dual Capacity
+    _seekerType = p['seekerType'] ?? (p['isDualCapacity'] == true ? 'COMPANY_CONTRACTOR' : 'INDIVIDUAL');
+    _companyNameController.text = p['companyName'] ?? '';
+    _businessRegNumberController.text = p['businessRegNumber'] ?? '';
+    _crewSizeController.text = (p['crewSize'] ?? 1).toString();
+    _isDualCapacity = p['isDualCapacity'] == true || _seekerType == 'COMPANY_CONTRACTOR';
   }
 
   @override
@@ -179,6 +193,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
     _summaryController.dispose();
     _phoneController.dispose();
     _nationalityController.dispose();
+    _companyNameController.dispose();
+    _businessRegNumberController.dispose();
+    _crewSizeController.dispose();
     super.dispose();
   }
 
@@ -313,6 +330,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
       'maritalStatus': _maritalStatus,
       'citizenshipCountry': _nationalityController.text.trim(),
       'nationality': _nationalityController.text.trim(),
+
+      'seekerType': _seekerType,
+      'companyName': _seekerType == 'COMPANY_CONTRACTOR' ? _companyNameController.text.trim() : null,
+      'businessRegNumber': _seekerType == 'COMPANY_CONTRACTOR' ? _businessRegNumberController.text.trim() : null,
+      'crewSize': _seekerType == 'COMPANY_CONTRACTOR' ? (int.tryParse(_crewSizeController.text.trim()) ?? 1) : 1,
+      'isDualCapacity': _seekerType == 'COMPANY_CONTRACTOR' || _isDualCapacity,
     };
 
     try {
@@ -818,6 +841,84 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        _buildSectionHeader('🛡️ Account Type & Dual Capacity', 'Operate as an individual professional or a registered service company.'),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _seekerType = 'INDIVIDUAL'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF6366F1).withOpacity(0.2) : Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF6366F1) : Colors.white12,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.person, color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF6366F1) : Colors.white60),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Individual',
+                        style: TextStyle(
+                          color: _seekerType == 'INDIVIDUAL' ? Colors.white : Colors.white60,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  _seekerType = 'COMPANY_CONTRACTOR';
+                  _isDualCapacity = true;
+                }),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFF00F0FF).withOpacity(0.15) : Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFF00F0FF) : Colors.white12,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.business_center, color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFF00F0FF) : Colors.white60),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Corporate / Contractor',
+                        style: TextStyle(
+                          color: _seekerType == 'COMPANY_CONTRACTOR' ? Colors.white : Colors.white60,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_seekerType == 'COMPANY_CONTRACTOR') ...[
+          const SizedBox(height: 16),
+          _buildTextField(_companyNameController, 'Company / Agency Name *', hint: 'e.g. Apex Cleaning Services, Swift Logistics'),
+          const SizedBox(height: 16),
+          _buildTextField(_businessRegNumberController, 'Business Registration Number (RC/CRN/EIN)', hint: 'e.g. RC 1234567'),
+          const SizedBox(height: 16),
+          _buildTextField(_crewSizeController, 'Fleet / Crew Size (Total workforce)', hint: 'e.g. 5', keyboardType: TextInputType.number),
+        ],
+        const SizedBox(height: 24),
+
         _buildSectionHeader('🏢 Professional Headline & Bio', 'Summarize your career impact.'),
         const SizedBox(height: 16),
         _buildTextField(_headlineController, 'Headline', hint: 'e.g. Senior Mobile & Cloud Architect | 7+ Yrs Exp'),

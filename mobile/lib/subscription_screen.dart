@@ -128,9 +128,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         targetPackage ??= packages.isNotEmpty ? packages.first : null;
       }
 
-      final displayTierName = role == 'EMPLOYER'
-          ? (tier == 'ENTERPRISE' ? 'Silver / Enterprise' : 'Premium')
-          : ((tier == 'PREMIUM' || tier == 'DIAMOND') ? 'Diamond' : 'Silver');
+      final displayTierName = role == 'CONTRACTOR'
+          ? (tier == 'DUAL_ENTERPRISE' ? 'Enterprise Firm' : 'Pro Contractor')
+          : (role == 'EMPLOYER'
+              ? (tier == 'ENTERPRISE' ? 'Silver / Enterprise' : 'Premium')
+              : ((tier == 'PREMIUM' || tier == 'DIAMOND') ? 'Diamond' : 'Silver'));
 
       if (targetPackage != null) {
         final success = await RevenueCatService.purchasePackage(targetPackage);
@@ -250,6 +252,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 const SizedBox(height: 20),
                 if (_selectedTab == 0) ..._buildJobSeekerPlans(),
                 if (_selectedTab == 1) ..._buildEmployerPlans(),
+                if (_selectedTab == 2) ..._buildContractorPlans(),
                 const SizedBox(height: 24),
                 _buildStoreComplianceNotice(),
                 const SizedBox(height: 30),
@@ -288,7 +291,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Job Seekers',
+                  'Talent',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: _selectedTab == 0 ? Colors.white : Colors.white60,
@@ -312,6 +315,26 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: _selectedTab == 1 ? Colors.black : Colors.white60,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 2 ? const Color(0xFFA855F7) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'B2B Dual',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _selectedTab == 2 ? Colors.white : Colors.white60,
                   ),
                 ),
               ),
@@ -441,6 +464,61 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'Unlimited Job Postings & Candidate Pipeline',
         ],
         onUpgrade: () => _processNativePurchase('ENTERPRISE', 'EMPLOYER', 100),
+      ),
+    ];
+  }
+
+  List<Widget> _buildContractorPlans() {
+    return [
+      _buildPlanCard(
+        title: 'Free Contractor',
+        price: '\$0',
+        subtitle: 'For contractors & service shops testing dual-mode bidding.',
+        accentColor: Colors.white60,
+        isCurrent: _currentTier == 'FREE',
+        features: const [
+          '1 Commercial Contract Bid per month',
+          '1 Crew / Worker Job Posting per month',
+          'Dual Capacity Switcher (Bid & Hire)',
+          'Direct client proposal chat',
+        ],
+        onUpgrade: null,
+      ),
+      const SizedBox(height: 16),
+      _buildPlanCard(
+        title: 'Pro Contractor',
+        price: _getPackagePrice('dual_pro', '\$70'),
+        subtitle: 'Active service companies bidding on jobs & hiring staff.',
+        accentColor: const Color(0xFFA855F7),
+        isCurrent: _currentTier == 'SILVER' || _currentTier == 'DUAL_PRO',
+        badge: 'POPULAR FOR CONTRACTORS',
+        features: const [
+          '30 Commercial Contract Bids per month',
+          'Post up to 15 Crew / Worker Jobs per month',
+          'Verified Contractor Trust Badge',
+          'Priority Proposal Delivery to Clients',
+          'Instant RFQ & Contract Alerts',
+          'Direct Client Escrow & SLA Agreements',
+        ],
+        onUpgrade: () => _processNativePurchase('DUAL_PRO', 'CONTRACTOR', 70),
+      ),
+      const SizedBox(height: 16),
+      _buildPlanCard(
+        title: 'Enterprise Firm',
+        price: _getPackagePrice('dual_enterprise', '\$130'),
+        subtitle: 'Agencies, fleet operators, and industrial contractors.',
+        accentColor: const Color(0xFF00F0FF),
+        isCurrent: _currentTier == 'PREMIUM' || _currentTier == 'DUAL_ENTERPRISE',
+        badge: 'ALL INCLUSIVE FIRM',
+        features: const [
+          'Unlimited Commercial Contract Bids',
+          'Unlimited Crew / Worker Job Postings',
+          'Featured Contractor Marketplace Placement',
+          'Verified Firm Gold Trust Badge',
+          'Multi-Crew Fleet Management',
+          'Dedicated Account Manager & SLA Escrow',
+        ],
+        onUpgrade: () => _processNativePurchase('DUAL_ENTERPRISE', 'CONTRACTOR', 130),
       ),
     ];
   }

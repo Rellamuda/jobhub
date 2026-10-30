@@ -95,6 +95,14 @@ model JobSeekerProfile {
   headline           String?
   willingToRelocate  Boolean  @default(false)
   remotePreference   String?
+
+  // Dual Capacity: Corporate Contractor / B2B Service Provider (Cleaning, Delivery, Maintenance, etc.)
+  seekerType         String   @default("INDIVIDUAL") // "INDIVIDUAL" | "COMPANY_CONTRACTOR"
+  companyName        String?
+  businessRegNumber  String?
+  crewSize           Int?     @default(1)
+  isDualCapacity     Boolean  @default(false) // Can both bid on jobs and hire employees
+
   summary            String?
   desiredJobTitle    String?
   preferredIndustry  String?

@@ -194,9 +194,23 @@ export class PaymentsService {
         // Determine upgraded subscription tier
         let newTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'SILVER';
         const planUpper = (payment.plan || '').toUpperCase();
-        if (planUpper.includes('PREMIUM') || planUpper.includes('DIAMOND')) {
+        if (
+          planUpper.includes('PREMIUM') ||
+          planUpper.includes('DIAMOND') ||
+          planUpper.includes('ENTERPRISE') ||
+          planUpper.includes('DUAL_ENTERPRISE') ||
+          planUpper.includes('130') ||
+          planUpper.includes('100')
+        ) {
           newTier = 'PREMIUM';
-        } else if (planUpper.includes('SILVER')) {
+        } else if (
+          planUpper.includes('SILVER') ||
+          planUpper.includes('DUAL_PRO') ||
+          planUpper.includes('PRO') ||
+          planUpper.includes('70') ||
+          planUpper.includes('50') ||
+          planUpper.includes('13')
+        ) {
           newTier = 'SILVER';
         }
 
@@ -227,9 +241,29 @@ export class PaymentsService {
     }
   }
 
-  async upgradeMobileUser(userId: string, tier: 'FREE' | 'SILVER' | 'PREMIUM' | 'DIAMOND' | 'ENTERPRISE', platform?: string) {
+  async upgradeMobileUser(userId: string, tier: string, platform?: string) {
     try {
-      const resolvedTier: 'FREE' | 'SILVER' | 'PREMIUM' = (tier === 'DIAMOND' || tier === 'ENTERPRISE') ? 'PREMIUM' : tier;
+      const tierUpper = (tier || '').toUpperCase();
+      let resolvedTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'FREE';
+      let amountUsd = 0;
+
+      if (tierUpper.includes('DUAL_ENTERPRISE') || tierUpper.includes('130')) {
+        resolvedTier = 'PREMIUM';
+        amountUsd = 130.00;
+      } else if (tierUpper.includes('ENTERPRISE') || tierUpper.includes('100')) {
+        resolvedTier = 'PREMIUM';
+        amountUsd = 100.00;
+      } else if (tierUpper.includes('DUAL_PRO') || tierUpper.includes('70')) {
+        resolvedTier = 'SILVER';
+        amountUsd = 70.00;
+      } else if (tierUpper.includes('PREMIUM') || tierUpper.includes('DIAMOND') || tierUpper.includes('50') || tierUpper.includes('20')) {
+        resolvedTier = tierUpper.includes('50') ? 'SILVER' : 'PREMIUM';
+        amountUsd = tierUpper.includes('50') ? 50.00 : 20.00;
+      } else if (tierUpper.includes('SILVER') || tierUpper.includes('13')) {
+        resolvedTier = 'SILVER';
+        amountUsd = 13.00;
+      }
+
       const updatedUser = await this.prisma.user.update({
         where: { id: userId },
         data: { subscriptionTier: resolvedTier },
@@ -240,8 +274,8 @@ export class PaymentsService {
         data: {
           userId,
           reference: `RC_${platform || 'MOBILE'}_${Date.now()}`,
-          amount: resolvedTier === 'PREMIUM' ? 20.00 : 13.00,
-          plan: resolvedTier,
+          amount: amountUsd,
+          plan: tierUpper,
           status: 'SUCCESS',
         },
       });
@@ -251,7 +285,7 @@ export class PaymentsService {
           to: updatedUser.email,
           userName: updatedUser.email,
           tierName: resolvedTier,
-          amountUsd: resolvedTier === 'PREMIUM' ? 20.00 : 13.00,
+          amountUsd,
         }).catch(err => console.error('Error sending mobile subscription email:', err));
       }
 
@@ -278,9 +312,21 @@ export class PaymentsService {
 
       let newTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'FREE';
       if (type === 'INITIAL_PURCHASE' || type === 'RENEWAL' || type === 'UNCANCELLATION') {
-        if (productId.includes('diamond') || productId.includes('premium') || productId.includes('enterprise')) {
+        if (
+          productId.includes('diamond') ||
+          productId.includes('enterprise') ||
+          productId.includes('dual_enterprise') ||
+          productId.includes('130') ||
+          productId.includes('100')
+        ) {
           newTier = 'PREMIUM';
-        } else if (productId.includes('silver')) {
+        } else if (
+          productId.includes('silver') ||
+          productId.includes('dual_pro') ||
+          productId.includes('pro') ||
+          productId.includes('70') ||
+          productId.includes('50')
+        ) {
           newTier = 'SILVER';
         } else {
           newTier = 'SILVER';

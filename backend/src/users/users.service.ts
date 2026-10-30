@@ -36,8 +36,21 @@ export class UsersService {
         role: true,
         subscriptionTier: true,
         freeGenerationsUsed: true,
-        jobSeekerProfile: { select: { id: true } },
-        employer: { select: { id: true } },
+        jobSeekerProfile: {
+          select: {
+            id: true,
+            seekerType: true,
+            companyName: true,
+            isDualCapacity: true,
+          },
+        },
+        employer: {
+          select: {
+            id: true,
+            companyName: true,
+            businessType: true,
+          },
+        },
       },
     });
 
@@ -47,6 +60,12 @@ export class UsersService {
 
     const isAdmin = user.role === 'ADMIN';
     const tier = isAdmin ? 'PREMIUM' : user.subscriptionTier; // FREE, SILVER, PREMIUM
+    const isDual = Boolean(
+      user.jobSeekerProfile?.isDualCapacity ||
+      user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ||
+      user.employer?.businessType?.toLowerCase().includes('contractor') ||
+      user.employer?.businessType?.toLowerCase().includes('agency')
+    );
 
     if (user.role === 'EMPLOYER') {
       const employerId = user.employer?.id;
@@ -54,10 +73,6 @@ export class UsersService {
         ? await this.prisma.job.count({ where: { employerId } })
         : 0;
 
-      // Employer Tier Limits (Option A):
-      // FREE: 3 jobs
-      // SILVER / PREMIUM ($50): 70 jobs
-      // ENTERPRISE ($100): Unlimited
       let limit: number | null = 3;
       let tierName = 'Free Tier';
       let nextTier = 'Premium ($50/mo)';
@@ -67,27 +82,44 @@ export class UsersService {
         limit = null;
         tierName = 'Admin Plan';
         isUnlimited = true;
-      } else if (tier === 'FREE') {
-        limit = 3;
-        tierName = 'Free Tier';
-        nextTier = 'Premium ($50/mo)';
-      } else if (tier === 'SILVER') {
-        // Option A $50 plan
-        limit = 70;
-        tierName = 'Premium Plan';
-        nextTier = 'Enterprise ($100/mo)';
-      } else if (tier === 'PREMIUM') {
-        // Option A $100 plan (Enterprise)
-        limit = null;
-        tierName = 'Enterprise Plan';
-        isUnlimited = true;
+      } else if (isDual) {
+        // Dual-Capacity Contractor in Employer (hiring crew) mode
+        if (tier === 'FREE') {
+          limit = 1;
+          tierName = 'Free Contractor';
+          nextTier = 'Pro Contractor ($70/mo)';
+        } else if (tier === 'SILVER') {
+          limit = 15;
+          tierName = 'Pro Contractor Plan';
+          nextTier = 'Enterprise Firm ($130/mo)';
+        } else if (tier === 'PREMIUM') {
+          limit = null;
+          tierName = 'Enterprise Firm Plan';
+          isUnlimited = true;
+        }
+      } else {
+        // Standard Direct Employer
+        if (tier === 'FREE') {
+          limit = 3;
+          tierName = 'Free Tier';
+          nextTier = 'Premium ($50/mo)';
+        } else if (tier === 'SILVER') {
+          limit = 70;
+          tierName = 'Premium Plan';
+          nextTier = 'Enterprise ($100/mo)';
+        } else if (tier === 'PREMIUM') {
+          limit = null;
+          tierName = 'Enterprise Plan';
+          isUnlimited = true;
+        }
       }
 
       const remaining = isUnlimited ? null : Math.max(0, (limit || 0) - jobCount);
       const isExhausted = !isUnlimited && remaining !== null && remaining <= 0;
-      // Pre-exhaustion warning when at 80%+ usage or <= 1 left for Free, <= 5 left for 70 limit
       const isLow = !isUnlimited && remaining !== null && (
+        (limit === 1 && remaining <= 0) ||
         (limit === 3 && remaining <= 1) ||
+        (limit === 15 && remaining <= 3) ||
         (limit === 70 && remaining <= 10)
       );
 
@@ -95,13 +127,14 @@ export class UsersService {
         role: 'EMPLOYER',
         tier,
         tierName,
+        isDualCapacity: isDual,
         used: jobCount,
         limit,
         remaining,
         isUnlimited,
         isLow,
         isExhausted,
-        metricName: 'Job Postings',
+        metricName: isDual ? 'Crew Job Postings' : 'Job Postings',
         warningMessage: isExhausted
           ? `You have reached your limit of ${limit} job postings on ${tierName}. Upgrade to ${nextTier} to post more jobs!`
           : isLow
@@ -110,60 +143,80 @@ export class UsersService {
         nextTier,
       };
     } else {
-      // Job Seeker
+      // Job Seeker or Commercial Contractor bidding mode
       const seekerId = user.jobSeekerProfile?.id;
       const appCount = seekerId
         ? await this.prisma.application.count({ where: { jobSeekerId: seekerId } })
         : 0;
       const aiUsed = user.freeGenerationsUsed || 0;
 
-      // Job Seeker Tier Limits:
-      // FREE: 3 AI generations, 3 job applications
-      // SILVER ($13/mo): 15 AI generations, 15 applications
-      // DIAMOND ($20/mo): Unlimited
       let limit: number | null = 3;
       let tierName = 'Free Tier';
       let nextTier = 'Silver ($13/mo)';
       let isUnlimited = false;
+      let metricName = 'AI Applications & Resumes';
 
       if (isAdmin) {
         limit = null;
         tierName = 'Admin Plan';
         isUnlimited = true;
-      } else if (tier === 'FREE') {
-        limit = 3;
-        tierName = 'Free Tier';
-        nextTier = 'Silver ($13/mo)';
-      } else if (tier === 'SILVER') {
-        limit = 15;
-        tierName = 'Silver Plan';
-        nextTier = 'Diamond ($20/mo)';
-      } else if (tier === 'PREMIUM') {
-        limit = null;
-        tierName = 'Diamond Plan';
-        isUnlimited = true;
+      } else if (isDual) {
+        metricName = 'Commercial Contract Bids';
+        if (tier === 'FREE') {
+          limit = 1;
+          tierName = 'Free Contractor';
+          nextTier = 'Pro Contractor ($70/mo)';
+        } else if (tier === 'SILVER') {
+          limit = 30;
+          tierName = 'Pro Contractor Plan';
+          nextTier = 'Enterprise Firm ($130/mo)';
+        } else if (tier === 'PREMIUM') {
+          limit = null;
+          tierName = 'Enterprise Firm Plan';
+          isUnlimited = true;
+        }
+      } else {
+        if (tier === 'FREE') {
+          limit = 3;
+          tierName = 'Free Tier';
+          nextTier = 'Silver ($13/mo)';
+        } else if (tier === 'SILVER') {
+          limit = 15;
+          tierName = 'Silver Plan';
+          nextTier = 'Diamond ($20/mo)';
+        } else if (tier === 'PREMIUM') {
+          limit = null;
+          tierName = 'Diamond Plan';
+          isUnlimited = true;
+        }
       }
 
       const used = Math.max(aiUsed, appCount);
       const remaining = isUnlimited ? null : Math.max(0, (limit || 0) - used);
       const isExhausted = !isUnlimited && remaining !== null && remaining <= 0;
-      const isLow = !isUnlimited && remaining !== null && remaining <= (limit === 3 ? 1 : 3);
+      const isLow = !isUnlimited && remaining !== null && (
+        (limit === 1 && remaining <= 0) ||
+        (limit === 3 && remaining <= 1) ||
+        (limit === 15 && remaining <= 3) ||
+        (limit === 30 && remaining <= 5)
+      );
 
       return {
         role: 'JOB_SEEKER',
         tier,
         tierName,
+        isDualCapacity: isDual,
         used,
         limit,
         remaining,
         isUnlimited,
         isLow,
         isExhausted,
-        metricName: 'AI Applications & Resumes',
+        metricName,
         warningMessage: isExhausted
-          ? `You have used all ${limit} ${tierName} AI application credits. Upgrade to ${nextTier} to continue applying!`
+          ? `You have reached your limit of ${limit} ${metricName.toLowerCase()} on ${tierName}. Upgrade to ${nextTier} to continue!`
           : isLow
-          ? `Notice: Only ${remaining} of ${limit} AI application credits remaining on ${tierName}. Upgrade to ${nextTier} soon.`
+          ? `Notice: Only ${remaining} of ${limit} ${metricName.toLowerCase()} remaining on ${tierName}. Upgrade to ${nextTier} soon.`
           : null,
         nextTier,
       };

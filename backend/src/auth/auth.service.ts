@@ -334,6 +334,11 @@ export class AuthService {
             lastName: true,
             profilePicture: true,
             verificationStatus: true,
+            seekerType: true,
+            companyName: true,
+            businessRegNumber: true,
+            crewSize: true,
+            isDualCapacity: true,
           }
         },
         employer: {
@@ -370,6 +375,69 @@ export class AuthService {
       profilePicture: profilePicture || null,
       displayName: displayName || user.email,
       verificationStatus,
+    };
+  }
+
+  async switchRole(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { jobSeekerProfile: true, employer: true },
+    });
+
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.role === 'ADMIN') {
+      return { success: true, message: 'Admins cannot toggle role', role: 'ADMIN' };
+    }
+
+    const newRole = user.role === 'JOB_SEEKER' ? 'EMPLOYER' : 'JOB_SEEKER';
+
+    // If switching to EMPLOYER and employer record doesn't exist, auto-create one from contractor profile
+    if (newRole === 'EMPLOYER' && !user.employer) {
+      const companyName = user.jobSeekerProfile?.companyName ||
+        `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim() ||
+        'Enterprise Partner';
+
+      await this.prisma.employer.create({
+        data: {
+          user: { connect: { id: userId } },
+          companyName,
+          businessType: user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ? 'Corporate Contractor / Agency' : 'Direct Employer',
+          registrationNumber: user.jobSeekerProfile?.businessRegNumber || null,
+          locationCountry: user.jobSeekerProfile?.residenceCountry || null,
+          locationCity: user.jobSeekerProfile?.residenceCity || null,
+        },
+      });
+    }
+
+    // If switching to JOB_SEEKER and jobSeekerProfile record doesn't exist, auto-create one
+    if (newRole === 'JOB_SEEKER' && !user.jobSeekerProfile) {
+      await this.prisma.jobSeekerProfile.create({
+        data: {
+          user: { connect: { id: userId } },
+          firstName: user.employer?.companyName || 'Corporate',
+          lastName: 'Contractor',
+          seekerType: 'COMPANY_CONTRACTOR',
+          companyName: user.employer?.companyName,
+          businessRegNumber: user.employer?.registrationNumber,
+          isDualCapacity: true,
+        },
+      });
+    }
+
+    // Update role
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole },
+    });
+
+    const payload = { email: updatedUser.email, sub: updatedUser.id, role: updatedUser.role };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      success: true,
+      message: `Switched mode to ${newRole === 'EMPLOYER' ? 'Employer / Hiring Mode' : 'Contractor / Job Mode'}`,
+      role: newRole,
+      access_token,
     };
   }
 

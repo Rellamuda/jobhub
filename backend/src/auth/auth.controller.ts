@@ -50,6 +50,12 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('switch-role')
+  async switchRole(@Request() req) {
+    return this.authService.switchRole(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Delete('me')
   @HttpCode(HttpStatus.OK)
   async deleteMe(@Request() req) {

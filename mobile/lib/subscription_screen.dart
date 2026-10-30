@@ -17,7 +17,7 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isLoading = false;
-  int _selectedTab = 0; // 0: Job Seekers, 1: Employers
+  int _selectedTab = 0; // 0: Job Seekers, 1: B2B Contractors & Dual Mode
   String? _userRole;
   String? _userEmail;
   String? _userId;
@@ -28,11 +28,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void initState() {
     super.initState();
     _userRole = widget.initialRole;
-    if (_userRole == 'EMPLOYER') {
-      _selectedTab = 1;
-    } else if (_userRole == 'JOB_SEEKER') {
-      _selectedTab = 0;
-    }
+    _selectedTab = 0;
     _initRoleAndData();
   }
 
@@ -85,9 +81,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             _userRole = user['role'] ?? _userRole;
             _userEmail = user['email'];
             _currentTier = (user['subscriptionTier'] ?? 'FREE').toString().toUpperCase();
-            if (_userRole == 'EMPLOYER') {
+            final isContractor = user['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+                user['jobSeekerProfile']?['isDualCapacity'] == true;
+            if (isContractor) {
               _selectedTab = 1;
-            } else if (_userRole == 'JOB_SEEKER') {
+            } else {
               _selectedTab = 0;
             }
           });
@@ -251,8 +249,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 _buildTabSelector(),
                 const SizedBox(height: 20),
                 if (_selectedTab == 0) ..._buildJobSeekerPlans(),
-                if (_selectedTab == 1) ..._buildEmployerPlans(),
-                if (_selectedTab == 2) ..._buildContractorPlans(),
+                if (_selectedTab == 1) ..._buildContractorPlans(),
                 const SizedBox(height: 24),
                 _buildStoreComplianceNotice(),
                 const SizedBox(height: 30),
@@ -286,15 +283,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 0 ? const Color(0xFF6366F1) : Colors.transparent,
+                  color: _selectedTab == 0 ? const Color(0xFF00F0FF) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Talent',
+                  'Job Seekers',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: _selectedTab == 0 ? Colors.white : Colors.white60,
+                    color: _selectedTab == 0 ? Colors.black : Colors.white60,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -306,35 +304,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? const Color(0xFF00F0FF) : Colors.transparent,
+                  color: _selectedTab == 1 ? const Color(0xFFA855F7) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Employers',
+                  'B2B Contractors & Dual Mode',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: _selectedTab == 1 ? Colors.black : Colors.white60,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = 2),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 2 ? const Color(0xFFA855F7) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'B2B Dual',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _selectedTab == 2 ? Colors.white : Colors.white60,
+                    color: _selectedTab == 1 ? Colors.white : Colors.white60,
+                    fontSize: 12,
                   ),
                 ),
               ),

@@ -188,6 +188,7 @@ export default function OnboardingPage() {
   const [salaryAmount, setSalaryAmount] = useState('');
   const [salaryFrequency, setSalaryFrequency] = useState('Monthly'); // Hourly, Daily, Monthly, Annually
   const [salaryCurrency, setSalaryCurrency] = useState('$');
+  const [isSalaryNegotiable, setIsSalaryNegotiable] = useState(false);
   const [availability, setAvailability] = useState('Immediately');
   const [preferredWorkCountry, setPreferredWorkCountry] = useState('');
   
@@ -344,10 +345,12 @@ export default function OnboardingPage() {
             setValidationError('Please select your Preferred Work Country (or select Any Country).');
             return false;
           }
-          const numericSalary = parseFloat(salaryAmount.replace(/,/g, '').trim());
-          if (!salaryAmount.trim() || isNaN(numericSalary) || numericSalary <= 0) {
-            setValidationError('Please enter a valid positive numeric compensation amount.');
-            return false;
+          if (!isSalaryNegotiable) {
+            const numericSalary = parseFloat(salaryAmount.replace(/,/g, '').trim());
+            if (!salaryAmount.trim() || isNaN(numericSalary) || numericSalary <= 0) {
+              setValidationError('Please enter a valid positive numeric compensation amount (or mark as Negotiable).');
+              return false;
+            }
           }
           if (!availability) {
             setValidationError('Please select your Availability to Start.');
@@ -578,7 +581,9 @@ export default function OnboardingPage() {
               // Parse existing expectedSalary
               const rawSalary = prof.expectedSalary || '';
               setExpectedSalary(rawSalary);
-              if (rawSalary) {
+              if (rawSalary.toLowerCase() === 'negotiable') {
+                setIsSalaryNegotiable(true);
+              } else if (rawSalary) {
                 // e.g. "$ 75000 / monthly" or "₦ 200,000 / month"
                 const parts = rawSalary.split(' ');
                 if (parts.length >= 2) {
@@ -695,9 +700,11 @@ export default function OnboardingPage() {
         : seekerCategory === 'BOTH'
         ? `${profession.trim()} & ${resolvedTrade}`
         : profession.trim();
-      const finalSalary = salaryAmount.trim() 
-        ? `${salaryCurrency} ${salaryAmount.trim()} / ${salaryFrequency.toLowerCase()}` 
-        : expectedSalary;
+      const finalSalary = isSalaryNegotiable
+        ? 'Negotiable'
+        : (salaryAmount.trim() 
+            ? `${salaryCurrency} ${salaryAmount.trim()} / ${salaryFrequency.toLowerCase()}` 
+            : expectedSalary);
 
       const finalPreferredIndustry = preferredIndustryOption === 'Others' ? preferredIndustryCustom.trim() : preferredIndustryOption;
 
@@ -1506,52 +1513,83 @@ export default function OnboardingPage() {
               }}
             />
 
-            {/* Flexible Compensation Calculation: Per Hour, Daily, Monthly, Annually */}
+            {/* Flexible Compensation Calculation: Per Hour, Daily, Monthly, Annually or Negotiable */}
             <div style={{ marginTop: '0.8rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <label style={{ color: 'white', display: 'block', fontWeight: 600, marginBottom: '0.4rem', fontSize: '0.95rem' }}>
-                Expected / Desired Compensation <span style={{ color: '#00F0FF' }}>*</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <label style={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', margin: 0 }}>
+                  Expected / Desired Compensation <span style={{ color: '#00F0FF' }}>*</span>
+                </label>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: isSalaryNegotiable ? '#00F0FF' : 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={isSalaryNegotiable}
+                    onChange={e => setIsSalaryNegotiable(e.target.checked)}
+                    style={{ cursor: 'pointer', accentColor: '#00F0FF' }}
+                  />
+                  Mark as Negotiable
+                </label>
+              </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 0.8rem 0' }}>
-                Select how you prefer to be compensated (per hour, daily, monthly, or annually). Currency defaults to your preferred work country or USD for global/remote roles.
+                {isSalaryNegotiable
+                  ? 'Your compensation expectation will be displayed as "Negotiable" (open to quote/discussion) to employers and clients.'
+                  : 'Select how you prefer to be compensated (per hour, daily, monthly, or annually). Currency defaults to your preferred work country or USD for global/remote roles.'}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr 1.5fr', gap: '0.6rem' }}>
-                {/* Currency select */}
-                <select 
-                  value={salaryCurrency} 
-                  onChange={e => setSalaryCurrency(e.target.value)} 
-                  className="input-field"
-                  style={{ marginBottom: 0 }}
-                  title="Currency"
-                >
-                  {currencyOptions.map(c => (
-                    <option key={c.label} value={c.code}>{c.label}</option>
-                  ))}
-                </select>
+              {isSalaryNegotiable ? (
+                <div style={{
+                  padding: '0.9rem 1.2rem',
+                  borderRadius: '10px',
+                  background: 'rgba(0, 240, 255, 0.08)',
+                  border: '1px dashed rgba(0, 240, 255, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  color: '#00F0FF',
+                  fontSize: '0.9rem',
+                  fontWeight: 500
+                }}>
+                  <span style={{ fontSize: '1.2rem' }}>🤝</span>
+                  <span>Compensation marked as <strong>Negotiable</strong> (Open to discussion / contract quote upon offer)</span>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr 1.5fr', gap: '0.6rem' }}>
+                  {/* Currency select */}
+                  <select 
+                    value={salaryCurrency} 
+                    onChange={e => setSalaryCurrency(e.target.value)} 
+                    className="input-field"
+                    style={{ marginBottom: 0 }}
+                    title="Currency"
+                  >
+                    {currencyOptions.map(c => (
+                      <option key={c.label} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
 
-                {/* Amount input */}
-                <input 
-                  placeholder="e.g. 50, 400, or 6,000" 
-                  value={salaryAmount} 
-                  onChange={e => setSalaryAmount(e.target.value)} 
-                  className="input-field" 
-                  style={{ marginBottom: 0 }}
-                />
+                  {/* Amount input */}
+                  <input 
+                    placeholder="e.g. 50, 400, or 6,000" 
+                    value={salaryAmount} 
+                    onChange={e => setSalaryAmount(e.target.value)} 
+                    className="input-field" 
+                    style={{ marginBottom: 0 }}
+                  />
 
-                {/* Frequency select */}
-                <select 
-                  value={salaryFrequency} 
-                  onChange={e => setSalaryFrequency(e.target.value)} 
-                  className="input-field"
-                  style={{ marginBottom: 0 }}
-                  title="Compensation Frequency"
-                >
-                  <option value="Hourly">Per Hour</option>
-                  <option value="Daily">Daily</option>
-                  <option value="Monthly">Monthly</option>
-                  <option value="Annually">Annually</option>
-                </select>
-              </div>
+                  {/* Frequency select */}
+                  <select 
+                    value={salaryFrequency} 
+                    onChange={e => setSalaryFrequency(e.target.value)} 
+                    className="input-field"
+                    style={{ marginBottom: 0 }}
+                    title="Compensation Frequency"
+                  >
+                    <option value="Hourly">Per Hour</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Annually">Annually</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: '1rem' }}>

@@ -1005,9 +1005,14 @@ Generated via JobHub Global Talent Platform''';
   }
 
   Widget _buildSeekerProfile() {
-    final name = '${_profile?['firstName'] ?? ''} ${_profile?['lastName'] ?? ''}'.trim();
+    final isCompanyOrDual = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _profile?['isDualCapacity'] == true ||
+        (_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty);
+    final companyName = (_profile?['companyName'] ?? '').toString().trim();
+    final repName = '${_profile?['firstName'] ?? ''} ${_profile?['lastName'] ?? ''}'.trim();
+    final name = (isCompanyOrDual && companyName.isNotEmpty) ? companyName : repName;
     final location = '${_profile?['residenceCity'] ?? ''} ${_profile?['residenceCountry'] ?? ''}'.trim();
-    final profession = _profile?['headline'] ?? _profile?['profession'] ?? 'Job Seeker';
+    final profession = _profile?['headline'] ?? _profile?['profession'] ?? (isCompanyOrDual ? 'Registered Contracting Company' : 'Job Seeker');
     final picUrl = _profile?['profilePicture'];
     final isVerified = _profile?['verificationStatus'] == 'VERIFIED';
     
@@ -1025,7 +1030,7 @@ Generated via JobHub Global Talent Platform''';
                 radius: 60,
                 backgroundColor: Colors.white.withOpacity(0.1),
                 backgroundImage: _resolvePicUrl(picUrl) != null ? NetworkImage(_resolvePicUrl(picUrl)!) : null,
-                child: (picUrl == null || picUrl.isEmpty) ? const Icon(Icons.person, size: 60, color: Colors.white) : null,
+                child: (picUrl == null || picUrl.isEmpty) ? Icon(isCompanyOrDual ? Icons.business : Icons.person, size: 60, color: Colors.white) : null,
               ),
               Positioned(
                 bottom: 0,
@@ -1055,6 +1060,15 @@ Generated via JobHub Global Talent Platform''';
         ),
         const SizedBox(height: 16),
         Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white), textAlign: TextAlign.center),
+        if (isCompanyOrDual && companyName.isNotEmpty && repName.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0, bottom: 4.0),
+            child: Text(
+              '👤 Representative: $repName',
+              style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.75)),
+              textAlign: TextAlign.center,
+            ),
+          ),
         Text(profession, style: const TextStyle(fontSize: 18, color: Color(0xFF00F0FF)), textAlign: TextAlign.center),
         if (location.isNotEmpty)
           Text(location, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)), textAlign: TextAlign.center),
@@ -1399,7 +1413,7 @@ Generated via JobHub Global Talent Platform''';
           ...experience.map((e) => _buildCardItem(e['role'], e['company'], 'Dates: ${e['dates']}')),
         ],
 
-        if (education.isNotEmpty) ...[
+        if (!isCompanyOrDual && education.isNotEmpty) ...[
           const SizedBox(height: 24),
           _buildSectionTitle('Education'),
           ...education.map((e) => _buildCardItem(e['school'], e['course'], 'Dates: ${e['dates'] ?? e['yearGraduated']}')),

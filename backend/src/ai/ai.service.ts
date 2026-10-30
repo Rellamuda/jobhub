@@ -62,38 +62,44 @@ export class AiService {
       );
       return response.data;
     } catch (error) {
+      const isCompany = !!(profileData?.seekerType === 'COMPANY_CONTRACTOR' || profileData?.isDualCapacity || profileData?.companyName);
+      const companyName = (profileData?.companyName || '').trim();
       const fName = profileData?.firstName || profileData?.first_name || 'Valued';
       const lName = profileData?.lastName || profileData?.last_name || 'Candidate';
-      const prof = profileData?.desiredJobTitle || profileData?.profession || 'Professional';
-      const skills = Array.isArray(profileData?.skills) ? profileData.skills : ['Project Management', 'Strategic Execution', 'Leadership'];
+      const displayName = (isCompany && companyName) ? companyName : `${fName} ${lName}`;
+      const prof = profileData?.desiredJobTitle || profileData?.profession || (isCompany ? 'Commercial Services Contractor' : 'Professional');
+      const skills = Array.isArray(profileData?.skills) && profileData.skills.length > 0 ? profileData.skills : ['Project Management', 'Quality Assurance', 'Operational Excellence'];
       return {
-        resume: `# RESUME\n\n## ${fName} ${lName}\n**RESUME — ${prof}**\n\n### Executive Summary\nAccomplished, results-oriented ${prof} with demonstrated excellence in ${skills.slice(0, 3).join(', ')}. Recognized for architecting scalable solutions, improving operational workflows, and driving team success.\n`,
+        resume: `# ${isCompany ? 'CORPORATE PROFILE & RESUME' : 'RESUME'}\n\n## ${displayName}\n**${isCompany ? 'CORPORATE CONTRACTOR' : 'RESUME'} — ${prof}**\n\n### ${isCompany ? 'Company Overview & Mission' : 'Executive Summary'}\n${isCompany ? `${displayName} is an established, dependable commercial services contractor delivering excellence in ${skills.slice(0, 3).join(', ')}.` : `Accomplished, results-oriented ${prof} with demonstrated excellence in ${skills.slice(0, 3).join(', ')}.`}\n`,
         structured: {
-          title: `RESUME — ${fName} ${lName}`,
+          title: `${isCompany ? 'CORPORATE RESUME' : 'RESUME'} — ${displayName}`,
           personalInfo: {
+            companyName: isCompany ? displayName : undefined,
             firstName: fName,
             lastName: lName,
             email: profileData?.email || 'talent@jobhub.ai',
             phone: profileData?.phone || '+1 (555) 019-2834',
             city: profileData?.city || profileData?.residenceCity || 'Remote / Flexible'
           },
-          summary: profileData?.summary || `Accomplished ${prof} with proven expertise in ${skills.join(', ')}. Demonstrated success driving cross-functional outcomes and executing high-impact initiatives.`,
+          summary: profileData?.summary || (isCompany 
+            ? `${displayName} delivers premier commercial and contracting solutions specialized in ${skills.join(', ')} with certified compliance and professional staffing.` 
+            : `Accomplished ${prof} with proven expertise in ${skills.join(', ')}. Demonstrated success driving cross-functional outcomes and executing high-impact initiatives.`),
           skills: skills,
           experience: Array.isArray(profileData?.experience) && profileData.experience.length > 0 ? profileData.experience : [
             {
-              role: `Lead ${prof}`,
-              company: "Apex Global Solutions",
+              role: isCompany ? "Commercial Contractor Lead" : `Lead ${prof}`,
+              company: isCompany ? displayName : "Apex Global Solutions",
               dates: "2022 - Present",
               responsibilities: `• Spearheaded core initiatives leveraging ${skills.slice(0, 2).join(' & ')}, improving operational throughput by 30%.\n• Collaborated cross-functionally to streamline delivery cycles and ensure top-tier execution.`
             }
           ],
-          education: Array.isArray(profileData?.education) && profileData.education.length > 0 ? profileData.education : [
+          education: isCompany ? [] : (Array.isArray(profileData?.education) && profileData.education.length > 0 ? profileData.education : [
             {
               course: `Degree in ${prof} / Information Systems`,
               school: "Accredited University",
               dates: "Graduated with Honors"
             }
-          ]
+          ])
         }
       };
     }

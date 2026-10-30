@@ -304,7 +304,7 @@ function ResumeBuilder() {
 
         ${resume.experience.length > 0 ? `<div class="section-header">${isCompany ? 'Past Performance & Corporate Experience' : 'Professional Experience'}</div>${expHtml}` : ''}
 
-        ${resume.education.length > 0 ? `<div class="section-header">Education & Credentials</div>${eduHtml}` : ''}
+        ${!isCompany && resume.education.length > 0 ? `<div class="section-header">Education & Credentials</div>${eduHtml}` : ''}
 
         <div style="margin-top:30px;text-align:center;font-size:9pt;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px;">
           Generated via JobHub Global Ecosystem • JobHub Digital Credentials
@@ -423,6 +423,9 @@ function ResumeBuilder() {
       education: prev.education.filter((_, i) => i !== index)
     }));
   };
+
+  const compName = (resume.personalInfo as any)?.companyName || (resume as any).companyName || '';
+  const isCompany = !!compName || (resume.personalInfo as any)?.seekerType === 'COMPANY_CONTRACTOR';
 
   return (
     <>
@@ -662,66 +665,68 @@ function ResumeBuilder() {
               </div>
 
               {/* Education */}
-              <div className="space-y-4 bg-white/5 border border-white/10 p-5 rounded-2xl">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold flex items-center gap-2 text-cyan-300">
-                    <FileText className="w-4 h-4"/> Education & Credentials
-                  </h3>
-                  <Button size="sm" onClick={handleAddEducation} className="gap-1.5 text-xs bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40">
-                    <Plus className="w-3.5 h-3.5" /> Add Education
-                  </Button>
-                </div>
+              {!isCompany && (
+                <div className="space-y-4 bg-white/5 border border-white/10 p-5 rounded-2xl">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold flex items-center gap-2 text-cyan-300">
+                      <FileText className="w-4 h-4"/> Education & Credentials
+                    </h3>
+                    <Button size="sm" onClick={handleAddEducation} className="gap-1.5 text-xs bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40">
+                      <Plus className="w-3.5 h-3.5" /> Add Education
+                    </Button>
+                  </div>
 
-                {resume.education.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">No education entries yet. Click &quot;Add Education&quot; to add one.</p>
-                ) : (
-                  resume.education.map((edu: any, i: number) => (
-                    <div key={i} className="p-4 bg-black/40 border border-white/10 rounded-xl space-y-3">
-                      <div className="flex justify-between items-center">
-                        <Input 
-                          placeholder="Degree / Course" 
-                          value={edu.course || edu.degree || ''} 
-                          onChange={e => {
-                            const newEdu = [...resume.education];
-                            newEdu[i] = { ...newEdu[i], course: e.target.value };
-                            setResume({ ...resume, education: newEdu });
-                          }}
-                          className="bg-transparent border-none text-white font-bold p-0 text-base focus-visible:ring-0"
-                        />
-                        <button 
-                          onClick={() => handleRemoveEducation(i)}
-                          className="text-red-400 hover:text-red-300 p-1 rounded"
-                          title="Remove item"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                  {resume.education.length === 0 ? (
+                    <p className="text-xs text-gray-400 italic">No education entries yet. Click &quot;Add Education&quot; to add one.</p>
+                  ) : (
+                    resume.education.map((edu: any, i: number) => (
+                      <div key={i} className="p-4 bg-black/40 border border-white/10 rounded-xl space-y-3">
+                        <div className="flex justify-between items-center">
+                          <Input 
+                            placeholder="Degree / Course" 
+                            value={edu.course || edu.degree || ''} 
+                            onChange={e => {
+                              const newEdu = [...resume.education];
+                              newEdu[i] = { ...newEdu[i], course: e.target.value };
+                              setResume({ ...resume, education: newEdu });
+                            }}
+                            className="bg-transparent border-none text-white font-bold p-0 text-base focus-visible:ring-0"
+                          />
+                          <button 
+                            onClick={() => handleRemoveEducation(i)}
+                            className="text-red-400 hover:text-red-300 p-1 rounded"
+                            title="Remove item"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input 
+                            placeholder="Institution / University" 
+                            value={edu.school || edu.institution || ''} 
+                            onChange={e => {
+                              const newEdu = [...resume.education];
+                              newEdu[i] = { ...newEdu[i], school: e.target.value };
+                              setResume({ ...resume, education: newEdu });
+                            }}
+                            className="bg-black/30 border-white/10 text-xs text-cyan-400"
+                          />
+                          <Input 
+                            placeholder="Year / Dates" 
+                            value={edu.dates || edu.yearGraduated || ''} 
+                            onChange={e => {
+                              const newEdu = [...resume.education];
+                              newEdu[i] = { ...newEdu[i], dates: e.target.value };
+                              setResume({ ...resume, education: newEdu });
+                            }}
+                            className="bg-black/30 border-white/10 text-xs text-gray-400"
+                          />
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input 
-                          placeholder="Institution / University" 
-                          value={edu.school || edu.institution || ''} 
-                          onChange={e => {
-                            const newEdu = [...resume.education];
-                            newEdu[i] = { ...newEdu[i], school: e.target.value };
-                            setResume({ ...resume, education: newEdu });
-                          }}
-                          className="bg-black/30 border-white/10 text-xs text-cyan-400"
-                        />
-                        <Input 
-                          placeholder="Year / Dates" 
-                          value={edu.dates || edu.yearGraduated || ''} 
-                          onChange={e => {
-                            const newEdu = [...resume.education];
-                            newEdu[i] = { ...newEdu[i], dates: e.target.value };
-                            setResume({ ...resume, education: newEdu });
-                          }}
-                          className="bg-black/30 border-white/10 text-xs text-gray-400"
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
             
             {/* Sidebar: Candidate Info, Skills, Additional Details */}
@@ -958,7 +963,7 @@ function ResumeBuilder() {
           )}
 
           {/* Education */}
-          {resume.education && resume.education.length > 0 && (
+          {!isCompany && resume.education && resume.education.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 border-b border-gray-200 pb-1">
                 Education & Credentials

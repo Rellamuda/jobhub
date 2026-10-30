@@ -316,7 +316,7 @@ export class ResumesService {
           </div>
           ` : ''}
           
-          ${eduHtml && education.length > 0 ? `
+          ${!isCompany && eduHtml && education.length > 0 ? `
           <div class="section">
             <div class="section-title">Education & Academic Training</div>
             ${eduHtml}

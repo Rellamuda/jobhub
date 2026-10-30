@@ -522,10 +522,18 @@ export default function ProfilePage() {
                 {user.role === 'JOB_SEEKER' ? (
                   <>
                     <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {profile.firstName} {profile.lastName}
+                      {(profile.seekerType === 'COMPANY_CONTRACTOR' || profile.isDualCapacity || profile.companyName)
+                        ? (profile.companyName || `${profile.firstName} ${profile.lastName}`)
+                        : `${profile.firstName} ${profile.lastName}`}
                       {profile.verificationStatus === 'VERIFIED' && <span title="Verified Professional" style={{ color: '#00f0ff', fontSize: '1.5rem' }}>Verified</span>}
                     </h1>
-                    <p style={{ fontSize: '1.2rem', margin: '0.5rem 0' }}>{profile.headline || profile.profession || 'Job Seeker'} {profile.isSkilledProfessional && `(${profile.skilledProfession})`}</p>
+                    {(profile.seekerType === 'COMPANY_CONTRACTOR' || profile.isDualCapacity || profile.companyName) && profile.companyName && (
+                      <p style={{ margin: '0.25rem 0 0.5rem 0', color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.95rem' }}>
+                        👤 Representative: <strong>{profile.firstName} {profile.lastName}</strong>
+                        {profile.businessRegNumber && <span style={{ marginLeft: '0.5rem', color: '#00f0ff' }}>• Reg: {profile.businessRegNumber}</span>}
+                      </p>
+                    )}
+                    <p style={{ fontSize: '1.2rem', margin: '0.5rem 0' }}>{profile.headline || profile.profession || ((profile.seekerType === 'COMPANY_CONTRACTOR' || profile.isDualCapacity) ? 'Registered Contracting Company' : 'Job Seeker')} {profile.isSkilledProfessional && `(${profile.skilledProfession})`}</p>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{profile.residenceCity}{profile.residenceState && `, ${profile.residenceState}`} {profile.residenceCountry && `- ${profile.residenceCountry}`}</p>
                     
                     {profile.verificationStatus === 'UNVERIFIED' && (
@@ -721,7 +729,7 @@ export default function ProfilePage() {
             )}
 
             {/* Education */}
-            {profile.education && profile.education.length > 0 && (
+            {!(profile.seekerType === 'COMPANY_CONTRACTOR' || profile.isDualCapacity) && profile.education && profile.education.length > 0 && (
               <div className="glass-panel" style={{ padding: '2rem' }}>
                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Education</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

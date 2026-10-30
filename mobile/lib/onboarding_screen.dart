@@ -63,6 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _salaryAmount = TextEditingController();
   String _salaryFrequency = 'Monthly'; // Hourly, Daily, Monthly, Annually
   String _salaryCurrency = '\$';
+  bool _isSalaryNegotiable = false;
   final _availability = TextEditingController(text: 'Immediately');
   String _phoneCode = '+1';
   String _hrPhoneCode = '+1';
@@ -277,7 +278,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                   final rawSal = prof['expectedSalary'] ?? '';
                   _expectedSalary.text = rawSal;
-                  if (rawSal.isNotEmpty) {
+                  if (rawSal.toLowerCase() == 'negotiable') {
+                    _isSalaryNegotiable = true;
+                  } else if (rawSal.isNotEmpty) {
                     final parts = rawSal.split(' ');
                     if (parts.length >= 2) {
                       _salaryCurrency = parts[0];
@@ -696,9 +699,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           : (_seekerCategory == 'BOTH'
               ? '${_profession.text.trim()} & $resolvedTrade'
               : _profession.text.trim());
-      final finalSalary = _salaryAmount.text.trim().isNotEmpty
-          ? '$_salaryCurrency ${_salaryAmount.text.trim()} / ${_salaryFrequency.toLowerCase()}'
-          : _expectedSalary.text.trim();
+      final finalSalary = _isSalaryNegotiable
+          ? 'Negotiable'
+          : (_salaryAmount.text.trim().isNotEmpty
+              ? '$_salaryCurrency ${_salaryAmount.text.trim()} / ${_salaryFrequency.toLowerCase()}'
+              : _expectedSalary.text.trim());
 
       final Set<String> combinedSkills = {
         ..._skills,
@@ -932,10 +937,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             _showError('Preferred Work Country is required (choose Any Country if flexible)');
             return false;
           }
-          final amount = double.tryParse(_salaryAmount.text.trim().replaceAll(',', ''));
-          if (_salaryAmount.text.trim().isEmpty || amount == null || amount <= 0) {
-            _showError('Please enter a valid positive compensation amount');
-            return false;
+          if (!_isSalaryNegotiable) {
+            final amount = double.tryParse(_salaryAmount.text.trim().replaceAll(',', ''));
+            if (_salaryAmount.text.trim().isEmpty || amount == null || amount <= 0) {
+              _showError('Please enter a valid positive compensation amount (or mark as Negotiable)');
+              return false;
+            }
           }
           return true;
 
@@ -2000,7 +2007,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               },
             ),
 
-            // Flexible Compensation: Amount, Currency, and Frequency (Hourly, Daily, Monthly, Annually)
+            // Flexible Compensation: Amount, Currency, and Frequency (Hourly, Daily, Monthly, Annually) or Negotiable
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 16),
@@ -2012,81 +2019,143 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Expected / Desired Compensation *', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Specify rate per hour, daily, monthly or annually. Global roles default to USD.',
-                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
-                  ),
-                  const SizedBox(height: 10),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Currency Selector
-                      SizedBox(
-                        width: 75,
-                        child: DropdownButtonFormField<String>(
-                          value: _currencySymbols.contains(_salaryCurrency) ? _salaryCurrency : '\$',
-                          dropdownColor: const Color(0xFF16122E),
-                          style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          ),
-                          items: _currencySymbols.map((curr) {
-                            return DropdownMenuItem<String>(value: curr, child: Text(curr));
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _salaryCurrency = val);
-                          },
+                      const Expanded(
+                        child: Text(
+                          'Expected / Desired Compensation *',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Amount
-                      Expanded(
-                        child: TextField(
-                          controller: _salaryAmount,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'e.g. 50 or 5,000',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                            filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Frequency
-                      SizedBox(
-                        width: 100,
-                        child: DropdownButtonFormField<String>(
-                          value: _salaryFrequency,
-                          dropdownColor: const Color(0xFF16122E),
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'Hourly', child: Text('/ hour')),
-                            DropdownMenuItem(value: 'Daily', child: Text('/ day')),
-                            DropdownMenuItem(value: 'Monthly', child: Text('/ month')),
-                            DropdownMenuItem(value: 'Annually', child: Text('/ year')),
+                      InkWell(
+                        onTap: () => setState(() => _isSalaryNegotiable = !_isSalaryNegotiable),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Checkbox(
+                              value: _isSalaryNegotiable,
+                              activeColor: const Color(0xFF00F0FF),
+                              checkColor: Colors.black,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              onChanged: (val) => setState(() => _isSalaryNegotiable = val ?? false),
+                            ),
+                            Text(
+                              'Negotiable',
+                              style: TextStyle(
+                                color: _isSalaryNegotiable ? const Color(0xFF00F0FF) : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: _isSalaryNegotiable ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
                           ],
-                          onChanged: (val) {
-                            if (val != null) setState(() => _salaryFrequency = val);
-                          },
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _isSalaryNegotiable
+                        ? 'Compensation is marked as Negotiable (open to discussion / project quotes).'
+                        : 'Specify rate per hour, daily, monthly or annually. Global roles default to USD.',
+                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                  ),
+                  const SizedBox(height: 10),
+                  if (_isSalaryNegotiable)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00F0FF).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.35)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Text('🤝 ', style: TextStyle(fontSize: 16)),
+                          Expanded(
+                            child: Text(
+                              'Compensation marked as Negotiable (Open to discussion)',
+                              style: TextStyle(
+                                color: Color(0xFF00F0FF),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Currency Selector
+                        SizedBox(
+                          width: 75,
+                          child: DropdownButtonFormField<String>(
+                            value: _currencySymbols.contains(_salaryCurrency) ? _salaryCurrency : '\$',
+                            dropdownColor: const Color(0xFF16122E),
+                            style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            ),
+                            items: _currencySymbols.map((curr) {
+                              return DropdownMenuItem<String>(value: curr, child: Text(curr));
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _salaryCurrency = val);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Amount
+                        Expanded(
+                          child: TextField(
+                            controller: _salaryAmount,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 50 or 5,000',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Frequency
+                        SizedBox(
+                          width: 100,
+                          child: DropdownButtonFormField<String>(
+                            value: _salaryFrequency,
+                            dropdownColor: const Color(0xFF16122E),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'Hourly', child: Text('/ hour')),
+                              DropdownMenuItem(value: 'Daily', child: Text('/ day')),
+                              DropdownMenuItem(value: 'Monthly', child: Text('/ month')),
+                              DropdownMenuItem(value: 'Annually', child: Text('/ year')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setState(() => _salaryFrequency = val);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),

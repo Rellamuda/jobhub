@@ -99,7 +99,7 @@ export default function PricingPage() {
           <button
             onClick={() => setActiveTab('SEEKER')}
             style={{
-              padding: '10px 20px',
+              padding: '10px 24px',
               borderRadius: '12px',
               border: 'none',
               background: activeTab === 'SEEKER' ? 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)' : 'transparent',
@@ -111,29 +111,12 @@ export default function PricingPage() {
               gap: '8px'
             }}
           >
-            <User size={18} /> For Job Seekers
-          </button>
-          <button
-            onClick={() => setActiveTab('EMPLOYER')}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              border: 'none',
-              background: activeTab === 'EMPLOYER' ? 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)' : 'transparent',
-              color: activeTab === 'EMPLOYER' ? '#000' : '#fff',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Building2 size={18} /> For Employers
+            <User size={18} /> Job Seekers
           </button>
           <button
             onClick={() => setActiveTab('CONTRACTOR')}
             style={{
-              padding: '10px 20px',
+              padding: '10px 24px',
               borderRadius: '12px',
               border: 'none',
               background: activeTab === 'CONTRACTOR' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'transparent',
@@ -151,7 +134,7 @@ export default function PricingPage() {
       </div>
 
       {/* JOB SEEKER PLANS: Visible only if activeTab === 'SEEKER' */}
-      {(userRole === 'JOB_SEEKER' || (!userRole && activeTab === 'SEEKER')) && (
+      {activeTab === 'SEEKER' && (
         <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
           {/* Free Tier */}
           <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #71717a' }}>

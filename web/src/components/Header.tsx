@@ -6,6 +6,45 @@ import { Sparkles, Briefcase, FileText, Bot, Wallet, Globe, Users, Shield, PlusC
 export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [switchingRole, setSwitchingRole] = useState(false);
+
+  const handleSwitchRole = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const targetMode = user?.role === 'JOB_SEEKER' ? 'Employer / Hiring Mode' : 'Contractor / Job Mode';
+    if (!confirm(`Switch to ${targetMode}?`)) return;
+
+    setSwitchingRole(true);
+    try {
+      const res = await fetch('/api/auth/switch-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.access_token) {
+          localStorage.setItem('token', data.access_token);
+        }
+        localStorage.setItem('user_role', data.role);
+        if (data.role === 'EMPLOYER') {
+          window.location.href = '/applications';
+        } else {
+          window.location.href = '/jobs';
+        }
+      } else {
+        alert('Failed to switch mode. Please try again.');
+      }
+    } catch (e) {
+      alert('Network error switching mode.');
+    } finally {
+      setSwitchingRole(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -131,6 +170,23 @@ export default function Header() {
               >
                 <Shield className="w-3.5 h-3.5 text-purple-500" /> Admin
               </Link>
+            )}
+
+            {(profile?.isDualCapacity || profile?.seekerType === 'COMPANY_CONTRACTOR' || (profile?.companyName && user?.role === 'EMPLOYER')) && (
+              <button
+                onClick={handleSwitchRole}
+                disabled={switchingRole}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                style={{
+                  backgroundColor: user?.role === 'JOB_SEEKER' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(0, 240, 255, 0.15)',
+                  color: user?.role === 'JOB_SEEKER' ? '#C084FC' : '#00F0FF',
+                  border: user?.role === 'JOB_SEEKER' ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(0, 240, 255, 0.4)',
+                }}
+                title="Switch between Contractor and Employer capacity"
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                {switchingRole ? 'Switching...' : user?.role === 'JOB_SEEKER' ? '🏢 Switch to Employer' : '🛠️ Switch to Contractor'}
+              </button>
             )}
 
             <Link href="/pricing" className="px-3 py-1.5 rounded-lg text-cyan-400 font-bold hover:bg-cyan-950/30 transition text-sm">

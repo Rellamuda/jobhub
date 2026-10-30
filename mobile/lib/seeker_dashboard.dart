@@ -15,6 +15,8 @@ import 'screens/network_feed_screen.dart';
 import 'screens/career_health_screen.dart';
 import 'screens/timeline_screen.dart';
 import 'screens/jobs/marketplace_screen.dart';
+import 'employer_dashboard.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/quota_alert_banner.dart';
 
 class SeekerDashboard extends StatefulWidget {
@@ -33,11 +35,166 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   String _firstName = '';
   String _profilePic = '';
   Map<String, dynamic>? _quota;
+  bool _isContractor = false;
+  String _contractorCompanyName = '';
+  bool _isSwitchingRole = false;
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  Future<void> _switchRole() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1435),
+        title: const Row(
+          children: [
+            Icon(Icons.swap_horiz, color: Color(0xFF00F0FF)),
+            SizedBox(width: 8),
+            Text('Switch to Employer Mode', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          _contractorCompanyName.isNotEmpty
+              ? 'Switch to Employer Mode to post job openings and hire technicians for ${_contractorCompanyName}?'
+              : 'Switch to Employer Mode to post vacancies and manage applicant hiring?',
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00F0FF)),
+            child: const Text('Confirm Switch', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isSwitchingRole = true);
+    try {
+      final token = await ApiConfig.getToken();
+      if (token == null) return;
+      final res = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/switch-role'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = jsonDecode(res.body);
+        final newRole = data['role'];
+        final newToken = data['access_token'];
+
+        final prefs = await SharedPreferences.getInstance();
+        if (newToken != null) {
+          await prefs.setString('token', newToken);
+        }
+        await prefs.setString('user_role', newRole);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF10B981),
+            content: Text(data['message'] ?? 'Switched to Employer Mode!'),
+          ),
+        );
+
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (c) => const EmployerDashboard()),
+          (r) => false,
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('Failed to switch mode: ${res.body}'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('Network error switching mode: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSwitchingRole = false);
+    }
+  }
+
+  Widget _buildContractorBanner() {
+    if (!_isContractor) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2C194D), Color(0xFF1E1435)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFA855F7).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.business_center, color: Color(0xFFC084FC), size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _contractorCompanyName.isNotEmpty ? _contractorCompanyName : 'Contractor Account',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Text(
+                  'Bidding on jobs active',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: _isSwitchingRole ? null : _switchRole,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00F0FF),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: _isSwitchingRole
+                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                : const Icon(Icons.swap_horiz, size: 14, color: Colors.black),
+            label: const Text(
+              'Switch to Hiring',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _fetchData() async {
@@ -59,6 +216,8 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           final prof = jsonDecode(profRes.body);
           _firstName = prof['firstName'] ?? 'Seeker';
           _profilePic = prof['profilePicture'] ?? '';
+          _isContractor = prof['seekerType'] == 'COMPANY_CONTRACTOR' || prof['isDualCapacity'] == true;
+          _contractorCompanyName = prof['companyName'] ?? '';
         }
         if (quotaRes.statusCode == 200) {
           final q = jsonDecode(quotaRes.body);
@@ -292,16 +451,25 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : IndexedStack(
-                index: _currentIndex,
-                children: [
-                  const JobsScreen(),
-                  const ApplicationsScreen(),
-                  _buildHub(),
-                  _buildInbox(),
-                  _buildNotifications(),
-                  const ProfileScreen(),
-                ],
+            : SafeArea(
+                child: Column(
+                  children: [
+                    _buildContractorBanner(),
+                    Expanded(
+                      child: IndexedStack(
+                        index: _currentIndex,
+                        children: [
+                          const JobsScreen(),
+                          const ApplicationsScreen(),
+                          _buildHub(),
+                          _buildInbox(),
+                          _buildNotifications(),
+                          const ProfileScreen(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,

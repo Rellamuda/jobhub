@@ -143,6 +143,11 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   
   // Job Seeker Form State
+  const [seekerType, setSeekerType] = useState<'INDIVIDUAL' | 'COMPANY_CONTRACTOR'>('INDIVIDUAL');
+  const [contractorCompanyName, setContractorCompanyName] = useState('');
+  const [businessRegNumber, setBusinessRegNumber] = useState('');
+  const [crewSize, setCrewSize] = useState('1');
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [otherNames, setOtherNames] = useState('');
@@ -238,6 +243,10 @@ export default function OnboardingPage() {
     if (isSeeker) {
       switch (currentStep) {
         case 1:
+          if (seekerType === 'COMPANY_CONTRACTOR' && (!contractorCompanyName.trim() || contractorCompanyName.trim().length < 2)) {
+            setValidationError('Please enter your Company / Contractor Business Name (minimum 2 characters).');
+            return false;
+          }
           if (!firstName.trim() || firstName.trim().length < 2) {
             setValidationError('Please enter your First Name (minimum 2 characters).');
             return false;
@@ -490,6 +499,12 @@ export default function OnboardingPage() {
           if (profRes.ok) {
             const prof = await profRes.json();
             if (userData.role === 'JOB_SEEKER') {
+              if (prof.seekerType === 'COMPANY_CONTRACTOR' || prof.isDualCapacity) {
+                setSeekerType('COMPANY_CONTRACTOR');
+                setContractorCompanyName(prof.companyName || '');
+                setBusinessRegNumber(prof.businessRegNumber || '');
+                setCrewSize(prof.crewSize?.toString() || '1');
+              }
               setFirstName(prof.firstName || '');
               setLastName(prof.lastName || '');
               setOtherNames(prof.otherNames || '');
@@ -724,7 +739,12 @@ export default function OnboardingPage() {
         references,
         socialLinks, 
         profilePicture: uploadedUrl, 
-        skills: Array.from(combinedSkillsSet)
+        skills: Array.from(combinedSkillsSet),
+        seekerType,
+        companyName: seekerType === 'COMPANY_CONTRACTOR' ? contractorCompanyName.trim() : null,
+        businessRegNumber: seekerType === 'COMPANY_CONTRACTOR' ? businessRegNumber.trim() : null,
+        crewSize: seekerType === 'COMPANY_CONTRACTOR' ? (parseInt(crewSize) || 1) : 1,
+        isDualCapacity: seekerType === 'COMPANY_CONTRACTOR'
       };
     } else {
       endpoint = '/profiles/employer';
@@ -788,12 +808,141 @@ export default function OnboardingPage() {
       case 1:
         return (
           <div className="fly-in">
-            <h2>Personal Information</h2>
+            <h2>Account & Identity Type</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.2rem' }}>
-              Enter your basic contact and demographic details.
+              Are you registering as an individual specialist or a registered company / contractor crew?
             </p>
-            <input placeholder="First Name *" value={firstName} onChange={e => setFirstName(e.target.value)} className="input-field" />
-            <input placeholder="Last Name *" value={lastName} onChange={e => setLastName(e.target.value)} className="input-field" />
+
+            {/* Entity Type Selector (Individual vs Registered Company/Contractor) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
+              <div
+                onClick={() => setSeekerType('INDIVIDUAL')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  border: seekerType === 'INDIVIDUAL' ? '2px solid #00F0FF' : '1px solid rgba(255,255,255,0.1)',
+                  background: seekerType === 'INDIVIDUAL' ? 'rgba(0,240,255,0.12)' : 'rgba(255,255,255,0.03)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Users className="w-4 h-4 text-cyan-400" />
+                  <span style={{ fontWeight: 700, color: seekerType === 'INDIVIDUAL' ? '#00F0FF' : 'white', fontSize: '0.95rem' }}>
+                    Individual Seeker
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                  Solo professional, artisan, or graduate seeking employment
+                </p>
+              </div>
+
+              <div
+                onClick={() => setSeekerType('COMPANY_CONTRACTOR')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  border: seekerType === 'COMPANY_CONTRACTOR' ? '2px solid #C084FC' : '1px solid rgba(255,255,255,0.1)',
+                  background: seekerType === 'COMPANY_CONTRACTOR' ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.03)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Building2 className="w-4 h-4 text-purple-400" />
+                  <span style={{ fontWeight: 700, color: seekerType === 'COMPANY_CONTRACTOR' ? '#C084FC' : 'white', fontSize: '0.95rem' }}>
+                    Company / Contractor
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                  Cleaning, Delivery, Repairs, Artisan Crew seeking contracts & hiring
+                </p>
+              </div>
+            </div>
+
+            {/* Contractor-Specific Fields */}
+            {seekerType === 'COMPANY_CONTRACTOR' && (
+              <div
+                style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(168, 85, 247, 0.08)',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ color: '#C084FC', fontWeight: 700, fontSize: '0.95rem' }}>
+                    🏢 Contractor & Dual-Capacity Company Details
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1rem' }}>
+                  As a registered contractor company, your account is enabled with dual capacity to bid on commercial jobs and hire technicians.
+                </p>
+
+                <label style={{ color: 'white', display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
+                  Company / Contractor Business Name <span style={{ color: '#00F0FF' }}>*</span>
+                </label>
+                <input
+                  placeholder="e.g. Apex Cleaning & Facility Services Ltd"
+                  value={contractorCompanyName}
+                  onChange={e => setContractorCompanyName(e.target.value)}
+                  className="input-field"
+                  style={{ marginBottom: '0.8rem' }}
+                />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                  <div>
+                    <label style={{ color: 'white', display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
+                      Registration / RC No (Optional)
+                    </label>
+                    <input
+                      placeholder="e.g. RC-102948"
+                      value={businessRegNumber}
+                      onChange={e => setBusinessRegNumber(e.target.value)}
+                      className="input-field"
+                      style={{ marginBottom: 0 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ color: 'white', display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem' }}>
+                      Crew / Fleet / Team Size
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 5"
+                      value={crewSize}
+                      onChange={e => setCrewSize(e.target.value)}
+                      className="input-field"
+                      style={{ marginBottom: 0 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white', marginTop: '1rem', marginBottom: '0.3rem' }}>
+              {seekerType === 'COMPANY_CONTRACTOR' ? 'Principal Representative / Contact Details' : 'Personal Details'}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.2rem' }}>
+              {seekerType === 'COMPANY_CONTRACTOR' 
+                ? 'Enter contact details for your authorized company lead specialist or director.'
+                : 'Enter your basic contact and demographic details.'}
+            </p>
+
+            <input 
+              placeholder={seekerType === 'COMPANY_CONTRACTOR' ? "Representative First Name *" : "First Name *"} 
+              value={firstName} 
+              onChange={e => setFirstName(e.target.value)} 
+              className="input-field" 
+            />
+            <input 
+              placeholder={seekerType === 'COMPANY_CONTRACTOR' ? "Representative Last Name *" : "Last Name *"} 
+              value={lastName} 
+              onChange={e => setLastName(e.target.value)} 
+              className="input-field" 
+            />
             <input placeholder="Other Names (Optional)" value={otherNames} onChange={e => setOtherNames(e.target.value)} className="input-field" />
             
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>

@@ -22,6 +22,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // Seeker State
+  String _seekerType = 'INDIVIDUAL'; // 'INDIVIDUAL' | 'COMPANY_CONTRACTOR'
+  final _contractorCompanyName = TextEditingController();
+  final _businessRegNumber = TextEditingController();
+  final _crewSize = TextEditingController(text: '1');
+
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _otherNames = TextEditingController();
@@ -202,6 +207,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             if (prof != null) {
               setState(() {
                 if (userData['role'] == 'JOB_SEEKER') {
+                  if (prof['seekerType'] == 'COMPANY_CONTRACTOR' || prof['isDualCapacity'] == true) {
+                    _seekerType = 'COMPANY_CONTRACTOR';
+                    _contractorCompanyName.text = prof['companyName'] ?? '';
+                    _businessRegNumber.text = prof['businessRegNumber'] ?? '';
+                    _crewSize.text = (prof['crewSize'] ?? 1).toString();
+                  }
                   _firstName.text = prof['firstName'] ?? '';
                   _lastName.text = prof['lastName'] ?? '';
                   _otherNames.text = prof['otherNames'] ?? '';
@@ -736,6 +747,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         },
         'profilePicture': _profilePicUrl ?? '',
         'skills': combinedSkills.toList(),
+        'seekerType': _seekerType,
+        'companyName': _seekerType == 'COMPANY_CONTRACTOR' ? _contractorCompanyName.text.trim() : null,
+        'businessRegNumber': _seekerType == 'COMPANY_CONTRACTOR' ? _businessRegNumber.text.trim() : null,
+        'crewSize': _seekerType == 'COMPANY_CONTRACTOR' ? (int.tryParse(_crewSize.text.trim()) ?? 1) : 1,
+        'isDualCapacity': _seekerType == 'COMPANY_CONTRACTOR',
       };
     } else {
       final finalAgencyFocus = _agencyFocusOption == 'Others' ? _agencyFocusCustom.text.trim() : _agencyFocusOption;
@@ -817,6 +833,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (isSeeker) {
       switch (_currentStep) {
         case 1:
+          if (_seekerType == 'COMPANY_CONTRACTOR' && _contractorCompanyName.text.trim().length < 2) {
+            _showError('Company / Contractor Business Name is required (minimum 2 characters)');
+            return false;
+          }
           if (_firstName.text.trim().length < 2) {
             _showError('First Name must be at least 2 characters');
             return false;
@@ -1051,15 +1071,148 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildSeekerSteps() {
     switch (_currentStep) {
       case 1:
+        final isContractor = _seekerType == 'COMPANY_CONTRACTOR';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Personal Information', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+            const Text('Account & Identity Type', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 6),
-            Text('Enter your basic contact and demographic details.', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+            Text('Are you registering as an individual specialist or a registered company / contractor crew?', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+            const SizedBox(height: 16),
+
+            // Entity Type Selector (Individual vs Registered Company / Contractor)
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _seekerType = 'INDIVIDUAL';
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF00F0FF).withOpacity(0.15) : Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF00F0FF) : Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.person, color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF00F0FF) : Colors.white70, size: 20),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Individual Seeker',
+                            style: TextStyle(
+                              color: _seekerType == 'INDIVIDUAL' ? const Color(0xFF00F0FF) : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Solo professional, artisan, or graduate looking for work',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _seekerType = 'COMPANY_CONTRACTOR';
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFFA855F7).withOpacity(0.2) : Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFFA855F7) : Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.business_center, color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFFC084FC) : Colors.white70, size: 20),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Company / Contractor',
+                            style: TextStyle(
+                              color: _seekerType == 'COMPANY_CONTRACTOR' ? const Color(0xFFC084FC) : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Cleaning, Delivery, Auto Repair, Artisan Crew seeking contracts & hiring',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
-            _buildTextField(_firstName, 'First Name *'),
-            _buildTextField(_lastName, 'Last Name *'),
+
+            // Contractor Specific Fields
+            if (isContractor) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFA855F7).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.verified, color: Color(0xFFC084FC), size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Contractor & Dual Capacity Details',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'As a registered contractor company, you will be able to both bid on client jobs/contracts AND hire staff/technicians with instant role-switching.',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(_contractorCompanyName, 'Company / Contractor Business Name *'),
+                    _buildTextField(_businessRegNumber, 'Business Registration / RC / Tax Number (Optional)'),
+                    _buildTextField(_crewSize, 'Crew / Team / Fleet Size (e.g. 5)'),
+                  ],
+                ),
+              ),
+            ],
+
+            Text(
+              isContractor ? 'Lead Representative / Contact Details' : 'Personal Information',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isContractor ? 'Enter contact details for your principal contractor representative.' : 'Enter your basic contact and demographic details.',
+              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            _buildTextField(_firstName, isContractor ? 'Representative First Name *' : 'First Name *'),
+            _buildTextField(_lastName, isContractor ? 'Representative Last Name *' : 'Last Name *'),
             _buildTextField(_otherNames, 'Other Names (Optional)'),
             
             // Searchable Country Phone Code Row

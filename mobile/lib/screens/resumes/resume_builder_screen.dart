@@ -19,6 +19,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
   final _titleController = TextEditingController(text: 'Executive Professional Resume');
   final _summaryController = TextEditingController();
   final _additionalInfoController = TextEditingController();
+  final _companyNameController = TextEditingController();
   final _fNameController = TextEditingController();
   final _lNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -53,6 +54,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
       _coverLetter = data['coverLetter'] ?? '';
 
       final pi = data['personalInfo'] ?? {};
+      _companyNameController.text = pi['companyName'] ?? data['companyName'] ?? '';
       _fNameController.text = pi['firstName'] ?? '';
       _lNameController.text = pi['lastName'] ?? '';
       _emailController.text = pi['email'] ?? '';
@@ -81,15 +83,20 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
           _profile = data;
           final fName = data['firstName'] ?? '';
           final lName = data['lastName'] ?? '';
+          final compName = data['companyName'] ?? '';
+          final isComp = data['seekerType'] == 'COMPANY_CONTRACTOR' || compName.isNotEmpty;
           final profession = data['profession'] ?? data['desiredJobTitle'] ?? 'Professional';
 
+          _companyNameController.text = compName;
           _fNameController.text = fName;
           _lNameController.text = lName;
           _emailController.text = data['user']?['email'] ?? data['email'] ?? '';
           _phoneController.text = data['phone'] ?? '';
           _cityController.text = [data['residenceCity'], data['residenceCountry']].where((e) => e != null && e.toString().isNotEmpty).join(', ');
 
-          _titleController.text = '$fName $lName — $profession Resume'.trim();
+          _titleController.text = isComp
+              ? '$compName — Corporate Capability Profile'.trim()
+              : '$fName $lName — $profession Resume'.trim();
           _summaryController.text = data['summary'] ?? data['headline'] ?? data['bio'] ?? '';
           
           if (data['skills'] is List) {
@@ -102,6 +109,29 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
             _education = List<dynamic>.from(data['education']);
           }
         });
+      } else {
+        // Fallback for direct employer
+        final empRes = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/profiles/employer'),
+          headers: headers,
+        );
+        if (empRes.statusCode == 200) {
+          final empData = json.decode(empRes.body);
+          setState(() {
+            _profile = empData;
+            _companyNameController.text = empData['companyName'] ?? '';
+            _titleController.text = '${empData['companyName'] ?? 'Company'} — Corporate Capability Profile';
+            _summaryController.text = empData['description'] ?? '';
+            _fNameController.text = empData['hrContactName']?.toString().split(' ').first ?? 'Representative';
+            _lNameController.text = empData['hrContactName']?.toString().split(' ').skip(1).join(' ') ?? '';
+            _emailController.text = empData['hrEmail'] ?? '';
+            _phoneController.text = empData['hrPhone'] ?? '';
+            _cityController.text = [empData['locationCity'], empData['locationCountry']].where((e) => e != null && e.toString().isNotEmpty).join(', ');
+            if (empData['industry'] != null) {
+              _skills = [empData['industry'].toString()];
+            }
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error loading profile: $e');
@@ -255,6 +285,8 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
   }
 
   String _buildResumePlainText() {
+    final isComp = _companyNameController.text.trim().isNotEmpty;
+    final compName = _companyNameController.text.trim();
     final fullName = '${_fNameController.text} ${_lNameController.text}'.trim();
     final contact = [_emailController.text, _phoneController.text, _cityController.text]
         .where((e) => e.trim().isNotEmpty)
@@ -268,23 +300,21 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
 
     return '''
 ========================================
-$fullName
+${isComp ? 'CORPORATE CONTRACTOR RESUME & PROFILE\n$compName\nPrincipal Representative: $fullName' : fullName}
 ${_titleController.text}
 $contact
 ========================================
 
-EXECUTIVE SUMMARY
+${isComp ? 'COMPANY OVERVIEW & CAPABILITY STATEMENT' : 'EXECUTIVE SUMMARY'}
 ${_summaryController.text}
 
-SKILLS & COMPETENCIES
+${isComp ? 'CORE COMPETENCIES & SERVICES OFFERED' : 'SKILLS & COMPETENCIES'}
 ${_skills.join(', ')}
 
-PROFESSIONAL EXPERIENCE
+${isComp ? 'PAST PERFORMANCE & CORPORATE EXPERIENCE' : 'PROFESSIONAL EXPERIENCE'}
 ${expLines.isNotEmpty ? expLines : 'N/A'}
 
-EDUCATION & CREDENTIALS
-${eduLines.isNotEmpty ? eduLines : 'N/A'}
-========================================
+${eduLines.isNotEmpty ? 'EDUCATION & CREDENTIALS\n$eduLines\n' : ''}========================================
 Generated by JobHub Global
 ''';
   }
@@ -300,8 +330,40 @@ Generated by JobHub Global
     );
   }
 
+  Future<void> _downloadResume(String format) async {
+    final id = widget.initialData?['id'];
+    final token = await ApiConfig.getToken();
+    if (id != null) {
+      final url = '${ApiConfig.baseUrl}/resumes/$id/export/$format${token != null ? '?token=$token' : ''}';
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+    _downloadOrCopyResume();
+  }
+
   Future<void> _shareResume() async {
-    final text = _buildResumePlainText();
+    final id = widget.initialData?['id'];
+    final token = await ApiConfig.getToken();
+    final isComp = _companyNameController.text.trim().isNotEmpty;
+    final primaryName = isComp ? _companyNameController.text.trim() : '${_fNameController.text} ${_lNameController.text}'.trim();
+    final downloadLink = id != null ? '${ApiConfig.baseUrl}/resumes/$id/export/pdf${token != null ? '?token=$token' : ''}' : '';
+    
+    final text = '''
+$primaryName — ${_titleController.text}
+${isComp ? 'Representative: ${_fNameController.text} ${_lNameController.text}\n' : ''}${_emailController.text} | ${_phoneController.text} | ${_cityController.text}
+
+Executive Summary:
+${_summaryController.text}
+
+Core Skills:
+${_skills.join(', ')}
+
+${downloadLink.isNotEmpty ? 'Download Verified Resume (PDF): $downloadLink\n' : ''}Generated via JobHub Global Platform
+''';
+
     final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -340,6 +402,7 @@ Generated by JobHub Global
         'summary': _summaryController.text.trim(),
         'coverLetter': _coverLetter,
         'personalInfo': {
+          'companyName': _companyNameController.text.trim(),
           'firstName': _fNameController.text.trim(),
           'lastName': _lNameController.text.trim(),
           'email': _emailController.text.trim(),
@@ -558,8 +621,14 @@ Generated by JobHub Global
         _buildTextField(_summaryController, 'A concise overview of your background...', maxLines: 4),
         const SizedBox(height: 16),
 
+        // Organization / Company Details (if company or contractor)
+        const Text('Company / Contractor Business Name (Optional)', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        _buildTextField(_companyNameController, 'e.g. Apex Facility Services Ltd (appears at top of resume)'),
+        const SizedBox(height: 16),
+
         // Candidate Personal Information
-        const Text('Candidate Details', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+        const Text('Candidate & Representative Details', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -620,7 +689,7 @@ Generated by JobHub Global
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // RESUME Heading (Item 5 requirement)
+          // RESUME Heading
           Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -629,21 +698,40 @@ Generated by JobHub Global
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFC7D2FE)),
               ),
-              child: const Text(
-                'RESUME',
-                style: TextStyle(color: Color(0xFF4338CA), fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2),
+              child: Text(
+                _companyNameController.text.trim().isNotEmpty
+                    ? 'CORPORATE CONTRACTOR RESUME & PROFILE'
+                    : 'RESUME',
+                style: const TextStyle(color: Color(0xFF4338CA), fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5),
               ),
             ),
           ),
           const SizedBox(height: 12),
 
-          // Header
-          Center(
-            child: Text(
-              '${_fNameController.text} ${_lNameController.text}'.trim(),
-              style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
+          // Header: Company Name at Top if contractor/company
+          if (_companyNameController.text.trim().isNotEmpty) ...[
+            Center(
+              child: Text(
+                _companyNameController.text.trim(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
+              ),
             ),
-          ),
+            const SizedBox(height: 2),
+            Center(
+              child: Text(
+                'Principal Representative: ${_fNameController.text} ${_lNameController.text}'.trim(),
+                style: const TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ] else ...[
+            Center(
+              child: Text(
+                '${_fNameController.text} ${_lNameController.text}'.trim(),
+                style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
           const SizedBox(height: 2),
           Center(
             child: Text(
@@ -744,9 +832,23 @@ Generated by JobHub Global
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _downloadOrCopyResume,
-                  icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Save / Copy CV', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () => _downloadResume('pdf'),
+                  icon: const Icon(Icons.picture_as_pdf, size: 14),
+                  label: const Text('Download PDF', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4338CA),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _downloadResume('word'),
+                  icon: const Icon(Icons.description, size: 14),
+                  label: const Text('Download DOC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black87,
                     foregroundColor: Colors.white,
@@ -755,19 +857,11 @@ Generated by JobHub Global
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _shareResume,
-                  icon: const Icon(Icons.share, size: 16),
-                  label: const Text('Share Resume', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black87,
-                    side: const BorderSide(color: Colors.black54),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              const SizedBox(width: 6),
+              IconButton(
+                onPressed: _shareResume,
+                icon: const Icon(Icons.share, color: Colors.black87),
+                tooltip: 'Share Resume',
               ),
             ],
           ),

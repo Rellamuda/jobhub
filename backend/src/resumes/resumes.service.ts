@@ -73,11 +73,31 @@ export class ResumesService {
   }
 
   async saveResume(userId: string, data: any) {
-    const profile = await this.prisma.jobSeekerProfile.findUnique({
+    let profile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId }
     });
 
-    if (!profile) throw new NotFoundException('Profile not found');
+    if (!profile) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { employerProfile: true }
+      });
+      if (user) {
+        profile = await this.prisma.jobSeekerProfile.create({
+          data: {
+            userId,
+            firstName: user.firstName || 'Representative',
+            lastName: user.lastName || '',
+            headline: user.employerProfile?.companyName ? `${user.employerProfile.companyName} Corporate Capability Profile` : 'Company Profile',
+            seekerType: 'COMPANY_CONTRACTOR',
+            companyName: user.employerProfile?.companyName || null,
+            isDualCapacity: true,
+          }
+        });
+      } else {
+        throw new NotFoundException('Profile not found');
+      }
+    }
 
     if (data.id) {
       return this.prisma.resume.update({
@@ -180,29 +200,52 @@ export class ResumesService {
   }
 
   private generateHtmlTemplate(resume: any): string {
-    // A highly professional default template
     const pi = resume.personalInfo || {};
-    
+    const companyName = pi.companyName || resume.jobSeekerProfile?.companyName || null;
+    const isCompany = !!companyName || pi.seekerType === 'COMPANY_CONTRACTOR' || resume.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR';
+    const displayedCompanyName = companyName || pi.companyName || 'Corporate Contractor Services';
+
     // Safety fallback for arrays
     const experience = Array.isArray(resume.experience) ? resume.experience : [];
     const education = Array.isArray(resume.education) ? resume.education : [];
     const skills = Array.isArray(resume.skills) ? resume.skills : [];
+    const projects = Array.isArray(resume.projects) ? resume.projects : [];
+    const certifications = Array.isArray(resume.certifications) ? resume.certifications : [];
 
     const expHtml = experience.map((exp: any) => `
       <div class="job">
         <div class="job-header">
-          <span class="job-title">${exp.title || ''}</span>
-          <span class="job-company">${exp.company || ''} | ${exp.startDate || ''} - ${exp.endDate || 'Present'}</span>
+          <span class="job-title">${exp.title || exp.role || ''}</span>
+          <span class="job-company">${exp.company || ''} | ${exp.startDate || exp.dates || ''} ${exp.endDate ? '- ' + exp.endDate : ''}</span>
         </div>
-        <div class="job-desc">${exp.description || ''}</div>
+        <div class="job-desc">${exp.description || exp.responsibilities || ''}</div>
       </div>
     `).join('');
 
     const eduHtml = education.map((edu: any) => `
       <div class="job">
         <div class="job-header">
-          <span class="job-title">${edu.degree || ''}</span>
-          <span class="job-company">${edu.school || ''} | ${edu.graduationDate || ''}</span>
+          <span class="job-title">${edu.degree || edu.course || ''}</span>
+          <span class="job-company">${edu.school || ''} | ${edu.graduationDate || edu.dates || ''}</span>
+        </div>
+      </div>
+    `).join('');
+
+    const projectsHtml = projects.map((prj: any) => `
+      <div class="job">
+        <div class="job-header">
+          <span class="job-title">${prj.title || ''}</span>
+          ${prj.liveLink ? `<span class="job-company"><a href="${prj.liveLink}" target="_blank" style="color: #4f46e5; text-decoration: none;">View Project</a></span>` : ''}
+        </div>
+        <div class="job-desc">${prj.description || ''}</div>
+      </div>
+    `).join('');
+
+    const certHtml = certifications.map((cert: any) => `
+      <div class="job">
+        <div class="job-header">
+          <span class="job-title">${cert.name || ''}</span>
+          <span class="job-company">${cert.date || cert.issuingBody || ''}</span>
         </div>
       </div>
     `).join('');
@@ -213,54 +256,86 @@ export class ResumesService {
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="utf-8">
+        <title>${isCompany ? displayedCompanyName : (pi.firstName || '') + ' ' + (pi.lastName || '')} - Resume</title>
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.5; font-size: 14px; }
-          .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; border-bottom: 2px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
-          .name { font-size: 28px; font-weight: bold; margin: 0 0 10px 0; letter-spacing: 1px; }
-          .contact { font-size: 13px; color: #555; }
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.5; font-size: 14px; margin: 0; padding: 0; background: #ffffff; }
+          .container { max-width: 820px; margin: 0 auto; padding: 30px; }
+          .header { text-align: center; border-bottom: 2px solid #111827; padding-bottom: 20px; margin-bottom: 25px; }
+          .badge { font-size: 12px; font-weight: 800; letter-spacing: 2px; color: #4338ca; text-transform: uppercase; margin-bottom: 8px; }
+          .name { font-size: 28px; font-weight: 800; margin: 0 0 8px 0; color: #111827; letter-spacing: 0.5px; }
+          .representative { font-size: 14px; font-weight: 600; color: #4b5563; margin-bottom: 8px; }
+          .contact { font-size: 13px; color: #6b7280; }
           .section { margin-bottom: 25px; }
-          .section-title { font-size: 16px; font-weight: bold; color: #222; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px; letter-spacing: 0.5px; }
-          .job { margin-bottom: 15px; }
-          .job-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
-          .job-title { font-weight: bold; font-size: 15px; }
-          .job-company { font-style: italic; color: #555; font-size: 13px; }
-          .job-desc { font-size: 13px; color: #444; }
+          .section-title { font-size: 15px; font-weight: 800; color: #111827; text-transform: uppercase; border-bottom: 1.5px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 14px; letter-spacing: 0.8px; }
+          .job { margin-bottom: 16px; page-break-inside: avoid; }
+          .job-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+          .job-title { font-weight: 700; font-size: 14.5px; color: #111827; }
+          .job-company { font-style: italic; color: #4b5563; font-size: 13px; }
+          .job-desc { font-size: 13px; color: #374151; white-space: pre-line; line-height: 1.45; }
+          .skills-box { font-size: 13.5px; color: #374151; line-height: 1.6; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <div style="font-size: 16px; font-weight: 800; letter-spacing: 3px; color: #4338ca; text-transform: uppercase; margin-bottom: 6px;">RESUME</div>
-            <h1 class="name">${pi.firstName || ''} ${pi.lastName || ''}</h1>
+            ${isCompany ? `
+              <div class="badge">CORPORATE CONTRACTOR PROFILE & RESUME</div>
+              <h1 class="name">${displayedCompanyName}</h1>
+              <div class="representative">Principal Representative: ${pi.firstName || ''} ${pi.lastName || ''}</div>
+            ` : `
+              <div class="badge">EXECUTIVE RESUME</div>
+              <h1 class="name">${pi.firstName || ''} ${pi.lastName || ''}</h1>
+            `}
             <div class="contact">
-              ${pi.email ? pi.email + ' | ' : ''}
-              ${pi.phone ? pi.phone + ' | ' : ''}
-              ${pi.city ? pi.city : ''}
+              ${pi.email ? pi.email + ' &bull; ' : ''}
+              ${pi.phone ? pi.phone + ' &bull; ' : ''}
+              ${pi.city ? pi.city + (pi.country ? ', ' + pi.country : '') : (pi.country || '')}
+              ${pi.website ? ' &bull; ' + pi.website : ''}
             </div>
           </div>
           
           ${resume.summary ? `
           <div class="section">
-            <div class="section-title">Summary</div>
-            <p>${resume.summary}</p>
+            <div class="section-title">${isCompany ? 'Company Overview & Capability Statement' : 'Professional Summary'}</div>
+            <p style="margin: 0; line-height: 1.6;">${resume.summary}</p>
           </div>
           ` : ''}
           
+          ${expHtml ? `
           <div class="section">
-            <div class="section-title">Experience</div>
+            <div class="section-title">${isCompany ? 'Past Performance & Corporate Experience' : 'Professional Experience'}</div>
             ${expHtml}
           </div>
-          
+          ` : ''}
+
+          ${projectsHtml ? `
           <div class="section">
-            <div class="section-title">Education</div>
+            <div class="section-title">${isCompany ? 'Completed Contracts & Major Projects' : 'Key Projects'}</div>
+            ${projectsHtml}
+          </div>
+          ` : ''}
+          
+          ${eduHtml && education.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Education & Academic Training</div>
             ${eduHtml}
           </div>
-          
+          ` : ''}
+
+          ${certHtml ? `
           <div class="section">
-            <div class="section-title">Skills</div>
-            <p>${skillsHtml}</p>
+            <div class="section-title">Certifications, Licenses & Accreditations</div>
+            ${certHtml}
           </div>
+          ` : ''}
+          
+          ${skillsHtml ? `
+          <div class="section">
+            <div class="section-title">${isCompany ? 'Core Competencies & Services Offered' : 'Key Skills & Proficiencies'}</div>
+            <div class="skills-box">${skillsHtml}</div>
+          </div>
+          ` : ''}
         </div>
       </body>
       </html>

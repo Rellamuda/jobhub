@@ -36,19 +36,7 @@ function ResumeBuilder() {
       return;
     }
 
-    // Role Guard: Only Job Seekers are allowed to build resumes
-    fetch('/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(user => {
-        if (user && user.role === 'EMPLOYER') {
-          window.location.href = '/dashboard/employer/jobs/new';
-          return;
-        }
-      })
-      .catch(console.error);
-
+    // Both job seekers and employers/contractors can access and build resumes
     if (parsedDataParam) {
       try {
         const parsed = JSON.parse(decodeURIComponent(parsedDataParam));
@@ -71,27 +59,61 @@ function ResumeBuilder() {
       fetch('/api/profiles/job-seeker', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-        .then(res => res.json())
-        .then(prof => {
-          if (prof) {
-            const fName = prof.firstName || '';
-            const lName = prof.lastName || '';
-            const targetRole = prof.desiredJobTitle || prof.profession || 'Resume';
-            setResume(prev => ({
-              ...prev,
-              title: `${fName} ${lName} - ${targetRole}`.trim(),
-              summary: prof.summary || prof.headline || prof.bio || '',
-              personalInfo: {
-                firstName: fName,
-                lastName: lName,
-                email: prof.user?.email || prof.email || '',
-                phone: prof.phone || '',
-                city: [prof.residenceCity, prof.residenceCountry].filter(Boolean).join(', ')
-              },
-              experience: Array.isArray(prof.experience) ? prof.experience : [],
-              education: Array.isArray(prof.education) ? prof.education : [],
-              skills: Array.isArray(prof.skills) ? prof.skills : []
-            }));
+        .then(async res => {
+          if (res.ok) {
+            const prof = await res.json();
+            if (prof) {
+              const isComp = prof.seekerType === 'COMPANY_CONTRACTOR' || !!prof.companyName;
+              const fName = prof.firstName || '';
+              const lName = prof.lastName || '';
+              const compName = prof.companyName || '';
+              const targetRole = prof.desiredJobTitle || prof.profession || 'Corporate Capability Profile';
+              setResume(prev => ({
+                ...prev,
+                title: isComp ? `${compName || fName} - Corporate Capability Profile` : `${fName} ${lName} - ${targetRole}`.trim(),
+                summary: prof.summary || prof.headline || prof.bio || '',
+                personalInfo: {
+                  firstName: fName,
+                  lastName: lName,
+                  companyName: compName,
+                  seekerType: prof.seekerType,
+                  email: prof.user?.email || prof.email || '',
+                  phone: prof.phone || '',
+                  city: [prof.residenceCity, prof.residenceCountry].filter(Boolean).join(', ')
+                } as any,
+                experience: Array.isArray(prof.experience) ? prof.experience : [],
+                education: Array.isArray(prof.education) ? prof.education : [],
+                skills: Array.isArray(prof.skills) ? prof.skills : []
+              }));
+              return;
+            }
+          }
+
+          // Fallback if user is an employer building their company resume
+          const empRes = await fetch('/api/profiles/employer', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (empRes.ok) {
+            const emp = await empRes.json();
+            if (emp) {
+              setResume(prev => ({
+                ...prev,
+                title: `${emp.companyName} - Corporate Capability Profile`,
+                summary: emp.description || '',
+                personalInfo: {
+                  firstName: emp.hrContactName?.split(' ')[0] || 'Representative',
+                  lastName: emp.hrContactName?.split(' ').slice(1).join(' ') || '',
+                  companyName: emp.companyName || '',
+                  seekerType: 'COMPANY_CONTRACTOR',
+                  email: emp.hrEmail || '',
+                  phone: emp.hrPhone || '',
+                  city: [emp.locationCity, emp.locationCountry].filter(Boolean).join(', ')
+                } as any,
+                experience: [],
+                education: [],
+                skills: [emp.industry].filter(Boolean)
+              }));
+            }
           }
         })
         .catch(console.error);
@@ -231,6 +253,9 @@ function ResumeBuilder() {
   const handleDownloadDoc = () => {
     const fName = resume.personalInfo?.firstName || 'Valued';
     const lName = resume.personalInfo?.lastName || 'Candidate';
+    const compName = (resume.personalInfo as any)?.companyName || (resume as any).companyName || '';
+    const isCompany = !!compName || (resume.personalInfo as any)?.seekerType === 'COMPANY_CONTRACTOR';
+    const primaryName = isCompany ? compName : `${fName} ${lName}`;
     const skillsHtml = resume.skills.map(s => `<span style="background:#f3f4f6;padding:4px 8px;margin-right:6px;border-radius:4px;display:inline-block;">${s}</span>`).join(' ');
     
     const expHtml = resume.experience.map(e => `
@@ -252,7 +277,7 @@ function ResumeBuilder() {
 
     const content = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><title>RESUME</title>
+      <head><title>${primaryName} - Resume</title>
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.5; color: #111; padding: 30px; }
         .resume-title { font-size: 14pt; font-weight: bold; letter-spacing: 3px; color: #4338ca; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
@@ -263,8 +288,9 @@ function ResumeBuilder() {
       </style>
       </head>
       <body>
-        <div class="resume-title">RESUME</div>
-        <div class="name">${fName} ${lName}</div>
+        <div class="resume-title">${isCompany ? 'CORPORATE CONTRACTOR RESUME & PROFILE' : 'RESUME'}</div>
+        <div class="name">${primaryName}</div>
+        ${isCompany ? `<div style="text-align:center;font-size:11pt;color:#4b5563;margin-bottom:6px;">Authorized Representative: ${fName} ${lName}</div>` : ''}
         <div class="sub">${resume.title}</div>
         <div class="contact">
           ${resume.personalInfo?.email ? 'Email: ' + resume.personalInfo.email + ' | ' : ''}
@@ -272,11 +298,11 @@ function ResumeBuilder() {
           ${resume.personalInfo?.city ? 'Location: ' + resume.personalInfo.city : ''}
         </div>
         
-        ${resume.summary ? `<div class="section-header">Executive Summary</div><p style="font-size:11pt;line-height:1.5;">${resume.summary}</p>` : ''}
+        ${resume.summary ? `<div class="section-header">${isCompany ? 'Corporate Overview & Capability Statement' : 'Executive Summary'}</div><p style="font-size:11pt;line-height:1.5;">${resume.summary}</p>` : ''}
         
-        ${resume.skills.length > 0 ? `<div class="section-header">Core Competencies & Skills</div><div style="margin-top:6px;">${skillsHtml}</div>` : ''}
+        ${resume.skills.length > 0 ? `<div class="section-header">${isCompany ? 'Core Competencies & Services Offered' : 'Core Competencies & Skills'}</div><div style="margin-top:6px;">${skillsHtml}</div>` : ''}
 
-        ${resume.experience.length > 0 ? `<div class="section-header">Professional Experience</div>${expHtml}` : ''}
+        ${resume.experience.length > 0 ? `<div class="section-header">${isCompany ? 'Past Performance & Corporate Experience' : 'Professional Experience'}</div>${expHtml}` : ''}
 
         ${resume.education.length > 0 ? `<div class="section-header">Education & Credentials</div>${eduHtml}` : ''}
 
@@ -291,7 +317,7 @@ function ResumeBuilder() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${fName}_${lName}_RESUME.doc`;
+    a.download = `${primaryName.replace(/\s+/g, '_')}_RESUME.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -701,15 +727,26 @@ function ResumeBuilder() {
             {/* Sidebar: Candidate Info, Skills, Additional Details */}
             <div className="space-y-6">
               <div className="space-y-3 bg-white/5 border border-white/10 p-5 rounded-2xl">
-                <h3 className="text-base font-bold text-white border-b border-white/10 pb-2">Candidate Details</h3>
+                <h3 className="text-base font-bold text-white border-b border-white/10 pb-2">Candidate & Organization Details</h3>
+                {((resume.personalInfo as any)?.companyName !== undefined || (resume.personalInfo as any)?.seekerType === 'COMPANY_CONTRACTOR') && (
+                  <div>
+                    <label className="text-xs text-purple-300 font-bold block mb-1">Company / Contractor Name (Displayed at Top)</label>
+                    <Input 
+                      placeholder="Company Name" 
+                      value={(resume.personalInfo as any)?.companyName || ''} 
+                      onChange={e => setResume({...resume, personalInfo: {...resume.personalInfo, companyName: e.target.value} as any})}
+                      className="bg-black/30 border-purple-500/40 text-purple-300 font-bold text-xs"
+                    />
+                  </div>
+                )}
                 <Input 
-                  placeholder="First Name" 
+                  placeholder="First Name (or Representative First Name)" 
                   value={resume.personalInfo?.firstName || ''} 
                   onChange={e => setResume({...resume, personalInfo: {...resume.personalInfo, firstName: e.target.value}})}
                   className="bg-black/30 border-white/10 text-white text-xs"
                 />
                 <Input 
-                  placeholder="Last Name" 
+                  placeholder="Last Name (or Representative Last Name)" 
                   value={resume.personalInfo?.lastName || ''} 
                   onChange={e => setResume({...resume, personalInfo: {...resume.personalInfo, lastName: e.target.value}})}
                   className="bg-black/30 border-white/10 text-white text-xs"
@@ -832,25 +869,38 @@ function ResumeBuilder() {
           className={`bg-white text-gray-900 p-8 md:p-12 rounded-2xl shadow-2xl space-y-6 ${activeTab === 'editor' ? 'hidden md:block' : activeTab === 'preview' ? 'block' : 'hidden'}`}
           style={{ minHeight: '800px', maxWidth: '850px', margin: '0 auto' }}
         >
-          {/* Prominent RESUME Title Required by Item 5 */}
+          {/* Prominent RESUME Title */}
           <div className="text-center pb-2">
             <span className="text-xs font-black tracking-widest text-indigo-700 uppercase bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-              RESUME
+              {((resume.personalInfo as any)?.companyName || (resume.personalInfo as any)?.seekerType === 'COMPANY_CONTRACTOR')
+                ? 'CORPORATE CONTRACTOR RESUME & PROFILE'
+                : 'RESUME'}
             </span>
           </div>
 
           {/* Header */}
           <div className="border-b-2 border-gray-900 pb-4 text-center">
-            <h1 className="text-3xl font-black uppercase tracking-tight text-gray-900">
-              {resume.personalInfo?.firstName} {resume.personalInfo?.lastName}
-            </h1>
+            {((resume.personalInfo as any)?.companyName || (resume.personalInfo as any)?.seekerType === 'COMPANY_CONTRACTOR') ? (
+              <>
+                <h1 className="text-3xl font-black uppercase tracking-tight text-gray-900">
+                  {(resume.personalInfo as any)?.companyName || 'Corporate Contractor Services'}
+                </h1>
+                <p className="text-xs font-semibold text-gray-600 mt-1">
+                  Principal Representative: {resume.personalInfo?.firstName} {resume.personalInfo?.lastName}
+                </p>
+              </>
+            ) : (
+              <h1 className="text-3xl font-black uppercase tracking-tight text-gray-900">
+                {resume.personalInfo?.firstName} {resume.personalInfo?.lastName}
+              </h1>
+            )}
             <p className="text-base font-bold text-indigo-700 tracking-wide mt-1">
               {resume.title}
             </p>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-600 mt-2 font-medium">
-              {resume.personalInfo?.email && <span> {resume.personalInfo.email}</span>}
-              {resume.personalInfo?.phone && <span> {resume.personalInfo.phone}</span>}
-              {resume.personalInfo?.city && <span> {resume.personalInfo.city}</span>}
+              {resume.personalInfo?.email && <span>📧 {resume.personalInfo.email}</span>}
+              {resume.personalInfo?.phone && <span>📞 {resume.personalInfo.phone}</span>}
+              {resume.personalInfo?.city && <span>📍 {resume.personalInfo.city}</span>}
             </div>
           </div>
 

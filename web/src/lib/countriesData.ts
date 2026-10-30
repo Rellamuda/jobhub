@@ -4,6 +4,7 @@ export interface Country {
 }
 
 export const countriesList: string[] = [
+  "Any Country",
   "Afghanistan",
   "Albania",
   "Algeria",

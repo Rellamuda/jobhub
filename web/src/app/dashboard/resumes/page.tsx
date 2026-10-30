@@ -17,18 +17,7 @@ export default function ResumesPage() {
       return;
     }
 
-    // Role Guard: Only Job Seekers are allowed on Resumes page
-    fetch('/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(user => {
-        if (user && user.role === 'EMPLOYER') {
-          window.location.href = '/dashboard/employer/jobs/new';
-          return;
-        }
-      })
-      .catch(console.error);
+    // Both job seekers and employers/contractors can access and manage resumes/capability profiles
 
     fetch('/api/resumes', {
       headers: { 'Authorization': `Bearer ${token}` }

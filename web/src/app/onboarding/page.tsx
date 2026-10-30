@@ -314,19 +314,19 @@ export default function OnboardingPage() {
 
         case 3:
           if (!residenceCountry) {
-            setValidationError('Please select your Resident Country.');
+            setValidationError(seekerType === 'COMPANY_CONTRACTOR' ? 'Please select Country of operation.' : 'Please select your Resident Country.');
             return false;
           }
-          if (!citizenshipCountry) {
+          if (seekerType !== 'COMPANY_CONTRACTOR' && !citizenshipCountry) {
             setValidationError('Please select your Citizenship Country / Nationality.');
             return false;
           }
           if (!residenceState.trim()) {
-            setValidationError('Please enter your Resident State / Province / Region.');
+            setValidationError(seekerType === 'COMPANY_CONTRACTOR' ? 'Please enter your Operating State / Province / Region.' : 'Please enter your Resident State / Province / Region.');
             return false;
           }
           if (!residenceCity.trim()) {
-            setValidationError('Please enter your City / Town.');
+            setValidationError(seekerType === 'COMPANY_CONTRACTOR' ? 'Please enter your Town / City of Operation.' : 'Please enter your City / Town.');
             return false;
           }
           return true;
@@ -356,6 +356,9 @@ export default function OnboardingPage() {
           return true;
 
         case 5:
+          if (seekerType === 'COMPANY_CONTRACTOR') {
+            return true;
+          }
           for (let i = 0; i < education.length; i++) {
             const ed = education[i];
             if (!ed.school.trim() || !ed.course.trim() || !ed.dates.trim()) {
@@ -444,15 +447,15 @@ export default function OnboardingPage() {
 
         case 2:
           if (!locationCountry) {
-            setValidationError('Please select Location Country.');
+            setValidationError('Please select Country of operation.');
             return false;
           }
           if (!locationState.trim()) {
-            setValidationError('Please enter Location State / Province.');
+            setValidationError('Please enter Operating State / Province / Region.');
             return false;
           }
           if (!locationCity.trim()) {
-            setValidationError('Please enter Location City / Town.');
+            setValidationError('Please enter Town / City of Operation.');
             return false;
           }
           if (!hrContactName.trim() || hrContactName.trim().length < 2) {
@@ -1283,17 +1286,19 @@ export default function OnboardingPage() {
       case 3:
         return (
           <div className="fly-in">
-            <h2>Location & Residency</h2>
+            <h2>{seekerType === 'COMPANY_CONTRACTOR' ? 'Location & Operating Base' : 'Location & Residency'}</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.2rem' }}>
-              Where do you currently reside and hold citizenship?
+              {seekerType === 'COMPANY_CONTRACTOR'
+                ? 'Where is your company located and where does it operate?'
+                : 'Where do you currently reside and hold citizenship?'}
             </p>
 
-            {/* Resident Country with Search */}
+            {/* Country of operation or Resident Country */}
             <SearchableCountrySelect
-              label="Resident Country"
+              label={seekerType === 'COMPANY_CONTRACTOR' ? 'Country of operation' : 'Resident Country'}
               value={residenceCountry}
               required
-              placeholder="Search or select country where you live..."
+              placeholder={seekerType === 'COMPANY_CONTRACTOR' ? 'Search or select country of operation...' : 'Search or select country where you live...'}
               onChange={(c) => {
                 setResidenceCountry(c);
                 setResidenceState('');
@@ -1304,22 +1309,24 @@ export default function OnboardingPage() {
               }}
             />
 
-            {/* Citizenship Country with Search */}
-            <SearchableCountrySelect
-              label="Citizenship Country / Nationality"
-              value={citizenshipCountry}
-              required
-              placeholder="Search or select citizenship / passport country..."
-              onChange={(c) => {
-                setCitizenshipCountry(c);
-                setNationality(c);
-              }}
-            />
+            {/* Citizenship Country with Search (only for individual seekers) */}
+            {seekerType !== 'COMPANY_CONTRACTOR' && (
+              <SearchableCountrySelect
+                label="Citizenship Country / Nationality"
+                value={citizenshipCountry}
+                required
+                placeholder="Search or select citizenship / passport country..."
+                onChange={(c) => {
+                  setCitizenshipCountry(c);
+                  setNationality(c);
+                }}
+              />
+            )}
 
             {/* State / Province Dropdown auto-populated from countryStates */}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-                Resident State / Province / Region <span style={{ color: '#00F0FF' }}>*</span>
+                {seekerType === 'COMPANY_CONTRACTOR' ? 'Operating State / Province / Region' : 'Resident State / Province / Region'} <span style={{ color: '#00F0FF' }}>*</span>
               </label>
               {residenceCountry && countryStates[residenceCountry] ? (
                 <>
@@ -1343,7 +1350,7 @@ export default function OnboardingPage() {
                   </select>
                   {(!residenceState || !countryStates[residenceCountry].includes(residenceState)) && (
                     <input 
-                      placeholder="Type state or region manually *" 
+                      placeholder={seekerType === 'COMPANY_CONTRACTOR' ? "Type operating state or region manually *" : "Type state or region manually *"} 
                       value={residenceState} 
                       onChange={e => setResidenceState(e.target.value)} 
                       className="input-field" 
@@ -1353,7 +1360,7 @@ export default function OnboardingPage() {
                 </>
               ) : (
                 <input 
-                  placeholder={residenceCountry ? "Enter State / Province / Region *" : "Select Resident Country first"} 
+                  placeholder={residenceCountry ? (seekerType === 'COMPANY_CONTRACTOR' ? "Enter Operating State / Province / Region *" : "Enter State / Province / Region *") : (seekerType === 'COMPANY_CONTRACTOR' ? "Select Country of operation first" : "Select Resident Country first")} 
                   value={residenceState} 
                   onChange={e => setResidenceState(e.target.value)} 
                   className="input-field" 
@@ -1364,7 +1371,7 @@ export default function OnboardingPage() {
             </div>
 
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-              City / Town <span style={{ color: '#00F0FF' }}>*</span>
+              {seekerType === 'COMPANY_CONTRACTOR' ? 'Town / City of Operation' : 'City / Town'} <span style={{ color: '#00F0FF' }}>*</span>
             </label>
             <input 
               placeholder="e.g. Lagos, Toronto, London, Austin" 
@@ -1993,10 +2000,10 @@ export default function OnboardingPage() {
 
             {/* Country with Searchable select */}
             <SearchableCountrySelect
-              label="Country"
+              label="Country of operation"
               value={locationCountry}
               required
-              placeholder="Search or select country..."
+              placeholder="Search or select country of operation..."
               onChange={(c) => {
                 setLocationCountry(c);
                 setLocationState('');
@@ -2006,7 +2013,7 @@ export default function OnboardingPage() {
             {/* State auto populated from countryStates */}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-                State / Province / Region <span style={{ color: '#00F0FF' }}>*</span>
+                Operating State / Province / Region <span style={{ color: '#00F0FF' }}>*</span>
               </label>
               {locationCountry && countryStates[locationCountry] ? (
                 <>
@@ -2022,7 +2029,7 @@ export default function OnboardingPage() {
                     className="input-field"
                     style={{ marginBottom: (!locationState || !countryStates[locationCountry].includes(locationState)) ? '0.6rem' : 0 }}
                   >
-                    <option value="">Select State</option>
+                    <option value="">Select Operating State</option>
                     {countryStates[locationCountry].map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
@@ -2030,7 +2037,7 @@ export default function OnboardingPage() {
                   </select>
                   {(!locationState || !countryStates[locationCountry].includes(locationState)) && (
                     <input 
-                      placeholder="Enter State Manually *" 
+                      placeholder="Enter Operating State Manually *" 
                       value={locationState} 
                       onChange={e => setLocationState(e.target.value)} 
                       className="input-field" 
@@ -2040,7 +2047,7 @@ export default function OnboardingPage() {
                 </>
               ) : (
                 <input 
-                  placeholder={locationCountry ? "State / Province / Region *" : "Select Country first"} 
+                  placeholder={locationCountry ? "Operating State / Province / Region *" : "Select Country of operation first"} 
                   value={locationState} 
                   onChange={e => setLocationState(e.target.value)} 
                   className="input-field" 
@@ -2051,7 +2058,7 @@ export default function OnboardingPage() {
             </div>
 
             <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-              City / Town <span style={{ color: '#00F0FF' }}>*</span>
+              Town / City of Operation <span style={{ color: '#00F0FF' }}>*</span>
             </label>
             <input 
               placeholder="e.g. Austin, Toronto, Lagos, Nairobi" 
@@ -2119,7 +2126,10 @@ export default function OnboardingPage() {
     }
   };
 
-  const totalSteps = user?.role === 'JOB_SEEKER' ? 8 : 3;
+  const isCompanyContractor = user?.role === 'JOB_SEEKER' && seekerType === 'COMPANY_CONTRACTOR';
+  const totalSteps = user?.role === 'JOB_SEEKER' ? (isCompanyContractor ? 7 : 8) : 3;
+  const displayStep = isCompanyContractor && step > 5 ? step - 1 : step;
+  const isLastStep = user?.role === 'JOB_SEEKER' ? step === 8 : step === 3;
 
   return (
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
@@ -2133,12 +2143,12 @@ export default function OnboardingPage() {
       <div className="glass-panel" style={{ width: '100%', maxWidth: '640px', padding: '2.5rem 2rem', overflow: 'visible' }}>
         <h1 className="text-gradient" style={{ textAlign: 'center', margin: 0, fontSize: '1.8rem' }}>Complete Your Profile</h1>
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-          Step {step} of {totalSteps}
+          Step {displayStep} of {totalSteps}
         </p>
         
         {validationError && (
           <div style={{ padding: '0.8rem 1rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '10px', color: '#fca5a5', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center' }}>
-             {validationError}
+              {validationError}
           </div>
         )}
 
@@ -2147,15 +2157,32 @@ export default function OnboardingPage() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
           {step > 1 ? (
-            <button className="btn-primary" style={{ background: 'transparent', border: '1px solid #00f0ff' }} onClick={() => { setValidationError(''); setStep(step - 1); }}>Back</button>
+            <button 
+              className="btn-primary" 
+              style={{ background: 'transparent', border: '1px solid #00f0ff' }} 
+              onClick={() => { 
+                setValidationError(''); 
+                if (isCompanyContractor && step === 6) {
+                  setStep(4);
+                } else {
+                  setStep(step - 1);
+                }
+              }}
+            >
+              Back
+            </button>
           ) : <div />}
           
-          {step < totalSteps ? (
+          {!isLastStep ? (
             <button 
               className="btn-primary" 
               onClick={() => {
                 if (validateCurrentStep(step)) {
-                  setStep(step + 1);
+                  if (isCompanyContractor && step === 4) {
+                    setStep(6);
+                  } else {
+                    setStep(step + 1);
+                  }
                 }
               }}
             >

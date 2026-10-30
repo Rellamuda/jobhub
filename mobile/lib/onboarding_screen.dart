@@ -902,19 +902,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
         case 3:
           if (_residenceCountry.text.trim().isEmpty) {
-            _showError('Resident Country is required');
+            _showError(_seekerType == 'COMPANY_CONTRACTOR' ? 'Country of operation is required' : 'Resident Country is required');
             return false;
           }
-          if (_citizenshipCountry.text.trim().isEmpty) {
+          if (_seekerType != 'COMPANY_CONTRACTOR' && _citizenshipCountry.text.trim().isEmpty) {
             _showError('Citizenship Country / Nationality is required');
             return false;
           }
           if (_residenceState.text.trim().isEmpty) {
-            _showError('State / Province / Region is required');
+            _showError(_seekerType == 'COMPANY_CONTRACTOR' ? 'Operating State / Province / Region is required' : 'State / Province / Region is required');
             return false;
           }
           if (_residenceCity.text.trim().isEmpty) {
-            _showError('City / Town is required');
+            _showError(_seekerType == 'COMPANY_CONTRACTOR' ? 'Town / City of Operation is required' : 'City / Town is required');
             return false;
           }
           return true;
@@ -940,6 +940,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           return true;
 
         case 5:
+          if (_seekerType == 'COMPANY_CONTRACTOR') {
+            return true;
+          }
           for (int i = 0; i < _education.length; i++) {
             final ed = _education[i];
             if ((ed['school'] ?? '').toString().trim().isEmpty ||
@@ -1026,15 +1029,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
         case 2:
           if (_locationCountry.text.trim().isEmpty) {
-            _showError('Location Country is required');
+            _showError('Country of operation is required');
             return false;
           }
           if (_locationState.text.trim().isEmpty) {
-            _showError('Location State / Province is required');
+            _showError('Operating State / Province / Region is required');
             return false;
           }
           if (_locationCity.text.trim().isEmpty) {
-            _showError('Location City / Town is required');
+            _showError('Town / City of Operation is required');
             return false;
           }
           if (_hrContactName.text.trim().length < 2) {
@@ -1677,21 +1680,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         );
       case 3:
+        final isContractor = _seekerType == 'COMPANY_CONTRACTOR';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Location & Residency', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(
+              isContractor ? 'Location & Operations' : 'Location & Residency',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
             const SizedBox(height: 6),
-            Text('Where do you currently reside and hold citizenship?', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+            Text(
+              isContractor
+                  ? 'Where does your company operate and have its registered business location?'
+                  : 'Where do you currently reside and hold citizenship?',
+              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+            ),
             const SizedBox(height: 20),
 
-            // Resident Country (Searchable Picker)
+            // Country (Searchable Picker)
             _buildPickerButton(
-              label: 'Resident Country *',
+              label: isContractor ? 'Country of operation *' : 'Resident Country *',
               value: _residenceCountry.text,
-              placeholder: 'Tap to search & select resident country',
+              placeholder: isContractor ? 'Tap to search & select country of operation' : 'Tap to search & select resident country',
               onTap: () async {
-                final selected = await _showSearchableCountryPicker(context, title: 'Select Resident Country');
+                final selected = await _showSearchableCountryPicker(
+                  context,
+                  title: isContractor ? 'Select Country of Operation' : 'Select Resident Country',
+                );
                 if (selected != null) {
                   setState(() {
                     _residenceCountry.text = selected;
@@ -1704,21 +1719,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               },
             ),
 
-            // Citizenship Country / Nationality (Searchable Picker)
-            _buildPickerButton(
-              label: 'Citizenship Country / Nationality *',
-              value: _citizenshipCountry.text,
-              placeholder: 'Tap to search & select citizenship / passport country',
-              onTap: () async {
-                final selected = await _showSearchableCountryPicker(context, title: 'Select Citizenship / Nationality');
-                if (selected != null) {
-                  setState(() {
-                    _citizenshipCountry.text = selected;
-                    _nationality.text = selected;
-                  });
-                }
-              },
-            ),
+            // Citizenship Country / Nationality (Searchable Picker - Only for Individual Seeker)
+            if (!isContractor) ...[
+              _buildPickerButton(
+                label: 'Citizenship Country / Nationality *',
+                value: _citizenshipCountry.text,
+                placeholder: 'Tap to search & select citizenship / passport country',
+                onTap: () async {
+                  final selected = await _showSearchableCountryPicker(context, title: 'Select Citizenship / Nationality');
+                  if (selected != null) {
+                    setState(() {
+                      _citizenshipCountry.text = selected;
+                      _nationality.text = selected;
+                    });
+                  }
+                },
+              ),
+            ],
 
             // Resident State / Province auto-populated from countryStates
             if (_residenceCountry.text.isNotEmpty && countryStates.containsKey(_residenceCountry.text)) ...[
@@ -1727,7 +1744,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Resident State / Province / Region *', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text(
+                      isContractor ? 'Operating State / Province / Region *' : 'Resident State / Province / Region *',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       isExpanded: true,
@@ -1735,7 +1755,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       dropdownColor: const Color(0xFF16122E),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: 'Select State / Region',
+                        hintText: isContractor ? 'Select Operating State / Region' : 'Select State / Region',
                         hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
@@ -1767,16 +1787,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     if (_residenceState.text.isEmpty || !countryStates[_residenceCountry.text]!.contains(_residenceState.text)) ...[
                       const SizedBox(height: 8),
-                      _buildTextField(_residenceState, 'Enter State / Region Manually *'),
+                      _buildTextField(_residenceState, isContractor ? 'Enter Operating State / Region Manually *' : 'Enter State / Region Manually *'),
                     ],
                   ],
                 ),
               ),
             ] else ...[
-              _buildTextField(_residenceState, 'Resident State / Province / Region *'),
+              _buildTextField(_residenceState, isContractor ? 'Operating State / Province / Region *' : 'Resident State / Province / Region *'),
             ],
 
-            _buildTextField(_residenceCity, 'City / Town (Manual Entry) *'),
+            _buildTextField(_residenceCity, isContractor ? 'Town / City of Operation *' : 'City / Town (Manual Entry) *'),
 
             // Work Mode Preference (Remote, Onsite, Hybrid)
             Container(
@@ -2698,11 +2718,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             // Location Country (Searchable Picker)
             _buildPickerButton(
-              label: 'Country *',
+              label: 'Country of operation *',
               value: _locationCountry.text,
-              placeholder: 'Tap to search & select country',
+              placeholder: 'Tap to search & select country of operation',
               onTap: () async {
-                final selected = await _showSearchableCountryPicker(context, title: 'Select Organization Country');
+                final selected = await _showSearchableCountryPicker(context, title: 'Select Country of Operation');
                 if (selected != null) {
                   setState(() {
                     _locationCountry.text = selected;
@@ -2719,7 +2739,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('State / Province / Region *', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text('Operating State / Province / Region *', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       isExpanded: true,
@@ -2727,7 +2747,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       dropdownColor: const Color(0xFF16122E),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: 'Select State',
+                        hintText: 'Select Operating State',
                         hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
@@ -2756,16 +2776,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     if (_locationState.text.isEmpty || !countryStates[_locationCountry.text]!.contains(_locationState.text)) ...[
                       const SizedBox(height: 8),
-                      _buildTextField(_locationState, 'Enter State / Region Manually *'),
+                      _buildTextField(_locationState, 'Enter Operating State / Region Manually *'),
                     ],
                   ],
                 ),
               ),
             ] else ...[
-              _buildTextField(_locationState, 'State / Province / Region *'),
+              _buildTextField(_locationState, 'Operating State / Province / Region *'),
             ],
 
-            _buildTextField(_locationCity, 'City / Town *'),
+            _buildTextField(_locationCity, 'Town / City of Operation *'),
 
             const SizedBox(height: 8),
             const Divider(color: Colors.white24, height: 24),
@@ -2867,7 +2887,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return const Scaffold(backgroundColor: Color(0xFF120B1C), body: Center(child: CircularProgressIndicator(color: Color(0xFF00F0FF))));
     }
 
-    final int maxSteps = _user?['role'] == 'JOB_SEEKER' ? 8 : 3;
+    final bool isCompanyContractor = _user?['role'] == 'JOB_SEEKER' && _seekerType == 'COMPANY_CONTRACTOR';
+    final int maxSteps = _user?['role'] == 'JOB_SEEKER' ? (isCompanyContractor ? 7 : 8) : 3;
+    final int displayStep = (isCompanyContractor && _currentStep > 5) ? _currentStep - 1 : _currentStep;
+    final bool isLastStep = _user?['role'] == 'JOB_SEEKER' ? (_currentStep == 8) : (_currentStep == 3);
 
     return Scaffold(
       backgroundColor: const Color(0xFF120B1C),
@@ -2880,7 +2903,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Step $_currentStep of $maxSteps', style: TextStyle(color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w600)),
+                  Text('Step $displayStep of $maxSteps', style: TextStyle(color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w600)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -2889,7 +2912,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.3)),
                     ),
                     child: Text(
-                      _user?['role'] == 'JOB_SEEKER' ? 'Job Seeker Profile' : 'Employer Profile',
+                      _user?['role'] == 'JOB_SEEKER'
+                          ? (isCompanyContractor ? 'Company Contractor' : 'Job Seeker Profile')
+                          : 'Employer Profile',
                       style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -2907,13 +2932,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   if (_currentStep > 1)
                     TextButton(
-                      onPressed: () => setState(() => _currentStep--),
+                      onPressed: () {
+                        setState(() {
+                          if (isCompanyContractor && _currentStep == 6) {
+                            _currentStep = 4;
+                          } else {
+                            _currentStep--;
+                          }
+                        });
+                      },
                       child: const Text('Back', style: TextStyle(color: Colors.white70, fontSize: 15)),
                     )
                   else
                     const SizedBox.shrink(),
                   
-                  if (_currentStep < maxSteps)
+                  if (!isLastStep)
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF00F0FF),
@@ -2922,7 +2955,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       onPressed: () {
                         if (_validateCurrentStep()) {
-                          setState(() => _currentStep++);
+                          setState(() {
+                            if (isCompanyContractor && _currentStep == 4) {
+                              _currentStep = 6;
+                            } else {
+                              _currentStep++;
+                            }
+                          });
                         }
                       },
                       child: const Text('Next', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15)),

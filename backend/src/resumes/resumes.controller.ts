@@ -30,6 +30,17 @@ export class ResumesController {
     return this.resumesService.saveResume(req.user.userId, data);
   }
 
+  @Get(':id/export/pdf')
+  async exportPdfGet(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    const pdfBuffer = await this.resumesService.exportPdf(id, req.user.userId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="resume.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  }
+
   @Post(':id/export/pdf')
   async exportPdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
     const pdfBuffer = await this.resumesService.exportPdf(id, req.user.userId);
@@ -39,6 +50,17 @@ export class ResumesController {
       'Content-Length': pdfBuffer.length,
     });
     res.end(pdfBuffer);
+  }
+
+  @Get(':id/export/word')
+  async exportWordGet(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    const wordBuffer = await this.resumesService.exportWord(id, req.user.userId);
+    res.set({
+      'Content-Type': 'application/msword',
+      'Content-Disposition': `attachment; filename="resume.doc"`,
+      'Content-Length': wordBuffer.length,
+    });
+    res.end(wordBuffer);
   }
 
   @Post(':id/export/word')

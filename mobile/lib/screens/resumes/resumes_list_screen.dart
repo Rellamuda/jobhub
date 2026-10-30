@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/resume_service.dart';
+import '../../config/api_config.dart';
 import 'resume_builder_screen.dart';
 
 class ResumesListScreen extends StatefulWidget {
@@ -36,24 +39,44 @@ class _ResumesListScreenState extends State<ResumesListScreen> {
     }
   }
 
-  void _exportPdf(String id) async {
+  void _download(String id, String format) async {
     try {
-      await _resumeService.exportPdf(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF10B981),
-            content: Text(' PDF Exported and saved successfully!'),
-          ),
-        );
+      final token = await ApiConfig.getToken();
+      final url = '${ApiConfig.baseUrl}/resumes/$id/export/$format${token != null ? '?token=$token' : ''}';
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Could not launch downloader');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to export PDF.')),
+          SnackBar(content: Text('Download failed: $e')),
         );
       }
     }
+  }
+
+  void _share(Map<String, dynamic> resume) async {
+    try {
+      final id = resume['id'];
+      final title = resume['title'] ?? 'Resume';
+      final token = await ApiConfig.getToken();
+      final link = '${ApiConfig.baseUrl}/resumes/$id/export/pdf${token != null ? '?token=$token' : ''}';
+      final text = 'View & Download verified Resume / Capability Profile ($title) on JobHub:\n$link';
+      final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        Clipboard.setData(ClipboardData(text: text));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Resume download link copied to clipboard!')),
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -147,11 +170,20 @@ class _ResumesListScreenState extends State<ResumesListScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF00F0FF)),
+                              icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF00F0FF), size: 20),
                               tooltip: 'Download PDF',
-                              onPressed: () => _exportPdf(resume['id']),
+                              onPressed: () => _download(resume['id'], 'pdf'),
                             ),
-                            const Icon(Icons.chevron_right, color: Colors.white30),
+                            IconButton(
+                              icon: const Icon(Icons.description, color: Color(0xFFC084FC), size: 20),
+                              tooltip: 'Download DOC',
+                              onPressed: () => _download(resume['id'], 'word'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.share, color: Colors.white70, size: 20),
+                              tooltip: 'Share Resume',
+                              onPressed: () => _share(resume),
+                            ),
                           ],
                         ),
                         onTap: () async {

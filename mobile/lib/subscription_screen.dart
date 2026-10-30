@@ -322,23 +322,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  List<Widget> _buildJobSeekerPlans() {
-    return [
-      _buildPlanCard(
-        title: 'Free Tier',
-        price: '\$0',
-        subtitle: 'Essential starter tools to begin your career journey.',
-        accentColor: Colors.white60,
-        isCurrent: _currentTier == 'FREE',
-        features: const [
-          '✔️ 1 Resume & Cover Letter built',
-          '✔️ 1 Autonomous Application credit',
-          '✔️ One-Click Apply enabled',
-          '✔️ Only 3 Job Matches after onboarding',
-          '❌ Unlimited Autonomous Applications',
-          '❌ Unlimited AI Resume & Cover Letters',
-        ],
-        onUpgrade: null,
   String _getPackagePrice(String tierKey, String defaultPrice) {
     if (_offerings != null && _offerings!.current != null) {
       for (final p in _offerings!.current!.availablePackages) {

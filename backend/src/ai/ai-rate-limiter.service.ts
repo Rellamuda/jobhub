@@ -125,7 +125,14 @@ export class AiRateLimiterService {
       const limit = 3;
       if (currentUsed >= limit) {
         throw new ForbiddenException(
-          'Free AI generation credit reached (3/3). Upgrade to Silver ($13/mo) for 15 generations or Diamond ($20/mo) for unlimited AI access.',
+          JSON.stringify({
+            code: 'TIER_LIMIT_EXHAUSTED',
+            message: 'Free AI generation credit reached (3/3). Upgrade to Silver ($13/mo) for 15 generations or Diamond ($20/mo) for unlimited AI access.',
+            currentTier: 'FREE',
+            nextTier: 'SILVER',
+            limit: 3,
+            used: currentUsed,
+          }),
         );
       }
       // Check multi-account IP farming abuse
@@ -136,7 +143,14 @@ export class AiRateLimiterService {
       const limit = 15;
       if (currentUsed >= limit) {
         throw new ForbiddenException(
-          'Silver monthly AI generation quota reached (15/15). Upgrade to Diamond ($20/mo) for unlimited AI tailoring and autonomous applications.',
+          JSON.stringify({
+            code: 'TIER_LIMIT_EXHAUSTED',
+            message: 'Silver monthly AI generation quota reached (15/15). Upgrade to Diamond ($20/mo) for unlimited AI tailoring and autonomous applications.',
+            currentTier: 'SILVER',
+            nextTier: 'PREMIUM',
+            limit: 15,
+            used: currentUsed,
+          }),
         );
       }
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'widgets/upgrade_prompt_dialog.dart';
 
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
@@ -227,6 +228,32 @@ class _CreateJobScreenState extends State<CreateJobScreen> with SingleTickerProv
           const SnackBar(content: Text('Job vacancy posted successfully! 🎉'), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
+      } else if (response.statusCode == 403) {
+        String msg = 'Your job posting limit has been reached on your current plan. Please upgrade to post more jobs.';
+        String nextTier = 'PREMIUM';
+        try {
+          final errBody = jsonDecode(response.body);
+          final rawMsg = errBody['message'];
+          if (rawMsg is String && rawMsg.startsWith('{')) {
+            final parsed = jsonDecode(rawMsg);
+            msg = parsed['message'] ?? msg;
+            nextTier = parsed['nextTier'] ?? 'PREMIUM';
+          } else if (rawMsg is String) {
+            msg = rawMsg;
+          }
+        } catch (_) {}
+
+        if (mounted) {
+          UpgradePromptDialog.show(
+            context,
+            title: 'Posting Limit Reached',
+            message: msg,
+            targetTier: nextTier,
+            initialRole: 'EMPLOYER',
+            buttonText: nextTier == 'ENTERPRISE' ? 'Upgrade to Enterprise ($100/mo)' : 'Upgrade to Premium ($50/mo)',
+            isExhausted: true,
+          );
+        }
       } else {
         setState(() {
           _errorMessage = 'Failed to post job. Please check your inputs.';

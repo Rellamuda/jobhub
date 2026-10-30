@@ -15,6 +15,7 @@ import 'screens/network_feed_screen.dart';
 import 'screens/career_health_screen.dart';
 import 'screens/timeline_screen.dart';
 import 'screens/jobs/marketplace_screen.dart';
+import 'widgets/quota_alert_banner.dart';
 
 class SeekerDashboard extends StatefulWidget {
   const SeekerDashboard({super.key});
@@ -31,6 +32,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   bool _isLoading = true;
   String _firstName = '';
   String _profilePic = '';
+  Map<String, dynamic>? _quota;
 
   @override
   void initState() {
@@ -47,6 +49,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
       final inboxRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/messages/inbox'), headers: {'Authorization': 'Bearer $token'});
       final profRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/profiles/job-seeker'), headers: {'Authorization': 'Bearer $token'});
       final notifRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/profiles/notifications'), headers: {'Authorization': 'Bearer $token'});
+      final quotaRes = await http.get(Uri.parse('${ApiConfig.baseUrl}/users/quota'), headers: {'Authorization': 'Bearer $token'});
 
       setState(() {
         if (appsRes.statusCode == 200) _applications = jsonDecode(appsRes.body);
@@ -56,6 +59,10 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           final prof = jsonDecode(profRes.body);
           _firstName = prof['firstName'] ?? 'Seeker';
           _profilePic = prof['profilePicture'] ?? '';
+        }
+        if (quotaRes.statusCode == 200) {
+          final q = jsonDecode(quotaRes.body);
+          _quota = q is Map<String, dynamic> ? q : null;
         }
         _isLoading = false;
       });
@@ -187,17 +194,25 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          itemCount: tools.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: 1.15,
+      body: Column(
+        children: [
+          QuotaAlertBanner(
+            quota: _quota,
+            initialRole: 'JOB_SEEKER',
+            onRefresh: _fetchData,
           ),
-          itemBuilder: (context, index) {
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: GridView.builder(
+                itemCount: tools.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 1.15,
+                ),
+                itemBuilder: (context, index) {
             final tool = tools[index];
             return InkWell(
               onTap: () {
@@ -257,8 +272,11 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           },
         ),
       ),
-    );
-  }
+    ),
+    ],
+  ),
+);
+}
 
   @override
   Widget build(BuildContext context) {

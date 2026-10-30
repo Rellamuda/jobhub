@@ -20,10 +20,34 @@ export class JobsService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (user?.subscriptionTier === 'FREE') {
+    const tier = user?.role === 'ADMIN' ? 'PREMIUM' : (user?.subscriptionTier || 'FREE');
+    if (tier === 'FREE') {
       const jobCount = await this.prisma.job.count({ where: { employerId: employer.id } });
       if (jobCount >= 3) {
-        throw new ForbiddenException('Free tier is limited to 3 job postings. Please upgrade your subscription.');
+        throw new ForbiddenException(
+          JSON.stringify({
+            code: 'TIER_LIMIT_EXHAUSTED',
+            message: 'Free tier limit reached (3/3 job postings). Upgrade to Premium ($50/mo) to post up to 70 jobs with 50 AI matches per job!',
+            currentTier: 'FREE',
+            nextTier: 'PREMIUM',
+            limit: 3,
+            used: jobCount,
+          }),
+        );
+      }
+    } else if (tier === 'SILVER') {
+      const jobCount = await this.prisma.job.count({ where: { employerId: employer.id } });
+      if (jobCount >= 70) {
+        throw new ForbiddenException(
+          JSON.stringify({
+            code: 'TIER_LIMIT_EXHAUSTED',
+            message: 'Premium tier monthly limit reached (70/70 job postings). Upgrade to Enterprise ($100/mo) for unlimited job postings!',
+            currentTier: 'SILVER',
+            nextTier: 'ENTERPRISE',
+            limit: 70,
+            used: jobCount,
+          }),
+        );
       }
     }
 

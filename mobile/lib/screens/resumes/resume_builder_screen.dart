@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/api_config.dart';
+import '../../widgets/upgrade_prompt_dialog.dart';
 
 class ResumeBuilderScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -167,6 +168,32 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
             ),
           );
           setState(() => _selectedTab = 1); // switch to Executive Preview
+        }
+      } else if (res.statusCode == 403) {
+        String msg = 'Your AI generation credit limit has been reached. Please upgrade to continue generating resumes.';
+        String nextTier = 'SILVER';
+        try {
+          final errData = jsonDecode(res.body);
+          final rawMsg = errData['message'];
+          if (rawMsg is String && rawMsg.startsWith('{')) {
+            final parsed = jsonDecode(rawMsg);
+            msg = parsed['message'] ?? msg;
+            nextTier = parsed['nextTier'] ?? 'SILVER';
+          } else if (rawMsg is String) {
+            msg = rawMsg;
+          }
+        } catch (_) {}
+
+        if (mounted) {
+          UpgradePromptDialog.show(
+            context,
+            title: 'AI Quota Reached',
+            message: msg,
+            targetTier: nextTier,
+            initialRole: 'JOB_SEEKER',
+            buttonText: nextTier == 'PREMIUM' ? 'Upgrade to Diamond ($20/mo)' : 'Upgrade to Silver ($13/mo)',
+            isExhausted: true,
+          );
         }
       } else {
         String msg = 'Could not generate resume (${res.statusCode})';

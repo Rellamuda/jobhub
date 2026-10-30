@@ -227,9 +227,9 @@ export class PaymentsService {
     }
   }
 
-  async upgradeMobileUser(userId: string, tier: 'FREE' | 'SILVER' | 'PREMIUM' | 'DIAMOND', platform?: string) {
+  async upgradeMobileUser(userId: string, tier: 'FREE' | 'SILVER' | 'PREMIUM' | 'DIAMOND' | 'ENTERPRISE', platform?: string) {
     try {
-      const resolvedTier: 'FREE' | 'SILVER' | 'PREMIUM' = tier === 'DIAMOND' ? 'PREMIUM' : tier;
+      const resolvedTier: 'FREE' | 'SILVER' | 'PREMIUM' = (tier === 'DIAMOND' || tier === 'ENTERPRISE') ? 'PREMIUM' : tier;
       const updatedUser = await this.prisma.user.update({
         where: { id: userId },
         data: { subscriptionTier: resolvedTier },
@@ -278,7 +278,7 @@ export class PaymentsService {
 
       let newTier: 'FREE' | 'SILVER' | 'PREMIUM' = 'FREE';
       if (type === 'INITIAL_PURCHASE' || type === 'RENEWAL' || type === 'UNCANCELLATION') {
-        if (productId.includes('diamond') || productId.includes('premium')) {
+        if (productId.includes('diamond') || productId.includes('premium') || productId.includes('enterprise')) {
           newTier = 'PREMIUM';
         } else if (productId.includes('silver')) {
           newTier = 'SILVER';

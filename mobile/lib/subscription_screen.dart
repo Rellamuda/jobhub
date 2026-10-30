@@ -128,7 +128,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         targetPackage ??= packages.isNotEmpty ? packages.first : null;
       }
 
-      final displayTierName = (tier == 'PREMIUM' || tier == 'DIAMOND') ? 'Diamond' : tier;
+      final displayTierName = role == 'EMPLOYER'
+          ? (tier == 'ENTERPRISE' ? 'Silver / Enterprise' : 'Premium')
+          : ((tier == 'PREMIUM' || tier == 'DIAMOND') ? 'Diamond' : 'Silver');
 
       if (targetPackage != null) {
         final success = await RevenueCatService.purchasePackage(targetPackage);
@@ -337,11 +339,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           '❌ Unlimited AI Resume & Cover Letters',
         ],
         onUpgrade: null,
+  String _getPackagePrice(String tierKey, String defaultPrice) {
+    if (_offerings != null && _offerings!.current != null) {
+      for (final p in _offerings!.current!.availablePackages) {
+        final id = p.identifier.toLowerCase();
+        if (id.contains(tierKey.toLowerCase())) {
+          return p.storeProduct.priceString;
+        }
+      }
+    }
+    return defaultPrice;
+  }
+
+  List<Widget> _buildJobSeekerPlans() {
+    return [
+      _buildPlanCard(
+        title: 'Free Tier',
+        price: '\$0',
+        subtitle: 'Essential starter tools to begin your career journey.',
+        accentColor: Colors.white60,
+        isCurrent: _currentTier == 'FREE',
+        features: const [
+          '✔️ 1 Resume & Cover Letter built',
+          '✔️ 1 Autonomous Application credit',
+          '✔️ One-Click Apply enabled',
+          '✔️ Only 3 Job Matches after onboarding',
+          '❌ Unlimited Autonomous Applications',
+          '❌ Unlimited AI Resume & Cover Letters',
+        ],
+        onUpgrade: null,
       ),
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Silver Plan',
-        price: '\$13',
+        price: _getPackagePrice('silver', '\$13'),
         subtitle: 'Unlimited AI power to match, tailor and autonomously apply.',
         accentColor: const Color(0xFF94A3B8),
         isCurrent: _currentTier == 'SILVER',
@@ -359,7 +390,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Diamond Plan',
-        price: '\$20',
+        price: _getPackagePrice('diamond', '\$20'),
         subtitle: 'Unlimited AI power to match, tailor and autonomously apply.',
         accentColor: const Color(0xFF00F0FF),
         isCurrent: _currentTier == 'PREMIUM' || _currentTier == 'DIAMOND',
@@ -380,49 +411,53 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   List<Widget> _buildEmployerPlans() {
     return [
       _buildPlanCard(
-        title: 'Free Plan',
+        title: 'Free Tier',
         price: '\$0',
-        subtitle: 'For occasional hiring',
+        subtitle: 'For startups testing hiring workflows.',
         accentColor: Colors.white60,
         isCurrent: _currentTier == 'FREE',
         features: const [
-          'Post up to 2 active jobs',
-          'Basic candidate dashboard',
-          'Standard application view',
+          'Post up to 3 jobs',
+          'Only 3 job seeker matches per month',
+          'Basic applicant inbox & messages',
         ],
         onUpgrade: null,
       ),
       const SizedBox(height: 16),
       _buildPlanCard(
-        title: 'Silver Plan',
-        price: '\$49.99',
-        subtitle: 'For growing businesses',
-        accentColor: const Color(0xFF94A3B8),
-        isCurrent: _currentTier == 'SILVER',
-        badge: 'POPULAR',
+        title: 'Premium Plan',
+        price: _getPackagePrice('premium', '\$50'),
+        subtitle: 'Scaling companies hiring quality talent consistently.',
+        accentColor: const Color(0xFF00F0FF),
+        isCurrent: _currentTier == 'PREMIUM' || _currentTier == 'SILVER',
+        badge: 'RECOMMENDED FOR RECRUITERS',
         features: const [
-          'Post up to 10 active jobs',
-          'AI candidate match ranking & score',
-          'Full resume synthesis & review modal',
-          'Automated interview scheduling',
+          'Post up to 70 jobs per month',
+          'Up to 50 instant qualified matches per job',
+          'AI Job vacancies build assist before posting',
+          'Priority Applicant Ranking',
+          'Verified Profile Badge option',
+          '40 AI Match Scoring advance coaching',
         ],
-        onUpgrade: () => _processNativePurchase('SILVER', 'EMPLOYER', 50),
+        onUpgrade: () => _processNativePurchase('PREMIUM', 'EMPLOYER', 50),
       ),
       const SizedBox(height: 16),
       _buildPlanCard(
-        title: 'Enterprise Plan',
-        price: '\$149.99',
-        subtitle: 'For high-volume recruiters & agencies',
-        accentColor: const Color(0xFF00F0FF),
-        isCurrent: _currentTier == 'PREMIUM',
+        title: 'Silver / Enterprise',
+        price: _getPackagePrice('enterprise', '\$100'),
+        subtitle: 'High-volume agencies & executive talent recruiters.',
+        accentColor: const Color(0xFFA855F7),
+        isCurrent: _currentTier == 'ENTERPRISE',
         badge: 'ALL INCLUSIVE',
         features: const [
-          'Unlimited active job postings',
-          'AI Company & Agency Profile generator',
-          'Full CRM recruiter pipeline & analytics',
-          'Autonomous talent matching recommendations',
+          'Unlimited AI Resume & Cover Letter building',
+          'Unlimited AI Match Scoring',
+          'Best Priority Ranking across all searches',
+          'Verified Profile Badge options',
+          'Advanced Career Coaching Insights',
+          'Unlimited Job Postings & Candidate Pipeline',
         ],
-        onUpgrade: () => _processNativePurchase('PREMIUM', 'EMPLOYER', 150),
+        onUpgrade: () => _processNativePurchase('ENTERPRISE', 'EMPLOYER', 100),
       ),
     ];
   }

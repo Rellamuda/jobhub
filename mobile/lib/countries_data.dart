@@ -5,7 +5,6 @@ class PhoneCode {
 }
 
 const List<String> countriesList = [
-  "Any Country",
   "Afghanistan",
   "Albania",
   "Algeria",
@@ -218,6 +217,11 @@ const List<String> countriesList = [
   "Yemen",
   "Zambia",
   "Zimbabwe"
+];
+
+const List<String> preferredWorkCountriesList = [
+  "Any Country",
+  ...countriesList,
 ];
 
 const List<PhoneCode> phoneCodes = [

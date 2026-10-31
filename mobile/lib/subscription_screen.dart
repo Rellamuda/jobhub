@@ -22,6 +22,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String? _userEmail;
   String? _userId;
   String? _currentTier;
+  String _userCountry = '';
   Offerings? _offerings;
 
   @override
@@ -81,6 +82,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             _userRole = user['role'] ?? _userRole;
             _userEmail = user['email'];
             _currentTier = (user['subscriptionTier'] ?? 'FREE').toString().toUpperCase();
+            _userCountry = (user['jobSeekerProfile']?['residenceCountry'] ?? user['employerProfile']?['locationCountry'] ?? '').toString();
             final isContractor = user['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
                 user['jobSeekerProfile']?['isDualCapacity'] == true;
             if (isContractor) {
@@ -247,7 +249,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildTabSelector(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                _buildCurrencySettlementNotice(),
+                const SizedBox(height: 16),
                 if (_selectedTab == 0) ..._buildJobSeekerPlans(),
                 if (_selectedTab == 1) ..._buildContractorPlans(),
                 const SizedBox(height: 24),
@@ -325,7 +329,46 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  String _getPackagePrice(String tierKey, String defaultPrice) {
+  static const Map<String, Map<String, dynamic>> _supportedCurrencies = {
+    'USD': {'symbol': '\$', 'rate': 1.0},
+    'NGN': {'symbol': '₦', 'rate': 1600.0},
+    'GBP': {'symbol': '£', 'rate': 0.79},
+    'EUR': {'symbol': '€', 'rate': 0.92},
+    'CAD': {'symbol': 'C\$', 'rate': 1.38},
+    'KES': {'symbol': 'KSh ', 'rate': 130.0},
+    'ZAR': {'symbol': 'R ', 'rate': 18.2},
+    'GHS': {'symbol': 'GH₵ ', 'rate': 15.5},
+    'INR': {'symbol': '₹', 'rate': 83.5},
+    'AUD': {'symbol': 'A\$', 'rate': 1.52},
+    'AED': {'symbol': 'AED ', 'rate': 3.67},
+    'CHF': {'symbol': 'CHF ', 'rate': 0.89},
+  };
+
+  String _getUserCurrencyCode() {
+    final c = _userCountry.toLowerCase().trim();
+    if (c.contains('nigeria')) return 'NGN';
+    if (c.contains('united kingdom') || c.contains('britain') || c.contains('england') || c.contains('uk')) return 'GBP';
+    if (c.contains('canada')) return 'CAD';
+    if (c.contains('kenya')) return 'KES';
+    if (c.contains('south africa')) return 'ZAR';
+    if (c.contains('ghana')) return 'GHS';
+    if (c.contains('india')) return 'INR';
+    if (c.contains('australia')) return 'AUD';
+    if (c.contains('united arab emirates') || c.contains('dubai') || c.contains('uae')) return 'AED';
+    if (c.contains('switzerland')) return 'CHF';
+    if (c.contains('germany') || c.contains('france') || c.contains('italy') || c.contains('spain') || c.contains('netherlands') || c.contains('ireland') || c.contains('europe')) return 'EUR';
+    return 'USD';
+  }
+
+  String _formatNumber(int n) {
+    return n.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+
+  String _getPackagePrice(String tierKey, int usdAmount) {
+    if (usdAmount == 0) return '\$0';
     if (_offerings != null && _offerings!.current != null) {
       for (final p in _offerings!.current!.availablePackages) {
         final id = p.identifier.toLowerCase();
@@ -334,7 +377,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         }
       }
     }
-    return defaultPrice;
+    final code = _getUserCurrencyCode();
+    final cur = _supportedCurrencies[code] ?? _supportedCurrencies['USD']!;
+    final rate = (cur['rate'] as num).toDouble();
+    final symbol = cur['symbol'] as String;
+    final converted = (usdAmount * rate).round();
+    if (code == 'USD') {
+      return '\$$usdAmount';
+    }
+    return '$symbol${_formatNumber(converted)}';
   }
 
   List<Widget> _buildJobSeekerPlans() {
@@ -342,6 +393,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _buildPlanCard(
         title: 'Free Tier',
         price: '\$0',
+        usdAmount: 0,
         subtitle: 'Essential starter tools to begin your career journey.',
         accentColor: Colors.white60,
         isCurrent: _currentTier == 'FREE',
@@ -358,7 +410,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Silver Plan',
-        price: _getPackagePrice('silver', '\$13'),
+        price: _getPackagePrice('silver', 13),
+        usdAmount: 13,
         subtitle: 'Unlimited AI power to match, tailor and autonomously apply.',
         accentColor: const Color(0xFF94A3B8),
         isCurrent: _currentTier == 'SILVER',
@@ -376,7 +429,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Diamond Plan',
-        price: _getPackagePrice('diamond', '\$20'),
+        price: _getPackagePrice('diamond', 20),
+        usdAmount: 20,
         subtitle: 'Unlimited AI power to match, tailor and autonomously apply.',
         accentColor: const Color(0xFF00F0FF),
         isCurrent: _currentTier == 'PREMIUM' || _currentTier == 'DIAMOND',
@@ -399,6 +453,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _buildPlanCard(
         title: 'Free Tier',
         price: '\$0',
+        usdAmount: 0,
         subtitle: 'For startups testing hiring workflows.',
         accentColor: Colors.white60,
         isCurrent: _currentTier == 'FREE',
@@ -412,7 +467,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Premium Plan',
-        price: _getPackagePrice('premium', '\$50'),
+        price: _getPackagePrice('premium', 50),
+        usdAmount: 50,
         subtitle: 'Scaling companies hiring quality talent consistently.',
         accentColor: const Color(0xFF00F0FF),
         isCurrent: _currentTier == 'PREMIUM' || _currentTier == 'SILVER',
@@ -430,7 +486,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Silver / Enterprise',
-        price: _getPackagePrice('enterprise', '\$100'),
+        price: _getPackagePrice('enterprise', 100),
+        usdAmount: 100,
         subtitle: 'High-volume agencies & executive talent recruiters.',
         accentColor: const Color(0xFFA855F7),
         isCurrent: _currentTier == 'ENTERPRISE',
@@ -453,6 +510,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _buildPlanCard(
         title: 'Free Contractor',
         price: '\$0',
+        usdAmount: 0,
         subtitle: 'For contractors & service shops testing dual-mode bidding.',
         accentColor: Colors.white60,
         isCurrent: _currentTier == 'FREE',
@@ -467,7 +525,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Pro Contractor',
-        price: _getPackagePrice('dual_pro', '\$70'),
+        price: _getPackagePrice('dual_pro', 70),
+        usdAmount: 70,
         subtitle: 'Active service companies bidding on jobs & hiring staff.',
         accentColor: const Color(0xFFA855F7),
         isCurrent: _currentTier == 'SILVER' || _currentTier == 'DUAL_PRO',
@@ -485,7 +544,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       const SizedBox(height: 16),
       _buildPlanCard(
         title: 'Enterprise Firm',
-        price: _getPackagePrice('dual_enterprise', '\$130'),
+        price: _getPackagePrice('dual_enterprise', 130),
+        usdAmount: 130,
         subtitle: 'Agencies, fleet operators, and industrial contractors.',
         accentColor: const Color(0xFF00F0FF),
         isCurrent: _currentTier == 'PREMIUM' || _currentTier == 'DUAL_ENTERPRISE',
@@ -501,6 +561,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         onUpgrade: () => _processNativePurchase('DUAL_ENTERPRISE', 'CONTRACTOR', 130),
       ),
     ];
+  }
+
+  Widget _buildCurrencySettlementNotice() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00F0FF).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF00F0FF).withOpacity(0.2)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: Color(0xFF00F0FF), size: 18),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Prices are displayed in your local currency for convenience. All subscriptions are securely billed and settled in USD at checkout.',
+              style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStoreComplianceNotice() {
@@ -529,6 +612,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget _buildPlanCard({
     required String title,
     required String price,
+    int? usdAmount,
     required String subtitle,
     required Color accentColor,
     required bool isCurrent,
@@ -574,6 +658,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               const Text('/ month', style: TextStyle(color: Colors.white60, fontSize: 14)),
             ],
           ),
+          if (usdAmount != null && usdAmount > 0) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '≈ \$$usdAmount USD (Settled in USD)',
+                style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 13)),
           const Divider(color: Colors.white12, height: 28),

@@ -4,7 +4,6 @@ export interface Country {
 }
 
 export const countriesList: string[] = [
-  "Any Country",
   "Afghanistan",
   "Albania",
   "Algeria",
@@ -217,6 +216,11 @@ export const countriesList: string[] = [
   "Yemen",
   "Zambia",
   "Zimbabwe"
+];
+
+export const preferredWorkCountriesList: string[] = [
+  "Any Country",
+  ...countriesList
 ];
 
 export const phoneCodes: Country[] = [

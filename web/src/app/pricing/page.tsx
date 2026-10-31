@@ -4,12 +4,55 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Check, Star, Zap, ShieldCheck, Sparkles, Building2, User, CreditCard, Lock, ArrowRight, X } from 'lucide-react';
 
+interface CurrencyRate {
+  code: string;
+  symbol: string;
+  name: string;
+  rateAgainstUsd: number;
+}
+
+const SUPPORTED_CURRENCIES: Record<string, CurrencyRate> = {
+  USD: { code: 'USD', symbol: '$', name: 'USD - US Dollar ($)', rateAgainstUsd: 1 },
+  NGN: { code: 'NGN', symbol: '₦', name: 'NGN - Nigerian Naira (₦)', rateAgainstUsd: 1550 },
+  GBP: { code: 'GBP', symbol: '£', name: 'GBP - British Pound (£)', rateAgainstUsd: 0.78 },
+  EUR: { code: 'EUR', symbol: '€', name: 'EUR - Euro (€)', rateAgainstUsd: 0.92 },
+  CAD: { code: 'CAD', symbol: 'C$', name: 'CAD - Canadian Dollar (C$)', rateAgainstUsd: 1.38 },
+  KES: { code: 'KES', symbol: 'KSh ', name: 'KES - Kenyan Shilling (KSh)', rateAgainstUsd: 130 },
+  ZAR: { code: 'ZAR', symbol: 'R ', name: 'ZAR - South African Rand (R)', rateAgainstUsd: 18.5 },
+  GHS: { code: 'GHS', symbol: 'GH₵', name: 'GHS - Ghanaian Cedi (GH₵)', rateAgainstUsd: 15.5 },
+  INR: { code: 'INR', symbol: '₹', name: 'INR - Indian Rupee (₹)', rateAgainstUsd: 84 },
+  AUD: { code: 'AUD', symbol: 'A$', name: 'AUD - Australian Dollar (A$)', rateAgainstUsd: 1.52 },
+  AED: { code: 'AED', symbol: 'AED ', name: 'AED - UAE Dirham (AED)', rateAgainstUsd: 3.67 },
+  CHF: { code: 'CHF', symbol: 'CHF ', name: 'CHF - Swiss Franc (CHF)', rateAgainstUsd: 0.88 },
+};
+
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  'Nigeria': 'NGN',
+  'United Kingdom': 'GBP',
+  'Germany': 'EUR',
+  'France': 'EUR',
+  'Spain': 'EUR',
+  'Italy': 'EUR',
+  'Netherlands': 'EUR',
+  'Ireland': 'EUR',
+  'Canada': 'CAD',
+  'Kenya': 'KES',
+  'South Africa': 'ZAR',
+  'Ghana': 'GHS',
+  'India': 'INR',
+  'Australia': 'AUD',
+  'United Arab Emirates': 'AED',
+  'Switzerland': 'CHF',
+  'United States': 'USD',
+};
+
 export default function PricingPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'SEEKER' | 'EMPLOYER' | 'CONTRACTOR'>('SEEKER');
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
 
   const [processingTier, setProcessingTier] = useState<string | null>(null);
 
@@ -22,6 +65,10 @@ export default function PricingPage() {
           if (user) {
             setUserRole(user.role);
             setUserEmail(user.email || '');
+            const userCountry = user.jobSeekerProfile?.residenceCountry || user.employerProfile?.locationCountry;
+            if (userCountry && COUNTRY_TO_CURRENCY[userCountry]) {
+              setSelectedCurrency(COUNTRY_TO_CURRENCY[userCountry]);
+            }
             if (user.jobSeekerProfile?.isDualCapacity || user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR') {
               setActiveTab('CONTRACTOR');
             } else if (user.role === 'EMPLOYER') {
@@ -34,6 +81,21 @@ export default function PricingPage() {
         .catch(console.error);
     }
   }, []);
+
+  const getFormattedPrice = (usd: number) => {
+    if (usd === 0) return { main: '$0', sub: 'Free Tier' };
+    const curr = SUPPORTED_CURRENCIES[selectedCurrency] || SUPPORTED_CURRENCIES.USD;
+    const localVal = usd * curr.rateAgainstUsd;
+    const formatted = curr.code === 'USD'
+      ? `$${usd}`
+      : curr.rateAgainstUsd >= 10
+        ? `${curr.symbol}${Math.round(localVal).toLocaleString()}`
+        : `${curr.symbol}${localVal.toFixed(2)}`;
+    return {
+      main: formatted,
+      sub: curr.code !== 'USD' ? `≈ $${usd} USD (Settled in USD)` : 'Settled in USD'
+    };
+  };
 
   const handleProcessPayment = async (tier: string, amount: number) => {
     const token = localStorage.getItem('token');
@@ -94,42 +156,67 @@ export default function PricingPage() {
             : 'Choose the right plan to accelerate your career, scale your hires, or grow your contracting company.'}
         </p>
 
-        {/* Tab Switcher */}
-        <div style={{ display: 'inline-flex', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', padding: '6px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', marginTop: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button
-            onClick={() => setActiveTab('SEEKER')}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '12px',
-              border: 'none',
-              background: activeTab === 'SEEKER' ? 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)' : 'transparent',
-              color: activeTab === 'SEEKER' ? '#000' : '#fff',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <User size={18} /> Job Seekers
-          </button>
-          <button
-            onClick={() => setActiveTab('CONTRACTOR')}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '12px',
-              border: 'none',
-              background: activeTab === 'CONTRACTOR' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'transparent',
-              color: '#fff',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <ShieldCheck size={18} /> B2B Contractors & Dual Mode
-          </button>
+        {/* Tab Switcher & Currency Selector */}
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', padding: '6px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setActiveTab('SEEKER')}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                background: activeTab === 'SEEKER' ? 'linear-gradient(135deg, #00f0ff 0%, #0080ff 100%)' : 'transparent',
+                color: activeTab === 'SEEKER' ? '#000' : '#fff',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <User size={18} /> Job Seekers
+            </button>
+            <button
+              onClick={() => setActiveTab('CONTRACTOR')}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                background: activeTab === 'CONTRACTOR' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'transparent',
+                color: '#fff',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <ShieldCheck size={18} /> B2B Contractors & Dual Mode
+            </button>
+          </div>
+
+          {/* Local Currency Selector */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.06)', padding: '8px 16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)' }}>
+            <CreditCard size={16} style={{ color: '#00F0FF' }} />
+            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>Currency:</span>
+            <select
+              value={selectedCurrency}
+              onChange={e => setSelectedCurrency(e.target.value)}
+              style={{ background: 'transparent', color: '#00F0FF', border: 'none', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', outline: 'none' }}
+              title="Select local display currency"
+            >
+              {Object.values(SUPPORTED_CURRENCIES).map(c => (
+                <option key={c.code} value={c.code} style={{ background: '#16122E', color: 'white' }}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Currency Notice */}
+        <div style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '20px', background: 'rgba(0, 240, 255, 0.08)', border: '1px solid rgba(0, 240, 255, 0.25)', color: '#00F0FF', fontSize: '0.82rem' }}>
+          <span>ℹ️ Prices are displayed in your local currency for convenience. All subscription orders are settled in USD at checkout.</span>
         </div>
       </div>
 
@@ -139,7 +226,8 @@ export default function PricingPage() {
           {/* Free Tier */}
           <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #71717a' }}>
             <h2 style={{ fontSize: '1.8rem', margin: 0 }}>Free Tier</h2>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$0 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0 0.2rem 0' }}>$0 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '0.8rem', color: '#a1a1aa', marginBottom: '1.2rem', fontWeight: 500 }}>Free Forever</div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Essential starter tools to begin your career journey.</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: '#e4e4e7', fontSize: '0.95rem' }}>
               <li>✔️ <strong>1 Resume & Cover Letter</strong> built</li>
@@ -161,7 +249,8 @@ export default function PricingPage() {
           <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #94A3B8' }}>
             <div style={{ background: '#94A3B8', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>POPULAR FOR TALENT</div>
             <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#e2e8f0' }}>Silver Plan</h2>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$13 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0 0.2rem 0' }}>{getFormattedPrice(13).main} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '0.8rem', color: '#00F0FF', marginBottom: '1.2rem', fontWeight: 600 }}>{getFormattedPrice(13).sub}</div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Unlimited AI power to match, tailor and autonomously apply.</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'white', fontSize: '0.95rem' }}>
               <li>✨ <strong>15 AI Resume</strong> tailoring & builder</li>
@@ -176,7 +265,7 @@ export default function PricingPage() {
               disabled={loading || processingTier !== null} 
               style={{ width: '100%', padding: '0.85rem', marginTop: '2rem', background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)', border: 'none', color: 'white', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' }}
             >
-              {processingTier === 'SILVER' ? 'Redirecting to Checkout...' : 'Upgrade to Silver ($13/mo)'}
+              {processingTier === 'SILVER' ? 'Redirecting to Checkout...' : 'Upgrade to Silver ($13 USD)'}
             </button>
           </div>
 
@@ -184,7 +273,8 @@ export default function PricingPage() {
           <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #00F0FF', transform: 'scale(1.03)', boxShadow: '0 0 35px rgba(0, 240, 255, 0.25)' }}>
             <div style={{ background: '#00F0FF', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>VIP BEST VALUE</div>
             <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#00F0FF' }}>Diamond Plan</h2>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$20 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0 0.2rem 0' }}>{getFormattedPrice(20).main} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '0.8rem', color: '#00F0FF', marginBottom: '1.2rem', fontWeight: 600 }}>{getFormattedPrice(20).sub}</div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Unlimited AI power to match, tailor and autonomously apply.</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'white', fontSize: '0.95rem' }}>
               <li>✨ <strong>Unlimited AI Resume</strong> tailoring & builder</li>
@@ -200,7 +290,7 @@ export default function PricingPage() {
               className="btn-primary" 
               style={{ width: '100%', padding: '0.85rem', marginTop: '2rem', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' }}
             >
-              {processingTier === 'DIAMOND' ? 'Redirecting to Checkout...' : 'Upgrade to Diamond ($20/mo)'}
+              {processingTier === 'DIAMOND' ? 'Redirecting to Checkout...' : 'Upgrade to Diamond ($20 USD)'}
             </button>
           </div>
         </div>
@@ -306,7 +396,8 @@ export default function PricingPage() {
           <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #a855f7', transform: 'scale(1.03)', boxShadow: '0 0 35px rgba(168, 85, 247, 0.25)' }}>
             <div style={{ background: '#a855f7', color: 'white', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>BEST FOR GROWING CONTRACTORS</div>
             <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#c084fc' }}>Pro Contractor</h2>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$70 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0 0.2rem 0' }}>{getFormattedPrice(70).main} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '0.8rem', color: '#c084fc', marginBottom: '1.2rem', fontWeight: 600 }}>{getFormattedPrice(70).sub}</div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Active service companies bidding on commercial jobs and hiring staff.</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'white', fontSize: '0.95rem' }}>
               <li>⚡ <strong>30 Commercial Contract Bids</strong> per month</li>
@@ -321,7 +412,7 @@ export default function PricingPage() {
               disabled={loading || processingTier !== null} 
               style={{ width: '100%', padding: '0.85rem', marginTop: '2rem', background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)', border: 'none', color: 'white', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' }}
             >
-              {processingTier === 'DUAL_PRO' ? 'Redirecting to Checkout...' : 'Upgrade to Pro Contractor ($70/mo)'}
+              {processingTier === 'DUAL_PRO' ? 'Redirecting to Checkout...' : 'Upgrade to Pro Contractor ($70 USD)'}
             </button>
           </div>
 
@@ -329,7 +420,8 @@ export default function PricingPage() {
           <div className="glass-panel" style={{ flex: '1', minWidth: '300px', maxWidth: '370px', padding: '2.5rem 2rem', textAlign: 'left', borderTop: '4px solid #00F0FF' }}>
             <div style={{ background: '#00F0FF', color: 'black', padding: '0.2rem 0.8rem', borderRadius: '20px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>HIGH-VOLUME FIRMS</div>
             <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#00F0FF' }}>Enterprise Firm</h2>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0' }}>$130 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, margin: '1rem 0 0.2rem 0' }}>{getFormattedPrice(130).main} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/ month</span></div>
+            <div style={{ fontSize: '0.8rem', color: '#00F0FF', marginBottom: '1.2rem', fontWeight: 600 }}>{getFormattedPrice(130).sub}</div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Established agencies, fleet operators, and industrial contractors.</p>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'white', fontSize: '0.95rem' }}>
               <li>👑 <strong>Unlimited Commercial Contract Bids</strong></li>
@@ -345,7 +437,7 @@ export default function PricingPage() {
               className="btn-primary" 
               style={{ width: '100%', padding: '0.85rem', marginTop: '2rem', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' }}
             >
-              {processingTier === 'DUAL_ENTERPRISE' ? 'Redirecting to Checkout...' : 'Subscribe Enterprise Firm ($130/mo)'}
+              {processingTier === 'DUAL_ENTERPRISE' ? 'Redirecting to Checkout...' : 'Subscribe Enterprise Firm ($130 USD)'}
             </button>
           </div>
         </div>

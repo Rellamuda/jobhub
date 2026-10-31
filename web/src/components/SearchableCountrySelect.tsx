@@ -11,6 +11,8 @@ interface SearchableCountrySelectProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  includeGlobal?: boolean;
+  customList?: string[];
 }
 
 export function SearchableCountrySelect({
@@ -20,6 +22,8 @@ export function SearchableCountrySelect({
   label,
   required,
   disabled,
+  includeGlobal = false,
+  customList,
 }: SearchableCountrySelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,7 +39,8 @@ export function SearchableCountrySelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredCountries = countriesList.filter((c) =>
+  const baseList = customList || (includeGlobal ? ["Any Country (Global)", ...countriesList] : countriesList);
+  const filteredCountries = baseList.filter((c) =>
     c.toLowerCase().includes(searchTerm.toLowerCase().trim()),
   );
 

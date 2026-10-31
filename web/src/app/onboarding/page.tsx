@@ -1377,11 +1377,16 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            <label style={{ color: 'white', display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: 500 }}>
-              {seekerType === 'COMPANY_CONTRACTOR' ? 'Town / City of Operation' : 'City / Town'} <span style={{ color: '#00F0FF' }}>*</span>
+            <label style={{ color: 'white', display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem', fontWeight: 600 }}>
+              {seekerType === 'COMPANY_CONTRACTOR' ? 'Town / City of Corporate Operation' : 'Residential City / Town (Where you currently live)'} <span style={{ color: '#00F0FF' }}>*</span>
             </label>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 0.5rem 0' }}>
+              {seekerType === 'COMPANY_CONTRACTOR' 
+                ? 'Enter the official city, town, or municipality where your contracting business or company operates.'
+                : 'Enter the specific city, town, or municipality where you currently live and reside.'}
+            </p>
             <input 
-              placeholder="e.g. Lagos, Toronto, London, Austin" 
+              placeholder={seekerType === 'COMPANY_CONTRACTOR' ? "e.g. Dallas, Ikeja, Manchester, Calgary" : "e.g. Manchester, Houston, Nairobi, Toronto, Lagos"} 
               value={residenceCity} 
               onChange={e => setResidenceCity(e.target.value)} 
               className="input-field" 
@@ -1502,6 +1507,7 @@ export default function OnboardingPage() {
               label="Preferred Work Country"
               value={preferredWorkCountry}
               required
+              includeGlobal={true}
               placeholder="Select preferred country to work in (or Any Country for Global)..."
               onChange={(c) => {
                 setPreferredWorkCountry(c);

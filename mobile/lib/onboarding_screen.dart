@@ -1803,7 +1803,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _buildTextField(_residenceState, isContractor ? 'Operating State / Province / Region *' : 'Resident State / Province / Region *'),
             ],
 
-            _buildTextField(_residenceCity, isContractor ? 'Town / City of Operation *' : 'City / Town (Manual Entry) *'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isContractor ? 'Town / City of Corporate Operation *' : 'Residential City / Town (Where you currently live) *',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isContractor
+                        ? 'The primary city or municipality where your corporate office or business operates.'
+                        : 'The specific city, town, or municipality where you currently live and reside.',
+                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _residenceCity,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: isContractor ? 'e.g. Dallas, Ikeja, Manchester, Calgary' : 'e.g. Houston, London, Nairobi, Toronto, Lagos',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             // Work Mode Preference (Remote, Onsite, Hybrid)
             Container(

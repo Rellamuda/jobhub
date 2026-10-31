@@ -154,9 +154,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildDualModeSwitcherCard() {
+    final isContractor = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _profile?['isDualCapacity'] == true ||
+        (_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty);
+    if (!isContractor) {
+      return const SizedBox.shrink();
+    }
     final currentRole = _user?['role'] ?? 'JOB_SEEKER';
     final isSeeker = currentRole == 'JOB_SEEKER';
-    final isContractor = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' || _profile?['isDualCapacity'] == true;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -1712,8 +1717,11 @@ Generated via JobHub Global Talent Platform''';
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              _buildDualModeSwitcherCard(),
+              if (_profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+                  _profile?['isDualCapacity'] == true ||
+                  (_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty)) ...[
+                _buildDualModeSwitcherCard(),
+              ],
               if (_user!['role'] == 'JOB_SEEKER') _buildSeekerProfile() else _buildEmployerProfile(),
               const SizedBox(height: 24),
               // Legal & Google Play Compliance Section

@@ -8,6 +8,7 @@ import 'create_job_screen.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'company_profile_screen.dart';
+import 'notifications_screen.dart';
 import 'config/api_config.dart';
 
 class JobsScreen extends StatefulWidget {
@@ -409,12 +410,12 @@ class _JobsScreenState extends State<JobsScreen> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.person, color: Colors.white70),
-                          tooltip: 'Profile',
+                          icon: const Icon(Icons.notifications_outlined, color: Colors.white70),
+                          tooltip: 'Notification Alerts',
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                             );
                           },
                         ),

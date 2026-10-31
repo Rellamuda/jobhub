@@ -51,7 +51,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>6. Contact Us</h2>
             <p>
-              For inquiries regarding these Terms, contact our legal department at <a href="mailto:support@jobhubai.com" style={{ color: '#00F0FF' }}>support@jobhubai.com</a>.
+              For legal or compliance inquiries regarding these Terms, contact CleanConnect Nigeria (operating entity: cleanconnectng.com) at <a href="mailto:support@cleanconnectng.com" style={{ color: '#00F0FF' }}>support@cleanconnectng.com</a> or <a href="mailto:support@jobhubai.com" style={{ color: '#00F0FF' }}>support@jobhubai.com</a>.
             </p>
           </section>
         </div>

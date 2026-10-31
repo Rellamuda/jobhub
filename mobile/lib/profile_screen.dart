@@ -950,6 +950,187 @@ Generated via JobHub Global Talent Platform''';
     }
   }
 
+  void _showSupportInquiryDialog() {
+    final nameController = TextEditingController(
+      text: _user?['jobSeekerProfile'] != null
+          ? '${_user!['jobSeekerProfile']['firstName'] ?? ''} ${_user!['jobSeekerProfile']['lastName'] ?? ''}'.trim()
+          : (_user?['employer']?['companyName'] ?? _user?['email'] ?? ''),
+    );
+    final emailController = TextEditingController(text: _user?['email'] ?? '');
+    final subjectController = TextEditingController();
+    final messageController = TextEditingController();
+    String selectedCategory = 'General Inquiry';
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E2C),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white12)),
+            title: const Row(
+              children: [
+                Icon(Icons.support_agent, color: Color(0xFF00F0FF)),
+                SizedBox(width: 8),
+                Text('Support & Inquiry', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Category', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedCategory,
+                        dropdownColor: const Color(0xFF1E1E2C),
+                        isExpanded: true,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        items: const [
+                          DropdownMenuItem(value: 'General Inquiry', child: Text('General Inquiry')),
+                          DropdownMenuItem(value: 'Account & Verification', child: Text('Account & Verification')),
+                          DropdownMenuItem(value: 'Billing & Subscriptions', child: Text('Billing & Subscriptions')),
+                          DropdownMenuItem(value: 'Job Match & AI Resume', child: Text('Job Match & AI Resume')),
+                          DropdownMenuItem(value: 'Technical Issue / Bug', child: Text('Technical Issue / Bug')),
+                          DropdownMenuItem(value: 'Contractor & Dual Mode', child: Text('Contractor & Dual Mode')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() => selectedCategory = val);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Subject', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: subjectController,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Brief summary of your inquiry...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white24)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white24)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Message', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: messageController,
+                    maxLines: 4,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Describe your question, issue, or feedback in detail...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white24)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white24)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF))),
+                      contentPadding: const EdgeInsets.all(12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00F0FF),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final subject = subjectController.text.trim();
+                        final message = messageController.text.trim();
+                        if (subject.isEmpty || message.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please enter both subject and message.')),
+                          );
+                          return;
+                        }
+
+                        setDialogState(() => isSubmitting = true);
+                        try {
+                          final prefs = await SharedPreferences.getInstance();
+                          final token = prefs.getString('token');
+                          final headers = <String, String>{
+                            'Content-Type': 'application/json',
+                          };
+                          if (token != null) headers['Authorization'] = 'Bearer $token';
+
+                          final res = await http.post(
+                            Uri.parse('${ApiConfig.baseUrl}/admin/support-inquiry'),
+                            headers: headers,
+                            body: jsonEncode({
+                              'userId': _user?['id'],
+                              'name': nameController.text.trim().isNotEmpty ? nameController.text.trim() : 'JobHub User',
+                              'email': emailController.text.trim().isNotEmpty ? emailController.text.trim() : 'user@jobhubai.com',
+                              'category': selectedCategory,
+                              'subject': subject,
+                              'message': message,
+                            }),
+                          );
+
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+
+                          if (mounted) {
+                            if (res.statusCode == 200 || res.statusCode == 201) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: Color(0xFF10B981),
+                                  content: Text('Your inquiry has been submitted to JobHub Support & Admin team.'),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Submission received. (Status: ${res.statusCode})')),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error sending inquiry: $e')),
+                            );
+                          }
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : const Text('Send Inquiry', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _deleteAccount() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1869,16 +2050,6 @@ Generated via JobHub Global Talent Platform''';
                     ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.privacy_tip_outlined, color: Colors.white70),
-                      title: const Text('Privacy Policy', style: TextStyle(color: Colors.white)),
-                      subtitle: const Text('Data collection & user rights', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      trailing: const Icon(Icons.open_in_new, color: Color(0xFF00F0FF), size: 18),
-                      onTap: () => _openWebUrl('${ApiConfig.webUrl}/privacy'),
-                    ),
-                    const Divider(color: Colors.white12),
-                    ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.description_outlined, color: Colors.white70),
                       title: const Text('Terms of Service', style: TextStyle(color: Colors.white)),
                       subtitle: const Text('Platform guidelines & terms', style: TextStyle(color: Colors.white54, fontSize: 12)),
@@ -1891,9 +2062,9 @@ Generated via JobHub Global Talent Platform''';
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.support_agent, color: Colors.white70),
                       title: const Text('Support & Inquiries', style: TextStyle(color: Colors.white)),
-                      subtitle: const Text('support@jobhubai.com', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      trailing: const Icon(Icons.mail_outline, color: Color(0xFF00F0FF), size: 18),
-                      onTap: () => _openWebUrl('mailto:support@jobhubai.com'),
+                      subtitle: const Text('Submit questions or issues to support team', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF00F0FF), size: 14),
+                      onTap: _showSupportInquiryDialog,
                     ),
                     const Divider(color: Colors.white12),
                     ListTile(

@@ -68,6 +68,33 @@ interface UserData {
   };
 }
 
+interface SupportInquiryData {
+  id: string;
+  userId?: string;
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+    jobSeekerProfile?: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+    };
+    employer?: {
+      companyName?: string;
+      hrPhone?: string;
+    };
+  };
+}
+
 const resolvePicUrl = (path?: string) => {
   if (!path || !path.trim()) return null;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -76,7 +103,14 @@ const resolvePicUrl = (path?: string) => {
 };
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState<'USERS' | 'INQUIRIES'>('USERS');
   const [users, setUsers] = useState<UserData[]>([]);
+  const [inquiries, setInquiries] = useState<SupportInquiryData[]>([]);
+  const [loadingInquiries, setLoadingInquiries] = useState(false);
+  const [inquirySearchQuery, setInquirySearchQuery] = useState('');
+  const [inquiryStatusFilter, setInquiryStatusFilter] = useState('ALL');
+  const [selectedInquiry, setSelectedInquiry] = useState<SupportInquiryData | null>(null);
+  const [isUpdatingInquiry, setIsUpdatingInquiry] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [aiStats, setAiStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +127,7 @@ export default function AdminDashboard() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -137,9 +172,79 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchInquiries = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+    setLoadingInquiries(true);
+    try {
+      const res = await fetch('/api/admin/inquiries', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInquiries(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingInquiries(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchInquiries();
   }, []);
+
+  const handleUpdateInquiryStatus = async (id: string, newStatus: string) => {
+    setIsUpdatingInquiry(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/inquiries/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        showNotification('success', `Inquiry status changed to ${newStatus}`);
+        fetchInquiries();
+        if (selectedInquiry && selectedInquiry.id === id) {
+          setSelectedInquiry({ ...selectedInquiry, status: newStatus });
+        }
+      } else {
+        showNotification('error', 'Failed to update inquiry status');
+      }
+    } catch (e: any) {
+      showNotification('error', e.message);
+    } finally {
+      setIsUpdatingInquiry(false);
+    }
+  };
+
+  const handleDeleteInquiry = async (id: string) => {
+    if (!confirm('Are you sure you want to permanently remove this inquiry?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/admin/inquiries/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        showNotification('success', 'Support inquiry permanently deleted.');
+        setInquiries((prev) => prev.filter((i) => i.id !== id));
+        if (selectedInquiry && selectedInquiry.id === id) {
+          setSelectedInquiry(null);
+        }
+      } else {
+        showNotification('error', 'Failed to delete inquiry');
+      }
+    } catch (e: any) {
+      showNotification('error', e.message);
+    }
+  };
 
   const showNotification = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -257,6 +362,23 @@ export default function AdminDashboard() {
       return matchesSearch && matchesRole && matchesTier && matchesStatus;
     });
   }, [users, searchQuery, roleFilter, tierFilter, statusFilter]);
+
+  const filteredInquiries = useMemo(() => {
+    return inquiries.filter((inq) => {
+      const q = inquirySearchQuery.toLowerCase().trim();
+      const name = (inq.name || '').toLowerCase();
+      const email = (inq.email || '').toLowerCase();
+      const subject = (inq.subject || '').toLowerCase();
+      const message = (inq.message || '').toLowerCase();
+      const category = (inq.category || '').toLowerCase();
+
+      const matchesSearch = !q || name.includes(q) || email.includes(q) || subject.includes(q) || message.includes(q) || category.includes(q);
+      const matchesStatus = inquiryStatusFilter === 'ALL' || inq.status === inquiryStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [inquiries, inquirySearchQuery, inquiryStatusFilter]);
+
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0A0A0A', color: 'white', padding: '2rem 1.5rem' }}>
@@ -494,13 +616,70 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Filter and Search Bar */}
-        <div
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            padding: '1.25rem',
+        {/* View Switcher Tabs */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.75rem' }}>
+          <button
+            onClick={() => setActiveTab('USERS')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: activeTab === 'USERS' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeTab === 'USERS' ? '#00F0FF' : 'rgba(255, 255, 255, 0.7)',
+              border: activeTab === 'USERS' ? '1px solid rgba(0, 240, 255, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+              padding: '0.75rem 1.4rem',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+            }}
+          >
+            👥 Platform Users ({users.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('INQUIRIES')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: activeTab === 'INQUIRIES' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeTab === 'INQUIRIES' ? '#00F0FF' : 'rgba(255, 255, 255, 0.7)',
+              border: activeTab === 'INQUIRIES' ? '1px solid rgba(0, 240, 255, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+              padding: '0.75rem 1.4rem',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+            }}
+          >
+            📩 Support & Enquiries ({inquiries.length})
+            {inquiries.filter((i) => i.status === 'OPEN').length > 0 && (
+              <span
+                style={{
+                  backgroundColor: '#F59E0B',
+                  color: '#000',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  marginLeft: '4px',
+                }}
+              >
+                {inquiries.filter((i) => i.status === 'OPEN').length} New
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === 'USERS' && (
+          <>
+            {/* Filter and Search Bar */}
+            <div
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '1.25rem',
             marginBottom: '1.5rem',
             display: 'flex',
             flexWrap: 'wrap',
@@ -941,8 +1120,564 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+      </>
+    )}
 
-        {/* User Details Modal */}
+    {/* Support & Enquiries Tab */}
+    {activeTab === 'INQUIRIES' && (
+      <>
+        {/* Inquiries Filter & Search Bar */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* Search Box */}
+          <div style={{ flex: '1 1 320px', position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Search enquiries by name, email, subject, message, or category..."
+              value={inquirySearchQuery}
+              onChange={(e) => setInquirySearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.8rem 1rem',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                color: 'white',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Filter Dropdown */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', display: 'block', marginBottom: '0.2rem' }}>STATUS</label>
+              <select
+                value={inquiryStatusFilter}
+                onChange={(e) => setInquiryStatusFilter(e.target.value)}
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  padding: '0.6rem 0.9rem',
+                  borderRadius: '10px',
+                  outline: 'none',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <option value="ALL">All Statuses ({inquiries.length})</option>
+                <option value="OPEN">Open ({inquiries.filter((i) => i.status === 'OPEN').length})</option>
+                <option value="IN_PROGRESS">In Progress ({inquiries.filter((i) => i.status === 'IN_PROGRESS').length})</option>
+                <option value="RESOLVED">Resolved ({inquiries.filter((i) => i.status === 'RESOLVED').length})</option>
+              </select>
+            </div>
+
+            <button
+              onClick={fetchInquiries}
+              disabled={loadingInquiries}
+              style={{
+                marginTop: '1.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                padding: '0.6rem 1rem',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+              }}
+            >
+              🔄 Refresh Enquiries
+            </button>
+
+            {(inquirySearchQuery || inquiryStatusFilter !== 'ALL') && (
+              <button
+                onClick={() => {
+                  setInquirySearchQuery('');
+                  setInquiryStatusFilter('ALL');
+                }}
+                style={{
+                  marginTop: '1.2rem',
+                  backgroundColor: 'transparent',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Counter */}
+        <div style={{ marginBottom: '1rem', color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.9rem' }}>
+          Showing <strong>{filteredInquiries.length}</strong> of <strong>{inquiries.length}</strong> enquiries
+        </div>
+
+        {/* Inquiries Table */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+          }}
+        >
+          {loadingInquiries ? (
+            <div style={{ padding: '4rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+              <div>Loading support tickets & enquiries...</div>
+            </div>
+          ) : filteredInquiries.length === 0 ? (
+            <div style={{ padding: '4rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📭</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'white', marginBottom: '0.5rem' }}>No Support Enquiries Found</div>
+              <div style={{ fontSize: '0.9rem' }}>
+                {inquiries.length === 0
+                  ? 'No user has submitted any support enquiries yet. When users submit via mobile or web Support & Inquiries, tickets will automatically appear here.'
+                  : 'No enquiries match your active search filters.'}
+              </div>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>STATUS</th>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>DATE & TIME</th>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>SENDER / CONTACT</th>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>CATEGORY</th>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>SUBJECT & MESSAGE</th>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>USER RECORD</th>
+                    <th style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInquiries.map((inq) => {
+                    const statusColor =
+                      inq.status === 'RESOLVED'
+                        ? '#10B981'
+                        : inq.status === 'IN_PROGRESS'
+                        ? '#60A5FA'
+                        : '#F59E0B';
+                    const statusBg =
+                      inq.status === 'RESOLVED'
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : inq.status === 'IN_PROGRESS'
+                        ? 'rgba(96, 165, 250, 0.15)'
+                        : 'rgba(245, 158, 11, 0.15)';
+
+                    return (
+                      <tr
+                        key={inq.id}
+                        style={{
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                          transition: 'background-color 0.15s',
+                        }}
+                      >
+                        <td style={{ padding: '1rem 1.25rem' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.3rem 0.75rem',
+                              borderRadius: '20px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              backgroundColor: statusBg,
+                              color: statusColor,
+                              border: `1px solid ${statusColor}40`,
+                            }}
+                          >
+                            {inq.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                          {new Date(inq.createdAt).toLocaleString(undefined, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem' }}>
+                          <div style={{ fontWeight: 600, color: 'white' }}>{inq.name}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#00F0FF' }}>{inq.email}</div>
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.25rem 0.6rem',
+                              borderRadius: '8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                              color: '#A5B4FC',
+                              border: '1px solid rgba(99, 102, 241, 0.3)',
+                            }}
+                          >
+                            {inq.category || 'General'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem', maxWidth: '340px' }}>
+                          <div style={{ fontWeight: 600, color: 'white', marginBottom: '0.2rem' }}>
+                            {inq.subject}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.82rem',
+                              color: 'rgba(255, 255, 255, 0.6)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {inq.message}
+                          </div>
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem' }}>
+                          {inq.user ? (
+                            <div>
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: inq.user.role === 'EMPLOYER' ? '#10B98125' : '#6366F125',
+                                  color: inq.user.role === 'EMPLOYER' ? '#10B981' : '#818CF8',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {inq.user.role}
+                              </span>
+                              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '2px' }}>
+                                {inq.user.jobSeekerProfile
+                                  ? `${inq.user.jobSeekerProfile.firstName || ''} ${inq.user.jobSeekerProfile.lastName || ''}`.trim()
+                                  : inq.user.employer?.companyName || inq.user.email}
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)' }}>Guest / App User</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => setSelectedInquiry(inq)}
+                              style={{
+                                backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                                color: '#A5B4FC',
+                                border: '1px solid rgba(99, 102, 241, 0.3)',
+                                padding: '0.4rem 0.8rem',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                              }}
+                            >
+                              View Details
+                            </button>
+                            {inq.status !== 'RESOLVED' ? (
+                              <button
+                                onClick={() => handleUpdateInquiryStatus(inq.id, 'RESOLVED')}
+                                disabled={isUpdatingInquiry}
+                                style={{
+                                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                                  color: '#10B981',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  padding: '0.4rem 0.8rem',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Mark Resolved
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleUpdateInquiryStatus(inq.id, 'OPEN')}
+                                disabled={isUpdatingInquiry}
+                                style={{
+                                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                                  color: '#F59E0B',
+                                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                                  padding: '0.4rem 0.8rem',
+                                  borderRadius: '8px',
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Reopen
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteInquiry(inq.id)}
+                              style={{
+                                backgroundColor: 'transparent',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                color: '#EF4444',
+                                padding: '0.4rem 0.6rem',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                              }}
+                              title="Delete inquiry"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </>
+    )}
+
+    {/* Support Inquiry Details Modal */}
+    {selectedInquiry && (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          zIndex: 9999,
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: '#161616',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2rem',
+            position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                <span
+                  style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    backgroundColor:
+                      selectedInquiry.status === 'RESOLVED'
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : selectedInquiry.status === 'IN_PROGRESS'
+                        ? 'rgba(96, 165, 250, 0.15)'
+                        : 'rgba(245, 158, 11, 0.15)',
+                    color:
+                      selectedInquiry.status === 'RESOLVED'
+                        ? '#10B981'
+                        : selectedInquiry.status === 'IN_PROGRESS'
+                        ? '#60A5FA'
+                        : '#F59E0B',
+                  }}
+                >
+                  {selectedInquiry.status}
+                </span>
+                <span
+                  style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    color: '#A5B4FC',
+                  }}
+                >
+                  {selectedInquiry.category || 'General'}
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'white' }}>
+                {selectedInquiry.subject}
+              </h2>
+            </div>
+            <button
+              onClick={() => setSelectedInquiry(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Sender & Timestamp */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              padding: '1rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>SUBMITTER NAME</div>
+              <div style={{ fontWeight: 600, color: 'white', marginTop: '2px' }}>{selectedInquiry.name}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>EMAIL ADDRESS</div>
+              <div style={{ fontWeight: 600, color: '#00F0FF', marginTop: '2px' }}>
+                <a href={`mailto:${selectedInquiry.email}`} style={{ color: '#00F0FF', textDecoration: 'none' }}>
+                  {selectedInquiry.email} ↗
+                </a>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>SUBMITTED AT</div>
+              <div style={{ color: 'white', marginTop: '2px', fontSize: '0.85rem' }}>
+                {new Date(selectedInquiry.createdAt).toLocaleString()}
+              </div>
+            </div>
+            {selectedInquiry.user && (
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>ACCOUNT ROLE</div>
+                <div style={{ color: '#A5B4FC', fontWeight: 600, marginTop: '2px', fontSize: '0.85rem' }}>
+                  {selectedInquiry.user.role} ({selectedInquiry.user.jobSeekerProfile?.phone || selectedInquiry.user.employer?.hrPhone || 'No phone'})
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Full Message Box */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+              Enquiry Message Content
+            </label>
+            <div
+              style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                color: 'white',
+                lineHeight: 1.6,
+                fontSize: '0.95rem',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {selectedInquiry.message}
+            </div>
+          </div>
+
+          {/* Actions Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.25rem' }}>
+            <button
+              onClick={() => handleDeleteInquiry(selectedInquiry.id)}
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                color: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+              }}
+            >
+              Delete Inquiry
+            </button>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {selectedInquiry.status !== 'IN_PROGRESS' && (
+                <button
+                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, 'IN_PROGRESS')}
+                  style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    color: '#60A5FA',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Set In Progress
+                </button>
+              )}
+              {selectedInquiry.status !== 'RESOLVED' ? (
+                <button
+                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, 'RESOLVED')}
+                  style={{
+                    backgroundColor: '#10B981',
+                    color: '#000',
+                    border: 'none',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  ✓ Mark as Resolved
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, 'OPEN')}
+                  style={{
+                    backgroundColor: '#F59E0B',
+                    color: '#000',
+                    border: 'none',
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  ↺ Reopen Ticket
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* User Details Modal */}
         {selectedUser && (
           <div
             style={{

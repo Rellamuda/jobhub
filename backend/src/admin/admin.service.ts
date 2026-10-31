@@ -271,4 +271,90 @@ export class AdminService {
       throw new InternalServerErrorException(e.message || 'Failed to delete user due to dependencies');
     }
   }
+
+  async createSupportInquiry(data: {
+    userId?: string;
+    name: string;
+    email: string;
+    category?: string;
+    subject: string;
+    message: string;
+  }) {
+    try {
+      const inquiry = await (this.prisma as any).supportInquiry.create({
+        data: {
+          userId: data.userId || null,
+          name: data.name,
+          email: data.email,
+          category: data.category || 'General Inquiry',
+          subject: data.subject,
+          message: data.message,
+          status: 'OPEN',
+        },
+      });
+      return { success: true, message: 'Support inquiry submitted successfully', inquiry };
+    } catch (e: any) {
+      this.logger.error(`Failed to create support inquiry: ${e.message}`, e.stack);
+      throw new InternalServerErrorException(e.message || 'Failed to submit support inquiry');
+    }
+  }
+
+  async getSupportInquiries() {
+    try {
+      return await (this.prisma as any).supportInquiry.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              jobSeekerProfile: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  phone: true,
+                },
+              },
+              employer: {
+                select: {
+                  companyName: true,
+                  hrPhone: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    } catch (e: any) {
+      this.logger.error(`Failed to fetch support inquiries: ${e.message}`, e.stack);
+      throw new InternalServerErrorException(e.message || 'Failed to fetch support inquiries');
+    }
+  }
+
+  async updateSupportInquiryStatus(id: string, status: string) {
+    try {
+      const updated = await (this.prisma as any).supportInquiry.update({
+        where: { id },
+        data: { status },
+      });
+      return { success: true, inquiry: updated };
+    } catch (e: any) {
+      this.logger.error(`Failed to update inquiry status: ${e.message}`, e.stack);
+      throw new InternalServerErrorException(e.message || 'Failed to update inquiry status');
+    }
+  }
+
+  async deleteSupportInquiry(id: string) {
+    try {
+      await (this.prisma as any).supportInquiry.delete({
+        where: { id },
+      });
+      return { success: true, message: 'Inquiry removed' };
+    } catch (e: any) {
+      this.logger.error(`Failed to delete support inquiry: ${e.message}`, e.stack);
+      throw new InternalServerErrorException(e.message || 'Failed to delete support inquiry');
+    }
+  }
 }
+

@@ -18,6 +18,8 @@ import 'screens/jobs/marketplace_screen.dart';
 import 'employer_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/quota_alert_banner.dart';
+import 'notifications_screen.dart';
+import 'ai_chat_screen.dart';
 
 class SeekerDashboard extends StatefulWidget {
   const SeekerDashboard({super.key});
@@ -352,6 +354,22 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: Badge(
+              label: unreadAlertsCount > 0 ? Text('$unreadAlertsCount') : null,
+              isLabelVisible: unreadAlertsCount > 0,
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Notification Alerts',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ).then((_) => _fetchData());
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -463,7 +481,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                           const ApplicationsScreen(),
                           _buildHub(),
                           _buildInbox(),
-                          _buildNotifications(),
+                          const AiChatScreen(),
                           const ProfileScreen(),
                         ],
                       ),
@@ -478,20 +496,16 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           unselectedItemColor: isDark ? Colors.white54 : Colors.black45,
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          items: [
-            const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Jobs'),
-            const BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Apps'),
-            const BottomNavigationBarItem(icon: Icon(Icons.hub), label: 'AI Hub'),
-            const BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Jobs'),
+            BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Apps'),
+            BottomNavigationBarItem(icon: Icon(Icons.hub), label: 'AI Hub'),
+            BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
             BottomNavigationBarItem(
-              icon: Badge(
-                label: unreadAlertsCount > 0 ? Text('$unreadAlertsCount') : null,
-                isLabelVisible: unreadAlertsCount > 0,
-                child: const Icon(Icons.notifications),
-              ),
-              label: 'Alerts',
+              icon: Icon(Icons.auto_awesome),
+              label: 'AI Chat',
             ),
-            const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
       ),
@@ -508,6 +522,20 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: Badge(
+              label: unreadAlertsCount > 0 ? Text('$unreadAlertsCount') : null,
+              isLabelVisible: unreadAlertsCount > 0,
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Notification Alerts',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ).then((_) => _fetchData());
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchData,

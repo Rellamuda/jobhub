@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Put, Delete, Param, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Delete, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -44,5 +44,39 @@ export class AdminController {
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string) {
     return this.adminService.deleteUser(id);
+  }
+
+  // Support & Enquiry Endpoints
+  @Post('support-inquiry')
+  async createSupportInquiry(
+    @Body()
+    body: {
+      userId?: string;
+      name: string;
+      email: string;
+      category?: string;
+      subject: string;
+      message: string;
+    },
+  ) {
+    return this.adminService.createSupportInquiry(body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('inquiries')
+  async getInquiries() {
+    return this.adminService.getSupportInquiries();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('inquiries/:id/status')
+  async updateInquiryStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.adminService.updateSupportInquiryStatus(id, status);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('inquiries/:id')
+  async deleteInquiry(@Param('id') id: string) {
+    return this.adminService.deleteSupportInquiry(id);
   }
 }

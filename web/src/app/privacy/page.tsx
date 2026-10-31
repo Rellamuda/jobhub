@@ -76,14 +76,24 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>7. Contact Information</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00F0FF', marginBottom: '0.5rem' }}>7. Developer & Organization Contact Information</h2>
             <p>
-              If you have any questions or concerns regarding this Privacy Policy or your data, please contact our Data Protection Officer:
+              If you have any questions, regulatory inquiries, or concerns regarding this Privacy Policy, Google Play developer compliance, or your personal data, please contact our operating organization and Data Protection Officer:
             </p>
-            <p style={{ marginTop: '0.5rem' }}>
-              <strong>JobHub Global Privacy Team</strong><br />
-              Email: <a href="mailto:support@jobhubai.com" style={{ color: '#00F0FF' }}>support@jobhubai.com</a>
-            </p>
+            <div style={{ marginTop: '0.75rem', padding: '1rem', borderRadius: '10px', backgroundColor: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <p style={{ margin: '0 0 0.5rem 0' }}>
+                <strong>Organization:</strong> CleanConnect Nigeria (cleanconnectng.com)
+              </p>
+              <p style={{ margin: '0 0 0.5rem 0' }}>
+                <strong>Developer & Organization Email:</strong> <a href="mailto:support@cleanconnectng.com" style={{ color: '#00F0FF' }}>support@cleanconnectng.com</a>
+              </p>
+              <p style={{ margin: '0 0 0.5rem 0' }}>
+                <strong>Website:</strong> <a href="https://cleanconnectng.com" target="_blank" rel="noreferrer" style={{ color: '#00F0FF' }}>https://cleanconnectng.com</a>
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Support Desk:</strong> <a href="mailto:support@cleanconnectng.com" style={{ color: '#00F0FF' }}>support@cleanconnectng.com</a>
+              </p>
+            </div>
           </section>
         </div>
 

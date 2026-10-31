@@ -119,6 +119,11 @@ export default function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/ai-chat" style={{ color: '#00f0ff', textDecoration: 'none', fontWeight: 600 }}>
+                🤖 AI Career Chat
+              </Link>
+            </li>
+            <li>
               <Link href="/pricing" style={{ color: '#94a3b8', textDecoration: 'none' }}>
                 Subscription Plans
               </Link>
@@ -133,7 +138,7 @@ export default function Footer() {
 
         {/* Legal & Compliance */}
         <div>
-          <h4 style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.8rem' }}>Legal & Privacy</h4>
+          <h4 style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.8rem' }}>Legal &amp; Privacy</h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <li>
               <Link href="/privacy" style={{ color: '#94a3b8', textDecoration: 'none' }}>
@@ -147,7 +152,7 @@ export default function Footer() {
             </li>
             <li>
               <Link href="/delete-account" style={{ color: '#f87171', textDecoration: 'none' }}>
-                Delete Account & Data
+                Delete Account &amp; Data
               </Link>
             </li>
           </ul>
@@ -156,14 +161,21 @@ export default function Footer() {
         {/* Support */}
         <div>
           <h4 style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.8rem' }}>Assistance</h4>
-          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>
-            Questions or inquiries?
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.8rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <li>
+              <Link href="/support" style={{ color: '#00f0ff', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                🎧 Support &amp; Enquiries Desk
+              </Link>
+            </li>
+          </ul>
+          <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.82rem', color: '#64748b' }}>
+            Compliance &amp; Developer Email:
           </p>
           <a
-            href="mailto:support@jobhubai.com"
+            href="mailto:cleanconnectng@gmail.com"
             style={{ color: '#00f0ff', textDecoration: 'none', fontWeight: 600, fontSize: '0.88rem' }}
           >
-            support@jobhubai.com
+            cleanconnectng@gmail.com
           </a>
         </div>
       </div>

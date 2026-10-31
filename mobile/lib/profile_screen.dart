@@ -440,7 +440,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _generateAiInsights() async {
-    if (_profile == null) return;
+    if (_profile == null) {
+      if (_user?['jobSeekerProfile'] != null) {
+        _profile = _user!['jobSeekerProfile'];
+      } else if (_user?['employer'] != null) {
+        _profile = _user!['employer'];
+      }
+    }
+
+    if (_profile == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please complete your profile details first.')),
+        );
+      }
+      return;
+    }
+
     setState(() => _isAiLoading = true);
     
     try {
@@ -458,8 +474,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Uri.parse('${ApiConfig.baseUrl}/ai/salary/estimate'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
-          'job_title': _profile?['profession'] ?? 'Job Seeker',
-          'location': _profile?['residenceCity'] ?? 'Unknown',
+          'job_title': _profile?['profession'] ?? _profile?['desiredJobTitle'] ?? 'Job Seeker',
+          'location': _profile?['residenceCity'] ?? _profile?['residenceCountry'] ?? 'Global',
           'experience_years': 3,
         }),
       );
@@ -471,15 +487,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: jsonEncode(_profile),
       );
 
+      bool anySuccess = false;
       setState(() {
-        if (scoreRes.statusCode == 200) _aiScore = jsonDecode(scoreRes.body);
-        if (salaryRes.statusCode == 200) _aiSalary = jsonDecode(salaryRes.body);
-        if (suggsRes.statusCode == 200) _aiSuggestions = jsonDecode(suggsRes.body)['suggestions'];
+        if (scoreRes.statusCode == 200) {
+          _aiScore = jsonDecode(scoreRes.body);
+          anySuccess = true;
+        }
+        if (salaryRes.statusCode == 200) {
+          _aiSalary = jsonDecode(salaryRes.body);
+          anySuccess = true;
+        }
+        if (suggsRes.statusCode == 200) {
+          final sData = jsonDecode(suggsRes.body);
+          if (sData is Map && sData['suggestions'] is List) {
+            _aiSuggestions = sData['suggestions'];
+          } else if (sData is List) {
+            _aiSuggestions = sData;
+          }
+          anySuccess = true;
+        }
       });
+
+      if (mounted) {
+        if (anySuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF10B981),
+              content: Text('AI Career Insights generated successfully!'),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Text('Could not generate insights (Status: ${scoreRes.statusCode}). Please try again.'),
+            ),
+          );
+        }
+      }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('AI Insights generation error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('Error generating AI insights: $e'),
+          ),
+        );
+      }
     } finally {
-      setState(() => _isAiLoading = false);
+      if (mounted) setState(() => _isAiLoading = false);
     }
   }
 
@@ -1376,7 +1433,7 @@ Generated via JobHub Global Talent Platform''';
           ),
         ),
 
-        if (_aiScore != null || _aiSalary != null) ...[
+        if (_aiScore != null || _aiSalary != null || _aiSuggestions != null) ...[
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),

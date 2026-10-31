@@ -164,6 +164,7 @@ export default function AdminDashboard() {
         const aiData = await aiRes.json();
         setAiStats(aiData);
       }
+      fetchInquiries();
     } catch (e: any) {
       console.error(e);
       setMessage({ type: 'error', text: 'Error connecting to admin service: ' + e.message });
@@ -637,7 +638,7 @@ export default function AdminDashboard() {
             👥 Platform Users ({users.length})
           </button>
           <button
-            onClick={() => setActiveTab('INQUIRIES')}
+            onClick={() => { setActiveTab('INQUIRIES'); fetchInquiries(); }}
             style={{
               display: 'flex',
               alignItems: 'center',

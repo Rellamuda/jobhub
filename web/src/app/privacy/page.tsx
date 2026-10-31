@@ -85,13 +85,13 @@ export default function PrivacyPolicyPage() {
                 <strong>Organization:</strong> CleanConnect Nigeria (cleanconnectng.com)
               </p>
               <p style={{ margin: '0 0 0.5rem 0' }}>
-                <strong>Developer & Organization Email:</strong> <a href="mailto:support@cleanconnectng.com" style={{ color: '#00F0FF' }}>support@cleanconnectng.com</a>
+                <strong>Developer &amp; Organization Email:</strong> <a href="mailto:cleanconnectng@gmail.com" style={{ color: '#00F0FF' }}>cleanconnectng@gmail.com</a>
               </p>
               <p style={{ margin: '0 0 0.5rem 0' }}>
                 <strong>Website:</strong> <a href="https://cleanconnectng.com" target="_blank" rel="noreferrer" style={{ color: '#00F0FF' }}>https://cleanconnectng.com</a>
               </p>
               <p style={{ margin: 0 }}>
-                <strong>Support Desk:</strong> <a href="mailto:support@cleanconnectng.com" style={{ color: '#00F0FF' }}>support@cleanconnectng.com</a>
+                <strong>Support Desk:</strong> <a href="mailto:cleanconnectng@gmail.com" style={{ color: '#00F0FF' }}>cleanconnectng@gmail.com</a>
               </p>
             </div>
           </section>

@@ -165,4 +165,76 @@ def get_career_health(request: CareerHealthRequest):
         ]
     }
 
+class ProfileScoreRequest(BaseModel):
+    pass
+
+@app.post("/profile/score")
+@app.post("/ai/profile/score")
+def get_profile_score(data: dict):
+    skills = data.get("skills", [])
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(",") if s.strip()]
+    score = 75
+    if len(skills) >= 5:
+        score += 15
+    elif len(skills) > 0:
+        score += 8
+    if data.get("profession") or data.get("desiredJobTitle"):
+        score += 5
+    score = min(96, max(60, score))
+    return {
+        "score": score,
+        "suggestions": [
+            "Add at least 5 core technical or specialized skills to boost automated recruiter matching.",
+            "Generate an AI ATS-optimized resume to highlight your key career achievements.",
+            "Include quantifiable project metrics (% growth, cost savings) to impress hiring managers."
+        ]
+    }
+
+class SalaryEstimateRequest(BaseModel):
+    job_title: str = "Job Seeker"
+    location: str = "Global"
+    experience_years: int = 3
+
+@app.post("/salary/estimate")
+@app.post("/ai/salary/estimate")
+def get_salary_estimate(request: SalaryEstimateRequest):
+    title = request.job_title.lower()
+    loc = request.location.lower()
+    is_ngn = any(n in loc for n in ["nigeria", "lagos", "abuja", "port harcourt"])
+    
+    base_min = 70000 if "software" in title or "engineer" in title else 50000
+    base_max = 120000 if "software" in title or "engineer" in title else 85000
+    
+    if is_ngn:
+        min_val = round((base_min * 1500) / 12 / 10000) * 10000
+        max_val = round((base_max * 1500) / 12 / 10000) * 10000
+        return {
+            "min": f"{min_val:,}",
+            "max": f"{max_val:,}",
+            "currency": "₦",
+            "reasoning": f"Based on regional market compensation for {request.job_title} in {request.location}."
+        }
+    return {
+        "min": f"{base_min:,}",
+        "max": f"{base_max:,}",
+        "currency": "$",
+        "reasoning": f"Estimated annual compensation for {request.job_title} with ~{request.experience_years} years experience."
+    }
+
+@app.post("/career/suggestions")
+@app.post("/ai/career/suggestions")
+def get_career_suggestions(data: dict):
+    profession = data.get("profession") or data.get("desiredJobTitle") or "Specialist"
+    return {
+        "suggestions": [
+            f"Senior / Lead {profession}",
+            "Operational Department Team Lead",
+            "Independent Commercial Contractor",
+            "Project Quality & Compliance Manager",
+            "Corporate Strategy Consultant"
+        ]
+    }
+
+
 

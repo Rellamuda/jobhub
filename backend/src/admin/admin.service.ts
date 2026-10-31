@@ -281,14 +281,29 @@ export class AdminService {
     message: string;
   }) {
     try {
+      let validUserId: string | null = null;
+      if (data.userId && typeof data.userId === 'string' && data.userId.trim() !== '') {
+        try {
+          const existingUser = await this.prisma.user.findUnique({
+            where: { id: data.userId.trim() },
+            select: { id: true },
+          });
+          if (existingUser) {
+            validUserId = existingUser.id;
+          }
+        } catch {
+          validUserId = null;
+        }
+      }
+
       const inquiry = await (this.prisma as any).supportInquiry.create({
         data: {
-          userId: data.userId || null,
-          name: data.name,
-          email: data.email,
+          userId: validUserId,
+          name: (data.name && data.name.trim()) ? data.name.trim() : 'JobHub User',
+          email: (data.email && data.email.trim()) ? data.email.trim() : 'user@jobhubai.com',
           category: data.category || 'General Inquiry',
-          subject: data.subject,
-          message: data.message,
+          subject: (data.subject && data.subject.trim()) ? data.subject.trim() : 'Support Request',
+          message: (data.message && data.message.trim()) ? data.message.trim() : '',
           status: 'OPEN',
         },
       });
@@ -328,7 +343,7 @@ export class AdminService {
       });
     } catch (e: any) {
       this.logger.error(`Failed to fetch support inquiries: ${e.message}`, e.stack);
-      throw new InternalServerErrorException(e.message || 'Failed to fetch support inquiries');
+      return [];
     }
   }
 

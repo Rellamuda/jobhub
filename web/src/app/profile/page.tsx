@@ -68,6 +68,58 @@ export default function ProfilePage() {
   const [editMaritalStatus, setEditMaritalStatus] = useState('Single');
   const [editNationality, setEditNationality] = useState('');
 
+  // Support & Inquiry State
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportCategory, setSupportCategory] = useState('General Inquiry');
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSubmitting, setSupportSubmitting] = useState(false);
+  const [supportStatusMsg, setSupportStatusMsg] = useState<string | null>(null);
+
+  const handleSubmitSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportSubject.trim() || !supportMessage.trim()) {
+      alert('Please fill out both Subject and Message.');
+      return;
+    }
+    setSupportSubmitting(true);
+    setSupportStatusMsg(null);
+    try {
+      const senderName = (user?.role === 'JOB_SEEKER'
+        ? `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim()
+        : profile?.companyName) || user?.email || 'JobHub User';
+
+      const res = await fetch('/api/admin/support-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          name: senderName,
+          email: user?.email || profile?.hrEmail || 'user@jobhubai.com',
+          category: supportCategory,
+          subject: supportSubject.trim(),
+          message: supportMessage.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setSupportStatusMsg('Your inquiry has been submitted directly to the Admin Support team.');
+        setSupportSubject('');
+        setSupportMessage('');
+        setTimeout(() => {
+          setShowSupportModal(false);
+          setSupportStatusMsg(null);
+        }, 2200);
+      } else {
+        alert('Failed to submit support inquiry. Please try again.');
+      }
+    } catch {
+      alert('Network error submitting inquiry.');
+    } finally {
+      setSupportSubmitting(false);
+    }
+  };
+
   const openEditModal = () => {
     if (!profile) return;
     setEditCountry(profile.residenceCountry || '');
@@ -1193,11 +1245,39 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Support & Help Panel */}
+        <div className="glass-panel" style={{ padding: '1.5rem', border: '1px solid rgba(0, 240, 255, 0.25)', borderRadius: '12px' }}>
+          <h3 style={{ margin: '0 0 0.6rem 0', color: '#00F0FF', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            🎧 Support &amp; Enquiries
+          </h3>
+          <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+            Need help with your account, job applications, subscriptions, or have feedback? Submit your ticket directly to the JobHub Admin team.
+          </p>
+          <button
+            onClick={() => setShowSupportModal(true)}
+            style={{
+              background: 'rgba(0, 240, 255, 0.15)',
+              color: '#00F0FF',
+              border: '1px solid rgba(0, 240, 255, 0.5)',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            ✉️ Contact Admin Support
+          </button>
+        </div>
+
         {/* Legal & Account Management (App Store / Google Play Compliance) */}
         <div className="glass-panel" style={{ padding: '1.5rem', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px' }}>
-          <h3 style={{ margin: '0 0 0.6rem 0', color: '#f87171', fontSize: '1.1rem' }}>Account & Legal Settings</h3>
+          <h3 style={{ margin: '0 0 0.6rem 0', color: '#f87171', fontSize: '1.1rem' }}>Account &amp; Legal Settings</h3>
           <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-            Manage your account security, review our terms & privacy policy, or permanently erase your data in accordance with privacy laws.
+            Manage your account security, review our terms &amp; privacy policy, or permanently erase your data in accordance with privacy laws.
           </p>
           <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <Link href="/privacy" style={{ color: '#00f0ff', fontSize: '0.88rem', textDecoration: 'underline' }}>
@@ -1219,11 +1299,134 @@ export default function ProfilePage() {
                 cursor: 'pointer',
                 fontWeight: 600
               }}>
-                 Delete Account & Data
+                  Delete Account &amp; Data
               </button>
             </Link>
           </div>
         </div>
+
+        {/* Support & Enquiry Modal */}
+        {showSupportModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}>
+            <div style={{
+              background: '#120B1C',
+              border: '1px solid rgba(0, 240, 255, 0.3)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '560px',
+              padding: '1.8rem',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+              position: 'relative',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.8rem' }}>
+                <h3 style={{ margin: 0, color: '#00F0FF', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🎧 Submit Support &amp; Enquiry
+                </h3>
+                <button
+                  onClick={() => setShowSupportModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {supportStatusMsg && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid #10B981', color: '#10B981', padding: '0.8rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                  ✓ {supportStatusMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitSupport} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.3rem' }}>
+                    Category
+                  </label>
+                  <select
+                    value={supportCategory}
+                    onChange={e => setSupportCategory(e.target.value)}
+                    className="input-field"
+                    style={{ width: '100%', background: '#1C122C' }}
+                  >
+                    <option value="General Inquiry">General Inquiry</option>
+                    <option value="Account / Profile Issue">Account / Profile Issue</option>
+                    <option value="Subscription & Billing">Subscription &amp; Billing</option>
+                    <option value="Job Posting / Applications">Job Posting / Applications</option>
+                    <option value="Technical Issue / Bug">Technical Issue / Bug</option>
+                    <option value="Verification Request">Verification Request</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.3rem' }}>
+                    Subject *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Brief summary of your question or issue"
+                    value={supportSubject}
+                    onChange={e => setSupportSubject(e.target.value)}
+                    className="input-field"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.3rem' }}>
+                    Message Details *
+                  </label>
+                  <textarea
+                    required
+                    rows={5}
+                    placeholder="Provide full details so our admin and support team can assist you promptly..."
+                    value={supportMessage}
+                    onChange={e => setSupportMessage(e.target.value)}
+                    className="input-field"
+                    style={{ width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSupportModal(false)}
+                    style={{ background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={supportSubmitting}
+                    style={{
+                      background: '#00F0FF',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: 'bold',
+                      padding: '0.6rem 1.4rem',
+                      borderRadius: '8px',
+                      cursor: supportSubmitting ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {supportSubmitting ? 'Submitting...' : 'Send Inquiry to Admin'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Comprehensive Edit Profile Modal */}
         {showEditModal && (

@@ -96,11 +96,11 @@ export default function Header() {
               <Link href="/jobs" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" /> Jobs
               </Link>
+              <Link href="/ai-chat" className="px-3 py-1.5 rounded-lg text-cyan-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Bot className="w-4 h-4 text-cyan-400" /> AI Chat
+              </Link>
               <Link href="/dashboard/resumes" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <FileText className="w-4 h-4" /> AI Resumes
-              </Link>
-              <Link href="/dashboard/mentor" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
-                <Bot className="w-4 h-4 text-indigo-500" /> AI Mentor
               </Link>
               <Link href="/dashboard/wallet" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Wallet className="w-4 h-4" /> Credentials
@@ -119,6 +119,9 @@ export default function Header() {
             <>
               <Link href="/applications" className="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5 transition flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" /> Postings & Chats
+              </Link>
+              <Link href="/ai-chat" className="px-3 py-1.5 rounded-lg text-cyan-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Bot className="w-4 h-4 text-cyan-400" /> AI Chat
               </Link>
               <Link href="/dashboard/employer/jobs/new" className="px-3 py-1.5 rounded-lg text-cyan-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
                 <PlusCircle className="w-4 h-4" /> Post Job (AI)
@@ -144,6 +147,9 @@ export default function Header() {
               <Link href="/admin/fraud" className="px-3 py-1.5 rounded-lg text-red-500 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
                 Fraud Queue
               </Link>
+              <Link href="/ai-chat" className="px-3 py-1.5 rounded-lg text-cyan-400 font-semibold hover:bg-white/5 transition flex items-center gap-1.5">
+                <Bot className="w-4 h-4 text-cyan-400" /> AI Chat
+              </Link>
             </>
           )}
         </nav>
@@ -153,6 +159,9 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {!user ? (
           <div className="flex items-center gap-2">
+            <Link href="/ai-chat" className="px-3 py-1.5 rounded-lg text-cyan-400 font-medium hover:bg-white/10 transition flex items-center gap-1.5">
+              <Bot className="w-4 h-4 text-cyan-400" /> AI Chat
+            </Link>
             <Link href="/login" className="px-3 py-1.5 rounded-lg text-white font-medium hover:bg-white/10 transition">
               Log In
             </Link>

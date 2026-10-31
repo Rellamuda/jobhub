@@ -80,17 +80,18 @@ export class ResumesService {
     if (!profile) {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: { employerProfile: true }
+        include: { employer: true, jobSeekerProfile: true }
       });
       if (user) {
+        const compName = (user as any).employer?.companyName || null;
         profile = await this.prisma.jobSeekerProfile.create({
           data: {
             userId,
-            firstName: user.firstName || 'Representative',
-            lastName: user.lastName || '',
-            headline: user.employerProfile?.companyName ? `${user.employerProfile.companyName} Corporate Capability Profile` : 'Company Profile',
+            firstName: (user as any).jobSeekerProfile?.firstName || 'Representative',
+            lastName: (user as any).jobSeekerProfile?.lastName || '',
+            headline: compName ? `${compName} Corporate Capability Profile` : 'Company Profile',
             seekerType: 'COMPANY_CONTRACTOR',
-            companyName: user.employerProfile?.companyName || null,
+            companyName: compName,
             isDualCapacity: true,
           }
         });

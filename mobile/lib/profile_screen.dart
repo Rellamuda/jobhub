@@ -517,10 +517,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         } else {
+          String errMsg = 'Could not generate insights (Status: ${scoreRes.statusCode}). Please try again.';
+          if (scoreRes.statusCode == 403 || suggsRes.statusCode == 403 || salaryRes.statusCode == 403) {
+            errMsg = 'AI generation limit reached. Please upgrade your subscription tier for unlimited access.';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: Colors.redAccent,
-              content: Text('Could not generate insights (Status: ${scoreRes.statusCode}). Please try again.'),
+              content: Text(errMsg),
             ),
           );
         }

@@ -89,6 +89,31 @@ export class AiRateLimiterService {
   }
 
   /**
+   * Lightweight endpoint rate check & telemetry (Profile scoring, Career suggestions, Chat)
+   * Only enforces burst protection (10 req/min anti-abuse) without consuming lifetime resume/doc quotas.
+   */
+  async recordLightweightCall(userId: string, endpoint: string, estimatedChars = 400) {
+    try {
+      this.checkBurstRate(userId);
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, subscriptionTier: true },
+      });
+      if (user) {
+        this.recordTelemetry({
+          userId: user.id,
+          userEmail: user.email,
+          tier: user.subscriptionTier,
+          endpoint,
+          estimatedInputChars: estimatedChars,
+        });
+      }
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+    }
+  }
+
+  /**
    * 2. Quota Check based on Subscription Tier
    * Free Tier: 3 total credits (allows testing Resume Builder, Cover Letter, and a Job application)
    * Silver Tier: 15 credits / month

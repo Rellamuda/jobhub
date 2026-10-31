@@ -150,30 +150,31 @@ export class AiController {
 
   @Post('profile/score')
   async getProfileScore(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req, 'profile/score', 800);
+    await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'profile/score', 400);
     return this.aiService.getProfileScore(profileData);
   }
 
   @Post('skills/gap')
   async getSkillGap(@Request() req, @Body('profile') profileData: any, @Body('job') jobData: any) {
-    await this.checkGenerationLimit(req, 'skills/gap', 800);
+    await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'skills/gap', 400);
     return this.aiService.getSkillGap(profileData, jobData);
   }
 
   @Post('salary/estimate')
   async getSalaryEstimate(@Request() req, @Body('job_title') jobTitle: string, @Body('location') location: string, @Body('experience_years') exp: number) {
+    await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'salary/estimate', 300);
     return this.aiService.getSalaryEstimate(jobTitle, location, exp);
   }
 
   @Post('career/suggestions')
   async getCareerSuggestions(@Request() req, @Body() profileData: any) {
-    await this.checkGenerationLimit(req, 'career/suggestions', 800);
+    await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'career/suggestions', 400);
     return this.aiService.getCareerSuggestions(profileData);
   }
 
   @Post('interview/questions')
   async getInterviewQuestions(@Request() req, @Body('job') jobData: any, @Body('profile') profileData: any) {
-    await this.checkGenerationLimit(req, 'interview/questions', 1000);
+    await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'interview/questions', 800);
     return this.aiService.getInterviewQuestions(jobData, profileData);
   }
 
@@ -190,7 +191,7 @@ export class AiController {
 
   @Post('mentor/chat')
   async mentorChat(@Request() req, @Body('message') message: string) {
-    await this.checkGenerationLimit(req, 'mentor/chat', 600);
+    await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'mentor/chat', 600);
     return this.aiService.mentorChat(req.user.userId, message);
   }
 }

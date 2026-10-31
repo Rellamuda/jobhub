@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, Logger } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, Logger, HttpCode } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -35,6 +35,7 @@ export class AiController {
   }
 
   @Post('resume/generate')
+  @HttpCode(200)
   async generateResume(@Request() req, @Body() profileData: any) {
     await this.checkGenerationLimit(req, 'resume/generate', 1500);
     const result = await this.aiService.generateResume(profileData);
@@ -74,6 +75,7 @@ export class AiController {
   }
 
   @Post('company-profile/generate')
+  @HttpCode(200)
   async generateCompanyProfile(@Request() req, @Body() companyData: any) {
     if (req.user.role !== 'EMPLOYER' && req.user.role !== 'ADMIN') {
       throw new ForbiddenException('Only Employers can generate AI Company Profiles.');
@@ -111,6 +113,7 @@ export class AiController {
   }
 
   @Post('cover-letter/generate')
+  @HttpCode(200)
   async generateCoverLetter(
     @Request() req,
     @Body() body: any,
@@ -140,6 +143,7 @@ export class AiController {
   }
 
   @Post('match/score')
+  @HttpCode(200)
   async getMatchScore(
     @Body('profile_text') profileText: string,
     @Body('job_description_text') jobText: string,
@@ -149,47 +153,55 @@ export class AiController {
   }
 
   @Post('profile/score')
+  @HttpCode(200)
   async getProfileScore(@Request() req, @Body() profileData: any) {
     await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'profile/score', 400);
     return this.aiService.getProfileScore(profileData);
   }
 
   @Post('skills/gap')
+  @HttpCode(200)
   async getSkillGap(@Request() req, @Body('profile') profileData: any, @Body('job') jobData: any) {
     await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'skills/gap', 400);
     return this.aiService.getSkillGap(profileData, jobData);
   }
 
   @Post('salary/estimate')
+  @HttpCode(200)
   async getSalaryEstimate(@Request() req, @Body('job_title') jobTitle: string, @Body('location') location: string, @Body('experience_years') exp: number) {
     await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'salary/estimate', 300);
     return this.aiService.getSalaryEstimate(jobTitle, location, exp);
   }
 
   @Post('career/suggestions')
+  @HttpCode(200)
   async getCareerSuggestions(@Request() req, @Body() profileData: any) {
     await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'career/suggestions', 400);
     return this.aiService.getCareerSuggestions(profileData);
   }
 
   @Post('interview/questions')
+  @HttpCode(200)
   async getInterviewQuestions(@Request() req, @Body('job') jobData: any, @Body('profile') profileData: any) {
     await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'interview/questions', 800);
     return this.aiService.getInterviewQuestions(jobData, profileData);
   }
 
   @Post('job-description/generate')
+  @HttpCode(200)
   async generateJobDescription(@Request() req, @Body() jobData: any) {
     await this.checkGenerationLimit(req, 'job-description/generate', 1000);
     return this.aiService.generateJobDescription(jobData);
   }
 
   @Post('fraud/detect')
+  @HttpCode(200)
   async detectFraud(@Request() req, @Body('content') content: string) {
     return this.aiService.detectFraud(content);
   }
 
   @Post('mentor/chat')
+  @HttpCode(200)
   async mentorChat(@Request() req, @Body('message') message: string) {
     await this.aiRateLimiter.recordLightweightCall(req.user.userId, 'mentor/chat', 600);
     return this.aiService.mentorChat(req.user.userId, message);

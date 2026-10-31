@@ -41,6 +41,8 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   String _contractorCompanyName = '';
   bool _isSwitchingRole = false;
 
+  int get unreadAlertsCount => _notifications.where((n) => n['isRead'] != true).length;
+
   @override
   void initState() {
     super.initState();
@@ -458,7 +460,6 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unreadAlertsCount = _notifications.where((n) => n['isRead'] != true).length;
 
     return PopScope(
       canPop: false,

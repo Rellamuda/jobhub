@@ -156,12 +156,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildDualModeSwitcherCard() {
     final isContractor = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
         _profile?['isDualCapacity'] == true ||
-        (_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty);
+        _user?['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _user?['jobSeekerProfile']?['isDualCapacity'] == true ||
+        ((_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty) &&
+            (_profile?['isDualCapacity'] == true ||
+             _user?['jobSeekerProfile']?['isDualCapacity'] == true ||
+             _profile?['businessType']?.toString().contains('Contractor') == true));
     if (!isContractor) {
       return const SizedBox.shrink();
     }
     final currentRole = _user?['role'] ?? 'JOB_SEEKER';
     final isSeeker = currentRole == 'JOB_SEEKER';
+    final companyName = (_profile?['companyName'] ?? _user?['jobSeekerProfile']?['companyName'] ?? '').toString().trim();
+    final crewSize = _profile?['crewSize'] ?? _user?['jobSeekerProfile']?['crewSize'] ?? 1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -225,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          if (isContractor && isSeeker && _profile?['companyName'] != null) ...[
+          if (companyName.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
@@ -239,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Registered Contractor: ${_profile?['companyName']} (Crew: ${_profile?['crewSize'] ?? 1})',
+                      'Registered Contractor: $companyName (Crew: $crewSize)',
                       style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -1453,10 +1460,41 @@ Generated via JobHub Global Talent Platform''';
   }
 
   Widget _buildEmployerProfile() {
-    final name = _profile?['companyName'] ?? 'Employer';
-    final location = '${_profile?['locationCity'] ?? ''} ${_profile?['locationCountry'] ?? ''}'.trim();
-    final picUrl = _profile?['profilePicture'];
-    final isVerified = _profile?['verificationStatus'] == 'VERIFIED';
+    final isCompanyOrDual = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _profile?['isDualCapacity'] == true ||
+        _user?['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _user?['jobSeekerProfile']?['isDualCapacity'] == true ||
+        ((_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty) &&
+            (_profile?['isDualCapacity'] == true ||
+             _user?['jobSeekerProfile']?['isDualCapacity'] == true ||
+             _profile?['businessType']?.toString().contains('Contractor') == true));
+
+    final name = (_profile?['companyName'] ?? _user?['jobSeekerProfile']?['companyName'] ?? 'Employer Organization').toString().trim();
+    final repName = (_profile?['representativeName'] ??
+            '${_user?['jobSeekerProfile']?['firstName'] ?? ''} ${_user?['jobSeekerProfile']?['lastName'] ?? ''}')
+        .toString()
+        .trim();
+
+    final city = (_profile?['locationCity'] ?? _user?['jobSeekerProfile']?['residenceCity'] ?? '').toString().trim();
+    final state = (_profile?['locationState'] ?? _user?['jobSeekerProfile']?['residenceState'] ?? '').toString().trim();
+    final country = (_profile?['locationCountry'] ?? _user?['jobSeekerProfile']?['residenceCountry'] ?? '').toString().trim();
+    final location = '$city${state.isNotEmpty ? ', $state' : ''}${country.isNotEmpty ? ' - $country' : ''}'.trim();
+
+    final picUrl = _profile?['profilePicture'] ?? _user?['jobSeekerProfile']?['profilePicture'];
+    final isVerified = _profile?['verificationStatus'] == 'VERIFIED' || _user?['jobSeekerProfile']?['verificationStatus'] == 'VERIFIED';
+
+    final desc = (_profile?['description'] != null && (_profile?['description'] as String).trim().isNotEmpty)
+        ? _profile!['description']
+        : ((_user?['jobSeekerProfile']?['summary'] ?? _user?['jobSeekerProfile']?['bio'] ?? _user?['jobSeekerProfile']?['headline'] ?? 'Verified corporate partner and commercial contractor on JobHub Global.').toString());
+
+    final industry = (_profile?['industry'] ?? _user?['jobSeekerProfile']?['preferredIndustry'] ?? 'Commercial Services & Contracting').toString();
+    final crewSize = _profile?['crewSize'] ?? _user?['jobSeekerProfile']?['crewSize'] ?? 1;
+    final companySize = _profile?['companySize'] ?? '$crewSize Staff / Crew';
+    final regNo = (_profile?['registrationNumber'] ?? _user?['jobSeekerProfile']?['businessRegNumber'] ?? 'N/A').toString();
+
+    final skills = (_profile?['contractorSkills'] as List<dynamic>?) ?? (_user?['jobSeekerProfile']?['skills'] as List<dynamic>?) ?? [];
+    final experience = (_profile?['contractorExperience'] as List<dynamic>?) ?? (_user?['jobSeekerProfile']?['experience'] as List<dynamic>?) ?? [];
+    final projects = (_profile?['contractorProjects'] as List<dynamic>?) ?? (_user?['jobSeekerProfile']?['projects'] as List<dynamic>?) ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1498,10 +1536,19 @@ Generated via JobHub Global Talent Platform''';
         ),
         const SizedBox(height: 16),
         Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white), textAlign: TextAlign.center),
+        if (isCompanyOrDual && repName.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0, bottom: 4.0),
+            child: Text(
+              '👤 Representative: $repName',
+              style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.75)),
+              textAlign: TextAlign.center,
+            ),
+          ),
         if (location.isNotEmpty)
           Text(location, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)), textAlign: TextAlign.center),
         
-        if (_profile?['verificationStatus'] == 'VERIFIED')
+        if (isVerified)
           Center(
             child: Container(
               margin: const EdgeInsets.only(top: 8),
@@ -1550,7 +1597,7 @@ Generated via JobHub Global Talent Platform''';
             );
           },
           icon: const Icon(Icons.star, color: Colors.white),
-          label: const Text('Upgrade to Premium', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          label: const Text('Upgrade Plan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF6366F1),
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1598,13 +1645,46 @@ Generated via JobHub Global Talent Platform''';
         
         const SizedBox(height: 32),
         _buildSectionTitle('About the Company'),
-        Text(_profile?['description'] ?? 'No description provided.', style: TextStyle(color: Colors.white.withOpacity(0.8), height: 1.5)),
+        Text(desc, style: TextStyle(color: Colors.white.withOpacity(0.8), height: 1.5)),
 
         const SizedBox(height: 32),
         _buildSectionTitle('Company Details'),
-        _buildInfoRow('Industry', _profile?['industry'] ?? 'N/A'),
-        _buildInfoRow('Company Size', _profile?['companySize'] ?? 'N/A'),
-        _buildInfoRow('Founded Year', _profile?['foundedYear']?.toString() ?? 'N/A'),
+        _buildInfoRow('Industry', industry),
+        _buildInfoRow('Company Size / Crew', companySize),
+        _buildInfoRow('Registration No.', regNo),
+        if (location.isNotEmpty) _buildInfoRow('Operating Location', location),
+        if (_profile?['foundedYear'] != null)
+          _buildInfoRow('Founded Year', _profile!['foundedYear'].toString()),
+
+        if (skills.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          _buildSectionTitle('Services & Trade Capabilities'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: skills.map((s) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFA855F7).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.4)),
+              ),
+              child: Text(s.toString(), style: const TextStyle(color: Color(0xFFC084FC), fontSize: 12, fontWeight: FontWeight.bold)),
+            )).toList(),
+          ),
+        ],
+
+        if (experience.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          _buildSectionTitle('Commercial Experience & Past Contracts'),
+          ...experience.map((e) => _buildCardItem(e['role'], e['company'], 'Dates: ${e['dates']}')),
+        ],
+
+        if (projects.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          _buildSectionTitle('Portfolio & Projects'),
+          ...projects.map((e) => _buildCardItem(e['title'], e['description'], e['liveLink'])),
+        ],
 
         const SizedBox(height: 32),
         _buildSectionTitle('Active Jobs & Applicants'),
@@ -1636,10 +1716,10 @@ Generated via JobHub Global Talent Platform''';
           const Text('No active job postings.', style: TextStyle(color: Colors.white54)),
 
         const SizedBox(height: 32),
-        _buildSectionTitle('Contact HR'),
-        _buildInfoRow('Name', _profile?['hrContactName'] ?? 'N/A'),
-        _buildInfoRow('Email', _profile?['hrEmail'] ?? 'N/A'),
-        _buildInfoRow('Phone', _profile?['hrPhone'] ?? 'N/A'),
+        _buildSectionTitle('Contact HR & Leadership'),
+        _buildInfoRow('Name', _profile?['hrContactName'] ?? (repName.isNotEmpty ? repName : 'Principal Representative')),
+        _buildInfoRow('Email', _profile?['hrEmail'] ?? _user?['email'] ?? 'N/A'),
+        _buildInfoRow('Phone', _profile?['hrPhone'] ?? _user?['jobSeekerProfile']?['phone'] ?? 'N/A'),
       ],
     );
   }
@@ -1696,6 +1776,15 @@ Generated via JobHub Global Talent Platform''';
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final isContractor = _profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _profile?['isDualCapacity'] == true ||
+        _user?['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
+        _user?['jobSeekerProfile']?['isDualCapacity'] == true ||
+        ((_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty) &&
+            (_profile?['isDualCapacity'] == true ||
+             _user?['jobSeekerProfile']?['isDualCapacity'] == true ||
+             _profile?['businessType']?.toString().contains('Contractor') == true));
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -1717,9 +1806,7 @@ Generated via JobHub Global Talent Platform''';
                   ),
                 ],
               ),
-              if (_profile?['seekerType'] == 'COMPANY_CONTRACTOR' ||
-                  _profile?['isDualCapacity'] == true ||
-                  (_profile?['companyName'] != null && (_profile?['companyName'] as String).trim().isNotEmpty)) ...[
+              if (isContractor) ...[
                 _buildDualModeSwitcherCard(),
               ],
               if (_user!['role'] == 'JOB_SEEKER') _buildSeekerProfile() else _buildEmployerProfile(),
@@ -1750,20 +1837,33 @@ Generated via JobHub Global Talent Platform''';
                       ],
                     ),
                     const SizedBox(height: 16),
+                    // ONLY display the mode switcher here if the account is a registered contractor/dual account
+                    if (isContractor) ...[
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.swap_horiz, color: Color(0xFF00F0FF)),
+                        title: Text(
+                          _user?['role'] == 'JOB_SEEKER' ? 'Switch to Employer Mode' : 'Switch to Contractor Mode',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          _user?['role'] == 'JOB_SEEKER' ? 'Post jobs and recruit workforce crew' : 'Bid on commercial jobs and service contracts',
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF00F0FF), size: 14),
+                        onTap: _switchRole,
+                      ),
+                      const Divider(color: Colors.white12),
+                    ],
                     ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.swap_horiz, color: Color(0xFF00F0FF)),
-                      title: Text(
-                        _user?['role'] == 'JOB_SEEKER' ? 'Switch to Employer Mode' : 'Switch to Contractor Mode',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        _user?['role'] == 'JOB_SEEKER' ? 'Post jobs and recruit workforce crew' : 'Bid on commercial jobs and service contracts',
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF00F0FF), size: 14),
-                      onTap: _switchRole,
+                      leading: const Icon(Icons.privacy_tip_outlined, color: Colors.white70),
+                      title: const Text('Privacy Policy', style: TextStyle(color: Colors.white)),
+                      subtitle: const Text('Data collection & user rights', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      trailing: const Icon(Icons.open_in_new, color: Color(0xFF00F0FF), size: 18),
+                      onTap: () => _openWebUrl('${ApiConfig.webUrl}/privacy'),
                     ),
                     const Divider(color: Colors.white12),
                     ListTile(

@@ -82,7 +82,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             _userRole = user['role'] ?? _userRole;
             _userEmail = user['email'];
             _currentTier = (user['subscriptionTier'] ?? 'FREE').toString().toUpperCase();
-            _userCountry = (user['jobSeekerProfile']?['residenceCountry'] ?? user['employerProfile']?['locationCountry'] ?? '').toString();
+            _userCountry = (user['jobSeekerProfile']?['residenceCountry'] ?? user['employer']?['locationCountry'] ?? user['employerProfile']?['locationCountry'] ?? '').toString();
             final isContractor = user['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
                 user['jobSeekerProfile']?['isDualCapacity'] == true;
             if (isContractor) {
@@ -577,7 +577,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Prices are displayed in your local currency for convenience. All subscriptions are securely billed and settled in USD at checkout.',
+              'Prices are displayed in your country of residence currency for convenience. All subscriptions are securely billed and settled in USD (\$) upon payment.',
               style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
             ),
           ),
@@ -667,7 +667,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                '≈ \$$usdAmount USD (Settled in USD)',
+                'Settled in USD: \$$usdAmount USD at checkout',
                 style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),

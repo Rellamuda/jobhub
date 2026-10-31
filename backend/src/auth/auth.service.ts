@@ -339,6 +339,15 @@ export class AuthService {
             businessRegNumber: true,
             crewSize: true,
             isDualCapacity: true,
+            residenceCountry: true,
+            residenceState: true,
+            residenceCity: true,
+            phone: true,
+            headline: true,
+            summary: true,
+            bio: true,
+            skills: true,
+            preferredIndustry: true,
           }
         },
         employer: {
@@ -348,9 +357,16 @@ export class AuthService {
             verificationStatus: true,
             businessType: true,
             website: true,
+            description: true,
+            industry: true,
+            companySize: true,
+            registrationNumber: true,
             locationCountry: true,
             locationState: true,
             locationCity: true,
+            hrContactName: true,
+            hrEmail: true,
+            hrPhone: true,
           }
         }
       }
@@ -359,16 +375,22 @@ export class AuthService {
     if (!user) return null;
 
     const profilePicture = user.role === 'JOB_SEEKER' 
-      ? user.jobSeekerProfile?.profilePicture 
-      : user.employer?.profilePicture;
+      ? (user.jobSeekerProfile?.profilePicture || user.employer?.profilePicture)
+      : (user.employer?.profilePicture || user.jobSeekerProfile?.profilePicture);
+
+    const isCompany = user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ||
+      user.jobSeekerProfile?.isDualCapacity ||
+      !!user.employer?.companyName;
 
     const displayName = user.role === 'JOB_SEEKER'
-      ? `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim()
-      : user.employer?.companyName || '';
+      ? ((isCompany && user.jobSeekerProfile?.companyName)
+          ? user.jobSeekerProfile.companyName
+          : `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim())
+      : (user.employer?.companyName || user.jobSeekerProfile?.companyName || '');
 
     const verificationStatus = user.role === 'JOB_SEEKER'
-      ? user.jobSeekerProfile?.verificationStatus || 'UNVERIFIED'
-      : user.employer?.verificationStatus || 'UNVERIFIED';
+      ? (user.jobSeekerProfile?.verificationStatus || user.employer?.verificationStatus || 'UNVERIFIED')
+      : (user.employer?.verificationStatus || user.jobSeekerProfile?.verificationStatus || 'UNVERIFIED');
 
     return {
       ...user,
@@ -391,37 +413,112 @@ export class AuthService {
 
     const newRole = user.role === 'JOB_SEEKER' ? 'EMPLOYER' : 'JOB_SEEKER';
 
-    // If switching to EMPLOYER and employer record doesn't exist, auto-create one from contractor profile
-    if (newRole === 'EMPLOYER' && !user.employer) {
+    // If switching to EMPLOYER: ensure all data from jobSeekerProfile is persisted to employer
+    if (newRole === 'EMPLOYER') {
       const companyName = user.jobSeekerProfile?.companyName ||
+        user.employer?.companyName ||
         `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim() ||
         'Enterprise Partner';
 
-      await this.prisma.employer.create({
-        data: {
-          user: { connect: { id: userId } },
-          companyName,
-          businessType: user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ? 'Corporate Contractor / Agency' : 'Direct Employer',
-          registrationNumber: user.jobSeekerProfile?.businessRegNumber || null,
-          locationCountry: user.jobSeekerProfile?.residenceCountry || null,
-          locationCity: user.jobSeekerProfile?.residenceCity || null,
-        },
-      });
+      const desc = user.jobSeekerProfile?.summary ||
+        user.jobSeekerProfile?.bio ||
+        user.jobSeekerProfile?.headline ||
+        user.employer?.description ||
+        `${companyName} - Verified commercial contractor and employer on JobHub Global.`;
+
+      const ind = user.jobSeekerProfile?.preferredIndustry ||
+        user.employer?.industry ||
+        'Commercial Contracting & Services';
+
+      const repName = `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim() ||
+        user.employer?.hrContactName ||
+        'Principal Representative';
+
+      const sizeStr = user.jobSeekerProfile?.crewSize
+        ? `${user.jobSeekerProfile.crewSize} Staff / Crew`
+        : (user.employer?.companySize || '1-10');
+
+      if (!user.employer) {
+        await this.prisma.employer.create({
+          data: {
+            user: { connect: { id: userId } },
+            companyName,
+            businessType: user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ? 'Corporate Contractor / Agency' : 'Direct Employer',
+            registrationNumber: user.jobSeekerProfile?.businessRegNumber || null,
+            locationCountry: user.jobSeekerProfile?.residenceCountry || null,
+            locationState: user.jobSeekerProfile?.residenceState || null,
+            locationCity: user.jobSeekerProfile?.residenceCity || null,
+            profilePicture: user.jobSeekerProfile?.profilePicture || null,
+            description: desc,
+            industry: ind,
+            hrContactName: repName,
+            hrEmail: user.email,
+            hrPhone: user.jobSeekerProfile?.phone || null,
+            companySize: sizeStr,
+            verificationStatus: user.jobSeekerProfile?.verificationStatus || 'UNVERIFIED',
+          },
+        });
+      } else {
+        // Employer exists: update fields with latest values from contractor profile so data never disappears
+        await this.prisma.employer.update({
+          where: { userId },
+          data: {
+            companyName: user.employer.companyName || companyName,
+            businessType: user.employer.businessType || (user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ? 'Corporate Contractor / Agency' : 'Direct Employer'),
+            registrationNumber: user.employer.registrationNumber || user.jobSeekerProfile?.businessRegNumber || null,
+            locationCountry: user.employer.locationCountry || user.jobSeekerProfile?.residenceCountry || null,
+            locationState: user.employer.locationState || user.jobSeekerProfile?.residenceState || null,
+            locationCity: user.employer.locationCity || user.jobSeekerProfile?.residenceCity || null,
+            profilePicture: user.employer.profilePicture || user.jobSeekerProfile?.profilePicture || null,
+            description: user.employer.description || desc,
+            industry: user.employer.industry || ind,
+            hrContactName: user.employer.hrContactName || repName,
+            hrEmail: user.employer.hrEmail || user.email,
+            hrPhone: user.employer.hrPhone || user.jobSeekerProfile?.phone || null,
+            companySize: user.employer.companySize || sizeStr,
+            verificationStatus: (user.employer.verificationStatus === 'VERIFIED' || user.jobSeekerProfile?.verificationStatus === 'VERIFIED') ? 'VERIFIED' : (user.employer.verificationStatus || 'UNVERIFIED'),
+          },
+        });
+      }
     }
 
-    // If switching to JOB_SEEKER and jobSeekerProfile record doesn't exist, auto-create one
-    if (newRole === 'JOB_SEEKER' && !user.jobSeekerProfile) {
-      await this.prisma.jobSeekerProfile.create({
-        data: {
-          user: { connect: { id: userId } },
-          firstName: user.employer?.companyName || 'Corporate',
-          lastName: 'Contractor',
-          seekerType: 'COMPANY_CONTRACTOR',
-          companyName: user.employer?.companyName,
-          businessRegNumber: user.employer?.registrationNumber,
-          isDualCapacity: true,
-        },
-      });
+    // If switching to JOB_SEEKER: ensure employer changes sync back to contractor profile
+    if (newRole === 'JOB_SEEKER') {
+      if (!user.jobSeekerProfile) {
+        await this.prisma.jobSeekerProfile.create({
+          data: {
+            user: { connect: { id: userId } },
+            firstName: user.employer?.companyName || 'Corporate',
+            lastName: 'Contractor',
+            seekerType: 'COMPANY_CONTRACTOR',
+            companyName: user.employer?.companyName,
+            businessRegNumber: user.employer?.registrationNumber,
+            isDualCapacity: true,
+            residenceCountry: user.employer?.locationCountry || null,
+            residenceState: user.employer?.locationState || null,
+            residenceCity: user.employer?.locationCity || null,
+            profilePicture: user.employer?.profilePicture || null,
+            summary: user.employer?.description || null,
+            preferredIndustry: user.employer?.industry || null,
+            verificationStatus: user.employer?.verificationStatus || 'UNVERIFIED',
+          },
+        });
+      } else {
+        await this.prisma.jobSeekerProfile.update({
+          where: { userId },
+          data: {
+            companyName: user.employer?.companyName || user.jobSeekerProfile.companyName,
+            businessRegNumber: user.employer?.registrationNumber || user.jobSeekerProfile.businessRegNumber,
+            residenceCountry: user.jobSeekerProfile.residenceCountry || user.employer?.locationCountry,
+            residenceState: user.jobSeekerProfile.residenceState || user.employer?.locationState,
+            residenceCity: user.jobSeekerProfile.residenceCity || user.employer?.locationCity,
+            profilePicture: user.jobSeekerProfile.profilePicture || user.employer?.profilePicture,
+            summary: user.jobSeekerProfile.summary || user.employer?.description,
+            preferredIndustry: user.jobSeekerProfile.preferredIndustry || user.employer?.industry,
+            verificationStatus: (user.employer?.verificationStatus === 'VERIFIED' || user.jobSeekerProfile.verificationStatus === 'VERIFIED') ? 'VERIFIED' : user.jobSeekerProfile.verificationStatus,
+          },
+        });
+      }
     }
 
     // Update role

@@ -561,6 +561,16 @@ export default function ProfilePage() {
                       {profile.companyName}
                       {profile.verificationStatus === 'VERIFIED' && <span title="Verified Company" style={{ color: '#00f0ff', fontSize: '1.5rem' }}>Verified</span>}
                     </h1>
+                    {(profile.representativeName || user.jobSeekerProfile?.firstName) && (
+                      <p style={{ margin: '0.25rem 0 0.5rem 0', color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.95rem' }}>
+                        👤 Representative: <strong>{profile.representativeName || `${user.jobSeekerProfile?.firstName || ''} ${user.jobSeekerProfile?.lastName || ''}`.trim()}</strong>
+                        {(profile.registrationNumber || user.jobSeekerProfile?.businessRegNumber) && (
+                          <span style={{ marginLeft: '0.5rem', color: '#00f0ff' }}>
+                            • Reg: {profile.registrationNumber || user.jobSeekerProfile?.businessRegNumber}
+                          </span>
+                        )}
+                      </p>
+                    )}
                     <p style={{ fontSize: '1.2rem', margin: '0.5rem 0', color: 'var(--secondary-color)' }}>{profile.industry || 'Employer'}</p>
                     <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{profile.locationCity}{profile.locationState && `, ${profile.locationState}`} {profile.locationCountry && `- ${profile.locationCountry}`}</p>
 
@@ -1053,11 +1063,43 @@ export default function ProfilePage() {
             <div className="glass-panel" style={{ padding: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Company Details</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div><strong>Industry:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.industry || 'N/A'}</span></div>
-                <div><strong>Company Size:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.companySize || 'N/A'}</span></div>
-                <div><strong>Founded:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.foundedYear || 'N/A'}</span></div>
+                <div><strong>Industry:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.industry || user.jobSeekerProfile?.preferredIndustry || 'Commercial Contracting & Services'}</span></div>
+                <div><strong>Company Size / Crew:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.companySize || (profile.crewSize ? `${profile.crewSize} Staff / Crew` : 'N/A')}</span></div>
+                <div><strong>Registration No.:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.registrationNumber || user.jobSeekerProfile?.businessRegNumber || 'N/A'}</span></div>
+                <div><strong>Operating Base:</strong> <span style={{ color: 'var(--text-secondary)' }}>{profile.locationCity || user.jobSeekerProfile?.residenceCity || ''} {profile.locationCountry || user.jobSeekerProfile?.residenceCountry || ''}</span></div>
               </div>
             </div>
+
+            {/* Contractor Services & Trade Skills */}
+            {((profile.contractorSkills && profile.contractorSkills.length > 0) || (user.jobSeekerProfile?.skills && user.jobSeekerProfile.skills.length > 0)) && (
+              <div className="glass-panel" style={{ padding: '2rem' }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Services & Trade Capabilities</h2>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {(profile.contractorSkills || user.jobSeekerProfile?.skills || []).map((s: string, idx: number) => (
+                    <span key={idx} style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#C084FC', padding: '6px 14px', borderRadius: '20px', border: '1px solid rgba(192, 132, 252, 0.4)', fontSize: '0.88rem', fontWeight: 600 }}>
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Commercial Experience & Past Contracts */}
+            {((profile.contractorExperience && profile.contractorExperience.length > 0) || (user.jobSeekerProfile?.experience && user.jobSeekerProfile.experience.length > 0)) && (
+              <div className="glass-panel" style={{ padding: '2rem' }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Commercial Experience & Past Contracts</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(profile.contractorExperience || user.jobSeekerProfile?.experience || []).map((ex: any, idx: number) => (
+                    <div key={idx} style={{ padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', borderLeft: '4px solid #A855F7' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{ex.role}</h3>
+                      <p style={{ margin: '0.2rem 0', color: '#00F0FF', fontWeight: 'bold' }}>{ex.company}</p>
+                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{ex.dates}</p>
+                      {ex.responsibilities && <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>{ex.responsibilities}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="glass-panel" style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>

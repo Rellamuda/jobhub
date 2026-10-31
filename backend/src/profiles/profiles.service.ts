@@ -12,33 +12,63 @@ export class ProfilesService {
 
   async upsertJobSeekerProfile(userId: string, data: any) {
     const existing = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
+    let profileResult;
     if (existing) {
-      return this.prisma.jobSeekerProfile.update({
+      profileResult = await this.prisma.jobSeekerProfile.update({
         where: { userId },
         data,
       });
-    }
-    const created = await this.prisma.jobSeekerProfile.create({
-      data: {
-        firstName: data.firstName || 'Job',
-        lastName: data.lastName || 'Seeker',
-        ...data,
-        user: { connect: { id: userId } },
-      },
-      include: { user: true },
-    });
+    } else {
+      profileResult = await this.prisma.jobSeekerProfile.create({
+        data: {
+          firstName: data.firstName || 'Job',
+          lastName: data.lastName || 'Seeker',
+          ...data,
+          user: { connect: { id: userId } },
+        },
+        include: { user: true },
+      });
 
-    if (created.user?.email) {
-      this.mailService
-        .sendOnboardingWelcomeEmail({
-          to: created.user.email,
-          name: `${created.firstName || ''} ${created.lastName || ''}`.trim() || 'Job Seeker',
-          role: 'JOB_SEEKER',
-        })
-        .catch((err) => console.warn('Could not dispatch onboarding email:', err));
+      if (profileResult.user?.email) {
+        this.mailService
+          .sendOnboardingWelcomeEmail({
+            to: profileResult.user.email,
+            name: `${profileResult.firstName || ''} ${profileResult.lastName || ''}`.trim() || 'Job Seeker',
+            role: 'JOB_SEEKER',
+          })
+          .catch((err) => console.warn('Could not dispatch onboarding email:', err));
+      }
     }
 
-    return created;
+    // If company contractor or dual-capacity, immediately sync/upsert Employer record
+    if (data.seekerType === 'COMPANY_CONTRACTOR' || data.isDualCapacity || data.companyName) {
+      const companyName = data.companyName || `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Enterprise Partner';
+      const employerData = {
+        companyName,
+        businessType: 'Corporate Contractor / Agency',
+        registrationNumber: data.businessRegNumber || null,
+        locationCountry: data.residenceCountry || null,
+        locationState: data.residenceState || null,
+        locationCity: data.residenceCity || null,
+        profilePicture: data.profilePicture || null,
+        description: data.summary || data.bio || data.headline || `${companyName} - Verified commercial contractor and employer on JobHub Global.`,
+        industry: data.preferredIndustry || 'Commercial Contracting & Services',
+        hrContactName: `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Principal Representative',
+        hrPhone: data.phone || null,
+        companySize: data.crewSize ? `${data.crewSize} Staff / Crew` : '1-10',
+        verificationStatus: data.verificationStatus || 'UNVERIFIED',
+      };
+      await this.prisma.employer.upsert({
+        where: { userId },
+        create: {
+          ...employerData,
+          user: { connect: { id: userId } },
+        },
+        update: employerData,
+      }).catch(err => console.warn('Could not auto-sync employer record:', err));
+    }
+
+    return profileResult;
   }
 
   async updateAutoApply(userId: string, enabled: boolean, keywords?: string[], autonomousMode?: string) {
@@ -163,15 +193,71 @@ export class ProfilesService {
   }
 
   async getEmployerProfile(userId: string) {
-    const profile = await this.prisma.employer.findUnique({
+    let profile = await this.prisma.employer.findUnique({
       where: { userId },
+      include: {
+        jobs: {
+          select: { id: true, title: true, location: true, employmentType: true }
+        }
+      }
     });
+
+    const seeker = await this.prisma.jobSeekerProfile.findUnique({ where: { userId } });
     
     if (!profile) {
-      throw new NotFoundException('Employer profile not found.');
+      if (seeker) {
+        const companyName = seeker.companyName || `${seeker.firstName || ''} ${seeker.lastName || ''}`.trim() || 'Company';
+        profile = await this.prisma.employer.create({
+          data: {
+            user: { connect: { id: userId } },
+            companyName,
+            businessType: seeker.seekerType === 'COMPANY_CONTRACTOR' ? 'Corporate Contractor / Agency' : 'Direct Employer',
+            registrationNumber: seeker.businessRegNumber || null,
+            locationCountry: seeker.residenceCountry || null,
+            locationState: seeker.residenceState || null,
+            locationCity: seeker.residenceCity || null,
+            profilePicture: seeker.profilePicture || null,
+            description: seeker.summary || seeker.bio || seeker.headline || `${companyName} - Verified Contracting & Hiring Partner.`,
+            industry: seeker.preferredIndustry || 'Commercial Contracting & Services',
+            hrContactName: `${seeker.firstName || ''} ${seeker.lastName || ''}`.trim() || 'Principal Representative',
+            hrEmail: (await this.prisma.user.findUnique({ where: { id: userId } }))?.email || null,
+            hrPhone: seeker.phone || null,
+            companySize: seeker.crewSize ? `${seeker.crewSize} Staff / Crew` : '1-10',
+            verificationStatus: seeker.verificationStatus || 'UNVERIFIED',
+          },
+          include: {
+            jobs: {
+              select: { id: true, title: true, location: true, employmentType: true }
+            }
+          }
+        });
+      } else {
+        throw new NotFoundException('Employer profile not found.');
+      }
     }
-    
-    return profile;
+
+    return {
+      ...profile,
+      companyName: profile.companyName || seeker?.companyName || 'Corporate Partner',
+      description: profile.description || seeker?.summary || seeker?.bio || seeker?.headline || 'Verified Corporate Partner on JobHub Global.',
+      industry: profile.industry || seeker?.preferredIndustry || 'Commercial Contracting & Services',
+      locationCountry: profile.locationCountry || seeker?.residenceCountry || null,
+      locationState: profile.locationState || seeker?.residenceState || null,
+      locationCity: profile.locationCity || seeker?.residenceCity || null,
+      profilePicture: profile.profilePicture || seeker?.profilePicture || null,
+      hrContactName: profile.hrContactName || `${seeker?.firstName || ''} ${seeker?.lastName || ''}`.trim() || 'Principal Representative',
+      hrPhone: profile.hrPhone || seeker?.phone || null,
+      companySize: profile.companySize || (seeker?.crewSize ? `${seeker.crewSize} Staff / Crew` : '1-10'),
+      registrationNumber: profile.registrationNumber || seeker?.businessRegNumber || null,
+      seekerType: seeker?.seekerType || (profile.businessType?.includes('Contractor') ? 'COMPANY_CONTRACTOR' : 'INDIVIDUAL'),
+      isDualCapacity: seeker?.isDualCapacity || seeker?.seekerType === 'COMPANY_CONTRACTOR',
+      crewSize: seeker?.crewSize || 1,
+      representativeName: `${seeker?.firstName || ''} ${seeker?.lastName || ''}`.trim(),
+      contractorSkills: seeker?.skills || [],
+      contractorExperience: seeker?.experience || [],
+      contractorProjects: seeker?.projects || [],
+      contractorHeadline: seeker?.headline || '',
+    };
   }
 
   async getPublicEmployerProfile(employerId: string) {

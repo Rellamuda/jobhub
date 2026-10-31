@@ -65,7 +65,7 @@ export default function PricingPage() {
           if (user) {
             setUserRole(user.role);
             setUserEmail(user.email || '');
-            const userCountry = user.jobSeekerProfile?.residenceCountry || user.employerProfile?.locationCountry;
+            const userCountry = user.jobSeekerProfile?.residenceCountry || user.employer?.locationCountry || user.employerProfile?.locationCountry;
             if (userCountry && COUNTRY_TO_CURRENCY[userCountry]) {
               setSelectedCurrency(COUNTRY_TO_CURRENCY[userCountry]);
             }
@@ -93,7 +93,7 @@ export default function PricingPage() {
         : `${curr.symbol}${localVal.toFixed(2)}`;
     return {
       main: formatted,
-      sub: curr.code !== 'USD' ? `≈ $${usd} USD (Settled in USD)` : 'Settled in USD'
+      sub: curr.code !== 'USD' ? `Settled in USD: $${usd} USD at checkout` : 'Settled in USD ($) at checkout'
     };
   };
 
@@ -216,7 +216,7 @@ export default function PricingPage() {
 
         {/* Currency Notice */}
         <div style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '20px', background: 'rgba(0, 240, 255, 0.08)', border: '1px solid rgba(0, 240, 255, 0.25)', color: '#00F0FF', fontSize: '0.82rem' }}>
-          <span>ℹ️ Prices are displayed in your local currency for convenience. All subscription orders are settled in USD at checkout.</span>
+          <span>ℹ️ Prices are displayed in your country of residence currency for convenience. All subscription orders are securely processed and settled in USD ($) at checkout.</span>
         </div>
       </div>
 

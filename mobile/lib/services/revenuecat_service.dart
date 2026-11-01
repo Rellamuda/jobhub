@@ -7,7 +7,7 @@ class RevenueCatService {
   // Replace these with your actual keys from RevenueCat Project Settings -> API Keys
   static const String _androidApiKey = String.fromEnvironment(
     'REVENUECAT_ANDROID_KEY',
-    defaultValue: 'goog_placeholder_revenuecat_android_key',
+    defaultValue: 'goog_KcjQMRytVDvXDxzEDqlyiSycUvz',
   );
   static const String _iosApiKey = String.fromEnvironment(
     'REVENUECAT_IOS_KEY',

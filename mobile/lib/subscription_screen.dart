@@ -118,9 +118,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         final tierKey = tier.toLowerCase();
         for (final p in packages) {
           final id = p.identifier.toLowerCase();
-          if (id.contains(tierKey) ||
-              (tierKey == 'premium' && id.contains('diamond')) ||
-              (tierKey == 'diamond' && id.contains('premium'))) {
+          final prodId = p.storeProduct.identifier.toLowerCase();
+
+          if (role == 'JOB_SEEKER') {
+            if ((tierKey == 'silver' && (id == 'silver' || prodId.contains('silver'))) ||
+                ((tierKey == 'premium' || tierKey == 'diamond') && (id == 'diamond' || prodId.contains('diamond')))) {
+              targetPackage = p;
+              break;
+            }
+          } else if (role == 'EMPLOYER') {
+            if ((tierKey == 'premium' && (id == 'premium' || prodId.contains('employer_premium'))) ||
+                (tierKey == 'enterprise' && (id == 'enterprise' || prodId.contains('employer_enterprise')))) {
+              targetPackage = p;
+              break;
+            }
+          } else if (role == 'CONTRACTOR') {
+            if ((tierKey == 'dual_pro' && (id.contains('pro') || prodId.contains('pro'))) ||
+                (tierKey == 'dual_enterprise' && (id.contains('enterprise') || prodId.contains('contractor_enterprise')))) {
+              targetPackage = p;
+              break;
+            }
+          }
+
+          if (id == tierKey || prodId.contains(tierKey)) {
             targetPackage = p;
             break;
           }
@@ -372,7 +392,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (_offerings != null && _offerings!.current != null) {
       for (final p in _offerings!.current!.availablePackages) {
         final id = p.identifier.toLowerCase();
-        if (id.contains(tierKey.toLowerCase())) {
+        final prodId = p.storeProduct.identifier.toLowerCase();
+        if (id == tierKey.toLowerCase() || prodId.contains(tierKey.toLowerCase())) {
           return p.storeProduct.priceString;
         }
       }

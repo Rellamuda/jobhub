@@ -2,6 +2,7 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { MailService } from '../mail/mail.service';
+import { formatProfilePic } from '../uploads/uploads.service';
 
 @Injectable()
 export class ProfilesService {
@@ -160,7 +161,10 @@ export class ProfilesService {
       throw new NotFoundException('Job seeker profile not found.');
     }
     
-    return profile;
+    return {
+      ...profile,
+      profilePicture: formatProfilePic(profile.profilePicture),
+    };
   }
 
   async upsertEmployerProfile(userId: string, data: Prisma.EmployerUpdateInput & Prisma.EmployerCreateWithoutUserInput) {
@@ -244,7 +248,7 @@ export class ProfilesService {
       locationCountry: profile.locationCountry || seeker?.residenceCountry || null,
       locationState: profile.locationState || seeker?.residenceState || null,
       locationCity: profile.locationCity || seeker?.residenceCity || null,
-      profilePicture: profile.profilePicture || seeker?.profilePicture || null,
+      profilePicture: formatProfilePic(profile.profilePicture || seeker?.profilePicture || null),
       hrContactName: profile.hrContactName || `${seeker?.firstName || ''} ${seeker?.lastName || ''}`.trim() || 'Principal Representative',
       hrPhone: profile.hrPhone || seeker?.phone || null,
       companySize: profile.companySize || (seeker?.crewSize ? `${seeker.crewSize} Staff / Crew` : '1-10'),

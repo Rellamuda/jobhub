@@ -4,6 +4,17 @@ import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs/promises';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
+export function formatProfilePic(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string' || url.trim() === '') return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const baseUrl = process.env.BASE_URL || process.env.APP_URL || 'https://skillskonnect.online';
+  return `${baseUrl.replace(/\/$/, '')}${cleanPath}`;
+}
+
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
@@ -133,11 +144,16 @@ export class UploadsService {
         await fs.writeFile(join(fallbackFolderPath, filename), buffer);
       } catch (e) {}
 
-      return `/uploads/${folder}/${filename}`;
+      const baseUrl = process.env.BASE_URL || process.env.APP_URL || 'https://skillskonnect.online';
+      return `${baseUrl.replace(/\/$/, '')}/uploads/${folder}/${filename}`;
     } catch (error) {
       this.logger.error('Error saving file locally:', error);
       throw new InternalServerErrorException('Could not save file to disk');
     }
+  }
+
+  formatProfilePic(url: string | null | undefined): string | null {
+    return formatProfilePic(url);
   }
 
   /**

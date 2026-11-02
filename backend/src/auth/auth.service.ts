@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isDisposableEmail } from './disposable-email.validator';
 import { MailService } from '../mail/mail.service';
+import { formatProfilePic } from '../uploads/uploads.service';
 
 @Injectable()
 export class AuthService {
@@ -169,15 +170,21 @@ export class AuthService {
     let verificationStatus = 'UNVERIFIED';
 
     if (updatedUser.role === 'JOB_SEEKER') {
-      const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId: updatedUser.id } });
-      profileComplete = !!profile && profile.firstName.length > 0;
-      profilePicture = profile?.profilePicture || null;
-      displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : '';
+      const profile = await this.prisma.jobSeekerProfile.findUnique({
+        where: { userId: updatedUser.id },
+        select: { firstName: true, lastName: true, profilePicture: true, verificationStatus: true },
+      });
+      profileComplete = !!profile && (profile.firstName?.length ?? 0) > 0;
+      profilePicture = formatProfilePic(profile?.profilePicture);
+      displayName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : '';
       verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
     } else if (updatedUser.role === 'EMPLOYER') {
-      const profile = await this.prisma.employer.findUnique({ where: { userId: updatedUser.id } });
-      profileComplete = !!profile && profile.companyName.length > 0;
-      profilePicture = profile?.profilePicture || null;
+      const profile = await this.prisma.employer.findUnique({
+        where: { userId: updatedUser.id },
+        select: { companyName: true, profilePicture: true, verificationStatus: true },
+      });
+      profileComplete = !!profile && (profile.companyName?.length ?? 0) > 0;
+      profilePicture = formatProfilePic(profile?.profilePicture);
       displayName = profile?.companyName || '';
       verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
     }
@@ -290,15 +297,21 @@ export class AuthService {
     let verificationStatus = 'UNVERIFIED';
 
     if (user.role === 'JOB_SEEKER') {
-      const profile = await this.prisma.jobSeekerProfile.findUnique({ where: { userId: user.id } });
-      profileComplete = !!profile && profile.firstName.length > 0;
-      profilePicture = profile?.profilePicture || null;
-      displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : '';
+      const profile = await this.prisma.jobSeekerProfile.findUnique({
+        where: { userId: user.id },
+        select: { firstName: true, lastName: true, profilePicture: true, verificationStatus: true },
+      });
+      profileComplete = !!profile && (profile.firstName?.length ?? 0) > 0;
+      profilePicture = formatProfilePic(profile?.profilePicture);
+      displayName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : '';
       verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
     } else if (user.role === 'EMPLOYER') {
-      const profile = await this.prisma.employer.findUnique({ where: { userId: user.id } });
-      profileComplete = !!profile && profile.companyName.length > 0;
-      profilePicture = profile?.profilePicture || null;
+      const profile = await this.prisma.employer.findUnique({
+        where: { userId: user.id },
+        select: { companyName: true, profilePicture: true, verificationStatus: true },
+      });
+      profileComplete = !!profile && (profile.companyName?.length ?? 0) > 0;
+      profilePicture = formatProfilePic(profile?.profilePicture);
       displayName = profile?.companyName || '';
       verificationStatus = profile?.verificationStatus || 'UNVERIFIED';
     }
@@ -312,7 +325,7 @@ export class AuthService {
         role: user.role,
         subscriptionTier: user.subscriptionTier,
         profilePicture,
-        displayName,
+        displayName: displayName || user.email,
         verificationStatus,
       },
       profileComplete,
@@ -374,9 +387,17 @@ export class AuthService {
 
     if (!user) return null;
 
-    const profilePicture = user.role === 'JOB_SEEKER' 
+    const rawProfilePic = user.role === 'JOB_SEEKER' 
       ? (user.jobSeekerProfile?.profilePicture || user.employer?.profilePicture)
       : (user.employer?.profilePicture || user.jobSeekerProfile?.profilePicture);
+    const profilePicture = formatProfilePic(rawProfilePic);
+
+    if (user.jobSeekerProfile?.profilePicture) {
+      user.jobSeekerProfile.profilePicture = formatProfilePic(user.jobSeekerProfile.profilePicture) as any;
+    }
+    if (user.employer?.profilePicture) {
+      user.employer.profilePicture = formatProfilePic(user.employer.profilePicture) as any;
+    }
 
     const isCompany = user.jobSeekerProfile?.seekerType === 'COMPANY_CONTRACTOR' ||
       user.jobSeekerProfile?.isDualCapacity ||
@@ -394,7 +415,7 @@ export class AuthService {
 
     return {
       ...user,
-      profilePicture: profilePicture || null,
+      profilePicture,
       displayName: displayName || user.email,
       verificationStatus,
     };

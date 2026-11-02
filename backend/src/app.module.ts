@@ -28,8 +28,16 @@ import { MailModule } from './mail/mail.module';
       serveRoot: '/',
     }),
     ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public'),
+      serveRoot: '/api',
+    }),
+    ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), '..', 'public'),
       serveRoot: '/',
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), '..', 'public'),
+      serveRoot: '/api',
     }),
     PrismaModule, 
     UsersModule, 

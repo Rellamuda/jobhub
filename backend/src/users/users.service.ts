@@ -9,6 +9,13 @@ export class UsersService {
   async findByEmail(email: string) {
     if (!email) return null;
     const cleanEmail = email.trim().toLowerCase();
+    // 1. Instant O(1) indexed lookup on unique email column
+    const directUser = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+    if (directUser) return directUser;
+
+    // 2. Fallback to case-insensitive lookup
     return this.prisma.user.findFirst({
       where: {
         email: {

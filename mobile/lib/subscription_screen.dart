@@ -86,6 +86,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             final isContractor = user['jobSeekerProfile']?['seekerType'] == 'COMPANY_CONTRACTOR' ||
                 user['jobSeekerProfile']?['isDualCapacity'] == true;
             if (isContractor) {
+              _selectedTab = 2;
+            } else if (_userRole == 'EMPLOYER') {
               _selectedTab = 1;
             } else {
               _selectedTab = 0;
@@ -96,6 +98,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     } catch (e) {
       debugPrint('Error fetching user role: $e');
     }
+  }
+
+  Package? _findPackage(String packageId, {List<String> productIdHints = const []}) {
+    final packages = _offerings?.current?.availablePackages;
+    if (packages == null || packages.isEmpty) return null;
+
+    final targetId = packageId.toLowerCase();
+    for (final p in packages) {
+      if (p.identifier.toLowerCase() == targetId) return p;
+    }
+    for (final p in packages) {
+      final prodId = p.storeProduct.identifier.toLowerCase();
+      if (productIdHints.any((hint) => prodId.contains(hint))) return p;
+    }
+    return null;
   }
 
   Future<void> _processNativePurchase(String tier, String role, int amount) async {
@@ -111,42 +128,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         return;
       }
 
-      // Check for native RevenueCat offerings first
+      // Match RevenueCat package by exact package identifier first, then product ID hints
+      final tierKey = tier.toLowerCase();
       Package? targetPackage;
-      if (_offerings != null && _offerings!.current != null) {
-        final packages = _offerings!.current!.availablePackages;
-        final tierKey = tier.toLowerCase();
-        for (final p in packages) {
-          final id = p.identifier.toLowerCase();
-          final prodId = p.storeProduct.identifier.toLowerCase();
-
-          if (role == 'JOB_SEEKER') {
-            if ((tierKey == 'silver' && (id == 'silver' || prodId.contains('silver'))) ||
-                ((tierKey == 'premium' || tierKey == 'diamond') && (id == 'diamond' || prodId.contains('diamond')))) {
-              targetPackage = p;
-              break;
-            }
-          } else if (role == 'EMPLOYER') {
-            if ((tierKey == 'premium' && (id == 'premium' || prodId.contains('employer_premium'))) ||
-                (tierKey == 'enterprise' && (id == 'enterprise' || prodId.contains('employer_enterprise')))) {
-              targetPackage = p;
-              break;
-            }
-          } else if (role == 'CONTRACTOR') {
-            if ((tierKey == 'dual_pro' && (id.contains('pro') || prodId.contains('pro'))) ||
-                (tierKey == 'dual_enterprise' && (id.contains('enterprise') || prodId.contains('contractor_enterprise')))) {
-              targetPackage = p;
-              break;
-            }
-          }
-
-          if (id == tierKey || prodId.contains(tierKey)) {
-            targetPackage = p;
-            break;
-          }
+      if (role == 'JOB_SEEKER') {
+        if (tierKey == 'silver') {
+          targetPackage = _findPackage('silver', productIdHints: ['jobhub_silver']);
+        } else if (tierKey == 'premium' || tierKey == 'diamond') {
+          targetPackage = _findPackage('diamond', productIdHints: ['jobhub_diamond']);
         }
-        targetPackage ??= packages.isNotEmpty ? packages.first : null;
+      } else if (role == 'EMPLOYER') {
+        if (tierKey == 'premium') {
+          targetPackage = _findPackage('premium', productIdHints: ['employer_premium']);
+        } else if (tierKey == 'enterprise') {
+          targetPackage = _findPackage('enterprise', productIdHints: ['employer_enterprise']);
+        }
+      } else if (role == 'CONTRACTOR') {
+        if (tierKey == 'dual_pro') {
+          targetPackage = _findPackage('dual_pro', productIdHints: ['contractor_pro']);
+        } else if (tierKey == 'dual_enterprise') {
+          targetPackage = _findPackage('dual_enterprise', productIdHints: ['contractor_enterprise']);
+        }
       }
+      targetPackage ??= _findPackage(tierKey);
 
       final displayTierName = role == 'CONTRACTOR'
           ? (tier == 'DUAL_ENTERPRISE' ? 'Enterprise Firm' : 'Pro Contractor')
@@ -273,7 +277,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 _buildCurrencySettlementNotice(),
                 const SizedBox(height: 16),
                 if (_selectedTab == 0) ..._buildJobSeekerPlans(),
-                if (_selectedTab == 1) ..._buildContractorPlans(),
+                if (_selectedTab == 1) ..._buildEmployerPlans(),
+                if (_selectedTab == 2) ..._buildContractorPlans(),
                 const SizedBox(height: 24),
                 _buildStoreComplianceNotice(),
                 const SizedBox(height: 30),
@@ -313,10 +318,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 alignment: Alignment.center,
                 child: Text(
                   'Job Seekers',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: _selectedTab == 0 ? Colors.black : Colors.white60,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -328,16 +334,38 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? const Color(0xFFA855F7) : Colors.transparent,
+                  color: _selectedTab == 1 ? const Color(0xFF00F0FF) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'B2B Contractors & Dual Mode',
+                  'Employers',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: _selectedTab == 1 ? Colors.white : Colors.white60,
+                    color: _selectedTab == 1 ? Colors.black : Colors.white60,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 2 ? const Color(0xFFA855F7) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Contractors',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _selectedTab == 2 ? Colors.white : Colors.white60,
                     fontSize: 12,
                   ),
                 ),
@@ -389,14 +417,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   String _getPackagePrice(String tierKey, int usdAmount) {
     if (usdAmount == 0) return '\$0';
-    if (_offerings != null && _offerings!.current != null) {
-      for (final p in _offerings!.current!.availablePackages) {
-        final id = p.identifier.toLowerCase();
-        final prodId = p.storeProduct.identifier.toLowerCase();
-        if (id == tierKey.toLowerCase() || prodId.contains(tierKey.toLowerCase())) {
-          return p.storeProduct.priceString;
-        }
-      }
+    final key = tierKey.toLowerCase();
+    final hints = <String>[
+      key,
+      if (key == 'dual_pro') 'contractor_pro',
+      if (key == 'dual_enterprise') 'contractor_enterprise',
+      if (key == 'premium') 'employer_premium',
+      if (key == 'enterprise') 'employer_enterprise',
+    ];
+    final pkg = _findPackage(key, productIdHints: hints);
+    if (pkg != null) {
+      return pkg.storeProduct.priceString;
     }
     final code = _getUserCurrencyCode();
     final cur = _supportedCurrencies[code] ?? _supportedCurrencies['USD']!;
@@ -598,7 +629,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Prices are displayed in your country of residence currency for convenience. All subscriptions are securely billed and settled in USD (\$) upon payment.',
+              'Prices are displayed in your local currency where supported by Google Play / App Store, and billed securely through your app store account.',
               style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
             ),
           ),
